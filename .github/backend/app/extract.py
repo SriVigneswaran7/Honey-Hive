@@ -18,14 +18,41 @@ cleanlink=cleanlink[1:]
 #classification
 if split_link[2]=="www.amazon.co.uk":
     item=split_link[3]
-    specs=item.split('-')
+    initialspecs=item.split('-')
 
 api_key = os.getenv("SERPAPI_KEY")
-print(api_key)
 params = {
     "engine": "google",
     "q": f'site:{cleanlink}',
     "api_key": api_key
 }
 response = requests.get("https://serpapi.com/search", params=params)
-print(response.json())
+data=response.json()
+organic= data.get("organic_results", [])
+result= organic[0]
+detected = (
+        result
+        .get("rich_snippet", {})
+        .get("bottom", {})
+        .get("detected_extensions", {})
+    )
+price = detected.get("price")
+currency = detected.get("currency")
+print(price)
+
+# features
+snippet = result.get("snippet", "")
+cleaned = snippet.replace(";", ",")
+totalspecs=cleaned.split(",")
+finalspecs=[]
+finalfeats=[]
+for i in totalspecs:
+    if i.strip()!="Product Features":
+        finalspecs.append(i.strip())
+    else:
+        break
+for i in totalspecs:
+    if i.strip() not in finalspecs:
+        finalfeats.append(i.strip())
+print(finalspecs)
+print(finalfeats)
