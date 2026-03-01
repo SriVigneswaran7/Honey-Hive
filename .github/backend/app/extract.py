@@ -38,7 +38,6 @@ detected = (
     )
 price = detected.get("price")
 currency = detected.get("currency")
-print(price)
 
 # features
 snippet = result.get("snippet", "")
@@ -54,5 +53,7 @@ for i in totalspecs:
 for i in totalspecs:
     if i.strip() not in finalspecs:
         finalfeats.append(i.strip())
-print(finalspecs)
-print(finalfeats)
+print(initialspecs)
+print(currency,price)
+print(finalspecs[1:])
+print(finalfeats[1:])
