@@ -43,7 +43,7 @@ def data_extraction(data):
     
 
 site,asin,initialspecs=link_analysis_web(split_link)
-if site="Amazon":\
+if site=="Amazon":
     print(initialspecs)
     data=scrape_data(asin)
     data_extraction(data)
