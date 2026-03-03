@@ -14,7 +14,7 @@ def link_analysis_web(split_link):
         item=split_link[3]
         initialspecs=item.split('-')
     return [site,asin,initialspecs]
-def scrape_data(asin):
+def scrape_data_amazon(asin):
     params = {
         "engine": "amazon_product",
         "asin": asin,
@@ -24,7 +24,7 @@ def scrape_data(asin):
     response = requests.get("https://serpapi.com/search", params=params)
     data = response.json()
     return data
-def data_extraction(data):
+def data_extraction_amazon(data):
     product_results = data.get('product_results', {})
     price = product_results.get('price', 'N/A')
     extracted_price = product_results.get('extracted_price', 0.0)
@@ -45,6 +45,6 @@ def data_extraction(data):
 site,asin,initialspecs=link_analysis_web(split_link)
 if site=="Amazon":
     print(initialspecs)
-    data=scrape_data(asin)
-    data_extraction(data)
+    data=scrape_data_amazon(asin)
+    data_extraction_amazon(data)
 
