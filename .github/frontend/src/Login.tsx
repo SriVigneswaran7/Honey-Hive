@@ -18,8 +18,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center relative font-sans text-gray-100 selection:bg-amber-500/30">
-      
-      {/* Back Arrow - Top Left */}
       <button 
         onClick={() => navigate('/')}
         className="absolute top-8 left-8 text-gray-500 hover:text-amber-500 transition-colors p-2"
@@ -29,10 +27,10 @@ export default function Login() {
         </svg>
       </button>
 
-      {/* Login Card */}
+      
       <div className="bg-gray-900 border-2 border-gray-800 p-10 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden">
         
-        {/* Subtle decorative glow */}
+        
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <h2 className="text-4xl font-extrabold tracking-tight text-white text-center mb-8 relative z-10">
@@ -65,14 +63,12 @@ export default function Login() {
           </button>
         </form>
 
-        {/* The "OR" Divider */}
+        
         <div className="flex items-center my-8 relative z-10">
           <div className="flex-grow border-t-2 border-gray-800"></div>
           <span className="mx-4 text-gray-500 text-sm font-bold uppercase tracking-widest">or</span>
           <div className="flex-grow border-t-2 border-gray-800"></div>
         </div>
-
-        {/* The Handoff Button */}
         <button 
           onClick={() => navigate('/signup')}
           className="w-full bg-transparent border-2 border-gray-800 text-gray-300 font-bold py-4 rounded-2xl hover:border-amber-500 hover:text-amber-500 transition-colors text-lg relative z-10"
