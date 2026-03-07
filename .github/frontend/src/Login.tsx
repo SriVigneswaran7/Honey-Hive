@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
@@ -6,49 +6,72 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
-      localStorage.setItem('isLoggedIn', 'true');
-      navigate('/'); 
-    }
+    localStorage.setItem('hive_user_logged_in', 'true');
+    navigate('/');
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
-      
-      {/* Added position: 'relative' and zIndex: 10 to break through the form's invisible shield */}
-      <div 
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center relative font-sans text-gray-100 selection:bg-amber-500/30">
+      <button 
         onClick={() => navigate('/')}
-        style={{ padding: '30px', fontSize: '32px', color: '#E5C158', cursor: 'pointer', width: 'fit-content', position: 'relative', zIndex: 10 }}
+        className="absolute top-8 left-8 text-gray-500 hover:text-amber-500 transition-colors p-2"
       >
-        ←
-      </div>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </button>
 
-      {/* Added zIndex: 1 here just to keep the layering clean */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '-100px', position: 'relative', zIndex: 1 }}>
-        <form onSubmit={handleLogin} style={{ 
-          width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: '#1a1a1a', 
-          borderRadius: '20px', border: '1px solid #333', textAlign: 'center' 
-        }}>
-          <h2 style={{ color: '#E5C158', fontSize: '28px', marginBottom: '30px' }}>Join the Hive</h2>
+      
+      <div className="bg-gray-900 border-2 border-gray-800 p-10 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden">
+        
+        
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <h2 className="text-4xl font-extrabold tracking-tight text-white text-center mb-8 relative z-10">
+          Join the <span className="text-amber-500">Hive.</span>
+        </h2>
+
+        <form onSubmit={handleSignIn} className="flex flex-col gap-5 relative z-10">
           <input 
-            type="email" placeholder="Email" required value={email}
+            type="email" 
+            placeholder="Email address"
+            value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '14px', marginBottom: '15px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0a0a0a', color: '#fff', outline: 'none' }} 
+            className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg"
+            required
           />
           <input 
-            type="password" placeholder="Password" required value={password}
+            type="password" 
+            placeholder="Password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '14px', marginBottom: '25px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0a0a0a', color: '#fff', outline: 'none' }} 
+            className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg"
+            required
           />
-          <button type="submit" style={{ 
-            width: '100%', padding: '14px', backgroundColor: '#E5C158', color: '#000', 
-            border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer'
-          }}>
+
+          <button 
+            type="submit"
+            className="w-full bg-amber-500 text-gray-950 font-bold py-4 rounded-2xl hover:bg-amber-400 transition-colors mt-2 text-lg shadow-lg shadow-amber-500/20"
+          >
             Sign In
           </button>
         </form>
+
+        
+        <div className="flex items-center my-8 relative z-10">
+          <div className="flex-grow border-t-2 border-gray-800"></div>
+          <span className="mx-4 text-gray-500 text-sm font-bold uppercase tracking-widest">or</span>
+          <div className="flex-grow border-t-2 border-gray-800"></div>
+        </div>
+        <button 
+          onClick={() => navigate('/signup')}
+          className="w-full bg-transparent border-2 border-gray-800 text-gray-300 font-bold py-4 rounded-2xl hover:border-amber-500 hover:text-amber-500 transition-colors text-lg relative z-10"
+        >
+          Create Account
+        </button>
+
       </div>
     </div>
   );
