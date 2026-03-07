@@ -1,48 +1,87 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
+  // Checks if fake user token exists when the page loads
   useEffect(() => {
-    setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true');
+    const userState = localStorage.getItem('hive_user_logged_in');
+    if (userState === 'true') {
+      setIsLoggedIn(true);
+    }
   }, []);
 
-  const handleAuth = () => {
-    if (isLoggedIn) {
-      localStorage.clear();
-      setIsLoggedIn(false);
-    } else {
-      navigate('/login');
-    }
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Sending to backend engine:", searchQuery);
+  };
+
+  const handleLogout = () => {
+    // Clears the fake token and update the UI
+    localStorage.removeItem('hive_user_logged_in');
+    setIsLoggedIn(false);
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff', fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen bg-gray-950 text-gray-100 font-sans selection:bg-amber-500/30">
       
-      {/* Added position: 'relative' and zIndex: 10 to break through the invisible shield */}
-      <div style={{ padding: '20px 40px', display: 'flex', justifyContent: 'flex-end', position: 'relative', zIndex: 10 }}>
-        <button 
-          onClick={handleAuth}
-          style={{ 
-            padding: '10px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer',
-            backgroundColor: isLoggedIn ? 'transparent' : '#E5C158',
-            color: isLoggedIn ? '#E5C158' : '#000',
-            border: isLoggedIn ? '1px solid #E5C158' : 'none'
-          }}
-        >
-          {isLoggedIn ? 'Logout' : 'Login'}
-        </button>
-      </div>
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: '-80px', position: 'relative', zIndex: 1 }}>
-        <h1 style={{ fontSize: '4rem', color: '#E5C158', fontWeight: '900', marginBottom: '40px' }}>HONEY-HIVE</h1>
-        <div style={{ display: 'flex', width: '100%', maxWidth: '600px', borderRadius: '40px', overflow: 'hidden', border: '1px solid #333' }}>
-          <input type="text" placeholder="Search products..." style={{ flex: 1, padding: '20px 30px', backgroundColor: '#111', color: '#fff', border: 'none', outline: 'none' }} />
-          <button style={{ padding: '0 35px', backgroundColor: '#E5C158', border: 'none', cursor: 'pointer' }}>🔍</button>
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
+        <div className="text-2xl font-black tracking-tighter text-amber-400 cursor-pointer">
+          Honey<span className="text-white">Hive</span>
         </div>
-      </div>
+        <div className="font-medium flex gap-4">
+          
+          {/* Dynamic Auth Buttons */}
+          {isLoggedIn ? (
+            <button 
+              onClick={handleLogout}
+              className="text-gray-400 hover:text-amber-500 transition-colors font-bold px-4 py-2"
+            >
+              Log Out
+            </button>
+          ) : (
+            <button 
+              onClick={() => navigate('/login')}
+              className="bg-amber-500 text-gray-950 px-6 py-2 rounded-full hover:bg-amber-400 transition-colors font-bold shadow-lg shadow-amber-500/20"
+            >
+              Log In
+            </button>
+          )}
+
+        </div>
+      </nav>
+
+      {/* Main Hero Section */}
+      <main className="flex flex-col items-center justify-center mt-32 px-4 text-center">
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+          Find the <span className="text-amber-500">sweetest deals.</span>
+        </h1>
+        <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl">
+          Search millions of products. Get real-time UK prices, live availability, and brutal AI tech reviews instantly.
+        </p>
+
+        {/* The Search Bar */}
+        <form onSubmit={handleSearch} className="w-full max-w-3xl relative group">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Paste a product link or search by name..."
+            className="w-full bg-gray-900 border-2 border-gray-800 text-white text-lg rounded-full py-5 pl-8 pr-36 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-2xl"
+          />
+          <button 
+            type="submit"
+            className="absolute right-2 top-2 bottom-2 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold px-8 rounded-full transition-colors"
+          >
+            Search
+          </button>
+        </form>
+        
+      </main>
     </div>
   );
 }
