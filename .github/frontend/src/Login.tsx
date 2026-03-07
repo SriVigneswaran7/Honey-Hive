@@ -6,10 +6,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('hive_user_logged_in', 'true');
-    navigate('/');
+    
+    // 1. Tell the browser to remember the user!
+    localStorage.setItem('isLoggedIn', 'true');
+    
+    // 2. Send them back to the Home screen
+    navigate('/'); 
   };
 
   return (
@@ -33,7 +37,7 @@ export default function Login() {
           Join the <span className="text-amber-500">Hive.</span>
         </h2>
 
-        <form onSubmit={handleSignIn} className="flex flex-col gap-5 relative z-10">
+        <form onSubmit={handleLogin} className="flex flex-col gap-5 relative z-10">
           <input 
             type="email" 
             placeholder="Email address"
