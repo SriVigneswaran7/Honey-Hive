@@ -6,7 +6,6 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
-  // Checks if fake user token exists when the page loads
   useEffect(() => {
     const userState = localStorage.getItem('hive_user_logged_in');
     if (userState === 'true') {
@@ -20,7 +19,7 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    // Clears the fake token and update the UI
+   
     localStorage.removeItem('hive_user_logged_in');
     setIsLoggedIn(false);
   };
@@ -28,14 +27,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans selection:bg-amber-500/30">
       
-      {/* Navbar */}
+      
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
         <div className="text-2xl font-black tracking-tighter text-amber-400 cursor-pointer">
           Honey<span className="text-white">Hive</span>
         </div>
         <div className="font-medium flex gap-4">
           
-          {/* Dynamic Auth Buttons */}
+          
           {isLoggedIn ? (
             <button 
               onClick={handleLogout}
@@ -55,7 +54,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Main Hero Section */}
+      
       <main className="flex flex-col items-center justify-center mt-32 px-4 text-center">
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
           Find the <span className="text-amber-500">sweetest deals.</span>
@@ -64,7 +63,7 @@ export default function Home() {
           Search millions of products. Get real-time UK prices, live availability, and brutal AI tech reviews instantly.
         </p>
 
-        {/* The Search Bar */}
+        
         <form onSubmit={handleSearch} className="w-full max-w-3xl relative group">
           <input
             type="text"
