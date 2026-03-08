@@ -4,7 +4,7 @@ import Login from './Login';
 import './index.css';
 import Results from './Results';
 import Details from './Details';
-import Signup from './Signup';
+
 
 function App() {
   return (
@@ -14,7 +14,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/results" element={<Results />} />
         <Route path="/review" element={<Details />} />
-        <Route path="/signup" element={<Signup />} />
       </Routes>
     </Router>
   );
