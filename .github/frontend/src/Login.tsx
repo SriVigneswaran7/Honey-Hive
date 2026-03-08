@@ -9,10 +9,10 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 1. Tell the browser to remember the user!
+    // 1. Tells the browser to remember the user
     localStorage.setItem('isLoggedIn', 'true');
     
-    // 2. Send them back to the Home screen
+    // 2. Navigate back to the Home screen
     navigate('/'); 
   };
 

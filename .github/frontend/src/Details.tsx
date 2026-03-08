@@ -27,7 +27,7 @@ export default function Details() {
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     setIsLoggedIn(false);
-    navigate('/'); // Kicks them back to Home
+    navigate('/'); // Navigates back to Home
   };
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function Details() {
     const fetchAIData = async () => {
       setLoading(true);
       try {
-        // Backen Work: Change this URL to the Python AI/Coupon endpoint
+        // Change this URL to the Python AI/Coupon endpoint
         const response = await fetch('http://127.0.0.1:5000/api/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -44,7 +44,6 @@ export default function Details() {
         });
         const data = await response.json();
         
-        // Assumes Python sends back { insights: {...}, coupons: [...] }
         setInsights(data.insights);
         setCoupons(data.coupons || []);
       } catch (error) {
@@ -62,7 +61,7 @@ export default function Details() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Safety catch if a user accidentally navigates here without clicking a product
+  // Safety if a user accidentally navigates here without clicking a product
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white">
@@ -116,7 +115,7 @@ export default function Details() {
       <main className="w-[95%] mx-auto mt-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
-          {/* Left Column: Product Info (Always renders instantly) */}
+          {/* Left Column: Product Info */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             <div className="bg-white rounded-3xl p-8 flex items-center justify-center border-4 border-gray-900 shadow-2xl relative">
                <span className="absolute top-4 left-4 bg-gray-950 text-amber-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -134,7 +133,7 @@ export default function Details() {
             </div>
           </div>
 
-          {/* Right Column: AI & Coupons (Waits for Backend) */}
+          {/* Right Column: AI & Coupons */}
           <div className="lg:col-span-7 flex flex-col gap-6">
             {loading ? (
               <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 flex flex-col items-center justify-center h-full text-amber-500 font-bold animate-pulse">
