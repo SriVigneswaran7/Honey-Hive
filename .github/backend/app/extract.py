@@ -5,7 +5,6 @@ from pathlib import Path
 
 load_dotenv(find_dotenv())
 api_key = os.getenv("SERPAPI_KEY")
-link="https://www.amazon.co.uk/Sumvision-Programmable-Performance-Ergonomic-Computer/dp/B08LZJ3FQQ/ref=sr_1_1_sspa?crid=2H7130RAD2NNB&dib=eyJ2IjoiMSJ9.YpZv4TS9bX7IKiZ3wotjjFnM-VrCVs7B2zGjFImKavP7G4QYn6vGZNdI-1aD0sRUDsVKgMK19dcPoLWhNPb9of6fLTferhvwrEGQQHBSywBiH6aBoEJDamUTEWQoBIx36yIrBCPXtcUBsZcdyd4nZSHHv_J5oZqmdhS7EqsidSZCdckDhzu5xzjgiOQtAdVWaP25yDv-Hje_gwXFbZ_MZ_AtARs40qfnaLcTcmJb9Pw8gU9eXhkPL2Txws2YC-2jYB-LGZXs2ay8ZBufyFK2KEMUasKYfuruSdVdyhHSKNk.Brao0uUHJSBE4vvVKAU4xAIgBA894x3-mKBw9SVMNi4&dib_tag=se&keywords=gaming+mouse&qid=1772535126&s=electronics&sprefix=g%2Celectronics%2C345&sr=1-1-spons&aref=I2SMTJ500e&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1"
 def run_extraction(link):
     def split_link(link):
         split_link=link.split("/")
