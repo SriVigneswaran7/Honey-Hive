@@ -26,19 +26,18 @@ setIsLoggedIn(true);
 const handleLogout = () => {
 localStorage.removeItem('isLoggedIn');
 setIsLoggedIn(false);
-navigate('/'); // Kicks them back to Home so they don't stay on a potentially private page
+navigate('/'); // Navigates back to Home Screen
 };
 
-// The function that talks to your Python Backend
+// The function that connects to Python Backend
 const fetchProducts = async (query: string) => {
 if (!query) return;
 setLoading(true);
 try {
-// BACKEND work: Change this URL to the actual Python API endpoint!
+// Change this URL to the actual Python API endpoint
 const response = await fetch(`http://127.0.0.1:5000/api/search?q=${query}`);
 const data = await response.json();
 
-// Assumes Python sends back { shopping_results: [...] }
 setProducts(data.shopping_results || []);
 } catch (error) {
 console.error("Failed to fetch products from backend", error);
@@ -47,7 +46,7 @@ setLoading(false);
 }
 };
 
-// Run the fetch automatically when the page first loads
+// Runs the fetch automatically when the page first loads
 useEffect(() => {
 fetchProducts(initialQuery);
 }, []);
@@ -137,7 +136,7 @@ Scraping the web for the best deals...
 <div className="text-3xl font-black text-amber-400 mb-6">{product.price}</div>
 <div className="mt-auto flex flex-col gap-3">
 <button
-// Passes the exact product object over to the Details screen!
+// Passes the exact product object over to the Details screen
 onClick={() => navigate('/review', { state: { product } })}
 className="w-full bg-amber-500 text-gray-950 font-bold py-3 rounded-xl hover:bg-amber-400 transition-colors"
 >

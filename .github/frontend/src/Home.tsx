@@ -6,7 +6,6 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
-  // Check the backpack as soon as the Home screen loads
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus === 'true') {
@@ -22,7 +21,7 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Sending to backend engine:", searchQuery);
-    // Send the query data alongside the page route!
+    // Sends the query data alongside the page route
     navigate('/results', { state: { query: searchQuery } }); 
   };
 
