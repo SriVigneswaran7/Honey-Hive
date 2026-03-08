@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from ..repositories.users_repo import get_user_by_email
-from ..security import verify_password
+from .users_repo import get_user_by_email
+from .security import verify_password
 
 class AuthResult:
    def __init__(self, ok: bool, reason: str):

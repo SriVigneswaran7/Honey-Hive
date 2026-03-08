@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from .db import init_db, SessionLocal
 from .deps import get_db
 from . import config
-from .services.auth_service import authenticate
+from .auth_service import authenticate
 from .seed import ensure_demo_user
 app = FastAPI(title=config.APP_NAME)
 
