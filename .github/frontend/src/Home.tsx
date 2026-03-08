@@ -6,43 +6,55 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
-  // Checks if fake user token exists when the page loads
+  // Check the backpack as soon as the Home screen loads
   useEffect(() => {
-    const userState = localStorage.getItem('hive_user_logged_in');
-    if (userState === 'true') {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus === 'true') {
       setIsLoggedIn(true);
     }
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Sending to backend engine:", searchQuery);
-  };
-
-  const handleLogout = () => {
-    // Clears the fake token and update the UI
-    localStorage.removeItem('hive_user_logged_in');
-    setIsLoggedIn(false);
+    // Send the query data alongside the page route!
+    navigate('/results', { state: { query: searchQuery } }); 
   };
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans selection:bg-amber-500/30">
       
-      {/* Navbar */}
+      
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
         <div className="text-2xl font-black tracking-tighter text-amber-400 cursor-pointer">
           Honey<span className="text-white">Hive</span>
         </div>
         <div className="font-medium flex gap-4">
           
-          {/* Dynamic Auth Buttons */}
+          
           {isLoggedIn ? (
-            <button 
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-amber-500 transition-colors font-bold px-4 py-2"
-            >
-              Log Out
-            </button>
+            <div className="flex items-center gap-6">
+              {/* History Button */}
+              <button 
+                onClick={() => navigate('/history')} 
+                className="text-gray-300 hover:text-amber-500 transition-colors flex items-center gap-2 font-bold"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                History
+              </button>
+              {/* Logout Button */}
+              <button 
+                onClick={handleLogout} 
+                className="text-gray-500 hover:text-white transition-colors text-sm font-semibold"
+              >
+                Log Out
+              </button>
+            </div>
           ) : (
             <button 
               onClick={() => navigate('/login')}
@@ -55,7 +67,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Main Hero Section */}
+      
       <main className="flex flex-col items-center justify-center mt-32 px-4 text-center">
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
           Find the <span className="text-amber-500">sweetest deals.</span>
@@ -64,7 +76,7 @@ export default function Home() {
           Search millions of products. Get real-time UK prices, live availability, and brutal AI tech reviews instantly.
         </p>
 
-        {/* The Search Bar */}
+        
         <form onSubmit={handleSearch} className="w-full max-w-3xl relative group">
           <input
             type="text"
