@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, Clock, LogOut } from 'lucide-react';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  const recentSearches = [
+    { id: 1, query: 'Sony WH-1000XM5' },
+    { id: 2, query: 'Keychron K2 Keyboard' },
+    { id: 3, query: 'LG C3 OLED TV 55"' },
+  ];
 
   // Check the backpack as soon as the Home screen loads
   useEffect(() => {
@@ -38,28 +46,51 @@ export default function Home() {
           
           
           {isLoggedIn ? (
-            <div className="flex items-center gap-6">
-              {/* History Button */}
-              <button 
-                onClick={() => navigate('/history')} 
-                className="text-gray-300 hover:text-amber-500 transition-colors flex items-center gap-2 font-bold"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                History
-              </button>
-              {/* Logout Button */}
-              <button 
-                onClick={handleLogout} 
-                className="text-gray-500 hover:text-white transition-colors text-sm font-semibold"
-              >
-                Log Out
-              </button>
+            <div className="flex items-center gap-4">
+              
+              <span className="text-gray-200 font-bold tracking-wide">
+                Hi, HoneyUser!
+              </span>
+
+              <div className="relative z-50">
+                <button 
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-amber-500 shadow-lg shadow-amber-500/20"
+                >
+                  <User size={24} />
+                </button>
+
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-4 w-72 bg-gray-900 border-2 border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-50">
+                    <div className="p-4 border-b border-gray-800 bg-gray-950/50">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Signed in as</p>
+                      <p className="font-bold text-white truncate text-sm">user@honeyhive.com</p>
+                    </div>
+                    
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Recent Searches</div>
+                      {recentSearches.map((item) => (
+                        <button key={item.id} className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-amber-500 hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-3">
+                          <Clock size={14} className="opacity-50" />
+                          <span className="truncate">{item.query}</span>
+                        </button>
+                      ))}
+                      <button onClick={() => navigate('/history')} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 font-bold hover:bg-amber-500/10 rounded-lg transition-colors">
+                        View All History
+                      </button>
+                    </div>
+
+                    <div className="p-2 border-t border-gray-800">
+                      <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors flex items-center gap-3 font-bold">
+                        <LogOut size={16} /> Log Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
-            <button 
-              onClick={() => navigate('/login')}
-              className="bg-amber-500 text-gray-950 px-6 py-2 rounded-full hover:bg-amber-400 transition-colors font-bold shadow-lg shadow-amber-500/20"
-            >
+            <button onClick={() => navigate('/login')} className="bg-amber-500 text-gray-950 px-6 py-2 rounded-full hover:bg-amber-400 transition-colors font-bold shadow-lg shadow-amber-500/20">
               Log In
             </button>
           )}
