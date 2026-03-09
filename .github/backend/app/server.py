@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from extract import run_extraction
-
+from search import search_algorithm
 app = Flask(__name__)
 CORS(app)
 
@@ -12,6 +12,9 @@ def search():
 
     print("User searched:", query)
     result = run_extraction(query)
+    print("CHECK")
+    print(result)
+    search_algorithm(result)
     return jsonify(result)
 
 if __name__ == "__main__":
