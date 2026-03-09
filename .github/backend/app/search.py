@@ -7,6 +7,35 @@ import warnings
 warnings.filterwarnings("ignore")
 load_dotenv(find_dotenv())
 
+def parse_input(input_list):
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    prompt = f"""
+    Act as a tech reviewer. Analyse: {input_list}.
+    step 1
+    Return a list as follows
+    Format exactly like this:
+    [Product Type (e.g., "Pedestal Fan", "Smartphone"),
+    Core Specs (e.g., "Oscillating", "5G", "OLED"),
+    Visual Attributes (e.g., "Jet Black", "Chrome finish"),
+    Value-Adds (e.g., "Extended Warranty", "Energy Class A")] try being as descriptive as possible
+
+    step 2 using the formatted generate a string 
+    eg ['Fan', 'Standing', 'Quiet', 'Black', 'Remote Control'] gives
+    Search Query: Quiet black standing fan remote control
+    OUTPUT ONLY THE SEARCH QUERY TEXT.Do not include labels, markdown, or explanations.
+    """
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        response = requests.post(url, json=payload).json()
+        # This extracts the actual text response as a string
+        search_query = response["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return search_query
+    except Exception as e:
+        pass
+        
+
+
 def unified_search(user_input: str):
     api_key = os.getenv("SERPAPI_KEY")
     params = {"engine": "google_shopping", "q": user_input, "gl": "uk", "api_key": api_key}
@@ -81,12 +110,13 @@ def generate_ai_insights(product_title: str):
             "cons": ["Premium price", "Check stock", "Standard warranty"],
             "coupons": [] # For Coupons
         }
+list1=[['Samsung', 'Smartphone', 'JetBlack', 'Extended', 'Warranty'],["PRICE: £499.00 (Numeric: 499.0)"],"FEATURES: Galaxy AI is here to make your day easier: Thanks to smarter, more intuitive AI, you can get real-time insights, edit and enhance content with ease, and get personalised rundowns to keep your day on track¹ ² ³ ⁴ ⁵ Slim and lighter design: At just 7.4 mm and 190 g, it’s the slimmest and lightest FE yet; With a floating camera design and super slim bezels, enjoy an immersive viewing experience in a sleek formGalaxy S25 FE AI ProVisual Engine: Enhance your photos and capture your favourite memories with optimised colour, sharpness and contrast in real time; Ensure every shot and video looks vivid, detailed and true to life⁶For gaming and performance: Equipped with the Exynos 2400, experience smooth gameplay and lightning-fast response; The hardware-based ray tracing and a 14 % larger vapor chamber keep visuals stunning and cool under pressure⁷ ⁸Power to Personalise. Power to Create: The 4,900 mAh battery powers you all day with 45 W wired charging that gets you to 65% in just 30 minutes⁹; Customise wallpapers and widgets to suit your style, and access essentials with the new Now Bar¹⁰This device comes with an additional year of warranty. This has been extended by one year by Samsung, and the extension will be automatically recorded on their systems (this may take up to 120 days from purchase). No further action will be required by you to obtain the extended warranty"]
 
 if __name__ == "__main__":
     import time
     print(" HONEY-HIVE APP SIMULATION: \n")
     
-    user_search = "Macbook M3"
+    user_search = parse_input(list1)
     print(f" USER SEARCHES: '{user_search}'\n")
     
     results = unified_search(user_search)
