@@ -36,6 +36,7 @@ def run_extraction(link):
         reviews_info = data.get('reviews_information', {})
         review_count = product_results.get('reviews', 0)
         review_summary = reviews_info.get('summary', {}).get('text', 'No summary available.')
+        product_data = initialspecs + [features]
         print(f"PRICE: {price} (Numeric: {extracted_price})")
         print("\nFEATURES:")
         for feature in features:
@@ -43,11 +44,14 @@ def run_extraction(link):
 
         print(f"\nREVIEWS ({review_count} total):")
         print(f"Summary: {review_summary}")
+        return product_data 
         
     split_link= split_link(link)
     site,asin,initialspecs=link_analysis_web(split_link)
     if site=="Amazon":
         print(initialspecs)
         data=scrape_data_amazon(asin)
-        data_extraction_amazon(data)
+        product_data=data_extraction_amazon(data)
+        print(product_data)
+        return product_data
 
