@@ -1,57 +1,96 @@
 import os
 import requests
 import json
+import re
 from dotenv import load_dotenv, find_dotenv
 import warnings
 
 warnings.filterwarnings("ignore")
 load_dotenv(find_dotenv())
 
+# Pre-scraper
+def fetch_url_title(url):
+    try:
+        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(url, headers=headers, timeout=4)
+        
+        
+        match = re.search(r'<title>(.*?)</title>', response.text, re.IGNORECASE)
+        if match:
+            
+            clean_title = match.group(1).split('|')[0].replace("Buy", "").strip()
+            return clean_title
+        return url
+    except Exception as e:
+        print(f"[SCRAPER ERROR] Could not read webpage: {e}")
+        return url
+
 def parse_input(input_list):
     gemini_key = os.getenv("GEMINI_API_KEY")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-    prompt = f"""
-    Act as a tech reviewer. Analyse: {input_list}.
-    step 1
-    Return a list as follows
-    Format exactly like this:
-    [Product Type (e.g., "Pedestal Fan", "Smartphone"),
-    Core Specs (e.g., "Oscillating", "5G", "OLED"),
-    Visual Attributes (e.g., "Jet Black", "Chrome finish"),
-    Value-Adds (e.g., "Extended Warranty", "Energy Class A")] try being as descriptive as possible
 
-    step 2 using the formatted generate a string 
-    eg ['Fan', 'Standing', 'Quiet', 'Black', 'Remote Control'] gives
-    Search Query: Quiet black standing fan remote control
-    OUTPUT ONLY THE SEARCH QUERY TEXT.Do not include labels, markdown, or explanations.
+    if not gemini_key:
+        return input_list
+    
+    # Checks the website if URL is pasted
+    if str(input_list).startswith("http"):
+        print(f"[PRE-SCRAPE] Visiting URL to find product name: {input_list}")
+        context_text = fetch_url_title(input_list)
+        print(f"[PRE-SCRAPE] Found title: {context_text}")
+    else:
+        context_text = input_list
+        
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    
+    # Uses Gemini to clean up the link
+    prompt = f"""
+    You are a shopping search optimiser. The raw input is: "{context_text}".
+    Extract the core product name and optimise it for a Google Shopping search.
+    Remove any store names (like "Tesco", "Currys") or promotional text.
+    OUTPUT ONLY THE EXACT SEARCH STRING. No URLs, no labels, no markdown.
     """
+    
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = requests.post(url, json=payload).json()
-        # This extracts the actual text response as a string
-        search_query = response["candidates"][0]["content"]["parts"][0]["text"].strip()
+        response = requests.post(url, json=payload, timeout=5)
+        response_data = response.json()
+        
+        search_query = response_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        print(f"[GEMINI] Final Search Query: {search_query}")
         return search_query
     except Exception as e:
-        print(f"Error in parse_input: {e}") 
-        return "Standard Product Search"
+        print(f"AI Optimisation failed: {e}") 
+        return context_text
         
-
 
 def unified_search(user_input: str):
     api_key = os.getenv("SERPAPI_KEY")
-    params = {"engine": "google_shopping", "q": user_input, "gl": "uk", "api_key": api_key}
+    params = {
+        "engine": "google_shopping",
+        "q": user_input,
+        "gl": "uk",
+        "api_key": api_key
+    }
     try:
         response = requests.get("https://serpapi.com/search", params=params)
         data = response.json()
-        return [{
-            "store": item.get("source"),
-            "title": item.get("title"),
-            "price": item.get("price"),
-            "thumbnail": item.get("thumbnail"),
-            "link": item.get("link")
-        } for item in data.get("shopping_results", [])[:5]]
+        
+        results = []
+        for item in data.get("shopping_results", [])[:5]:
+            
+            actual_link = item.get("link") or item.get("product_link") or item.get("shopping_portal_link")
+            
+            results.append({
+                "store": item.get("source"),
+                "title": item.get("title"),
+                "price": item.get("price"),
+                "thumbnail": item.get("thumbnail"),
+                "link": actual_link 
+            })
+        return results
     except Exception as e:
-        return {"error": str(e)}
+        print(f"Search Error: {e}")
+        return []
 
 def generate_ai_insights(product_title: str):
     serp_key = os.getenv("SERPAPI_KEY")
@@ -60,7 +99,6 @@ def generate_ai_insights(product_title: str):
     if not gemini_key:
         print("\n[CRITICAL ERROR] Gemini API Key is missing! Check your .env file.")
 
-    # 1. SerpApi for the Human Summary
     serp_params = {"engine": "google", "q": f"{product_title} expert review verdict", "gl": "uk", "api_key": serp_key}
     try:
         serp_resp = requests.get("https://serpapi.com/search", params=serp_params).json()
@@ -68,7 +106,6 @@ def generate_ai_insights(product_title: str):
     except:
         organic_snippet = "Detailed specs pending."
 
-    # 2. Direct Gemini API Call
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
     
     prompt = f"""
@@ -87,10 +124,8 @@ def generate_ai_insights(product_title: str):
         ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload).json()
         
         if "error" in ai_resp:
-            print(f"\n[GOOGLE API REJECTED REQUEST]  {ai_resp['error']['message']}")
             raise Exception("Google API Error")
             
-        # If no error, parses the data normally
         text_output = ai_resp["candidates"][0]["content"]["parts"][0]["text"]
         clean_text = text_output.replace("```json", "").replace("```", "").strip()
         parsed_data = json.loads(clean_text)
@@ -101,42 +136,9 @@ def generate_ai_insights(product_title: str):
             "cons": parsed_data.get("cons", ["Con 1", "Con 2", "Con 3"])[:3]
         }
     except Exception as e:
-        # Only prints this if it's a JSON/parsing crash, not a Google rejection
-        if "Google API Error" not in str(e):
-            print(f"\n[DEBUG] Code Crash: {e}")
-            
         return {
             "summary": organic_snippet,
             "pros": [f"Good {product_title[:15]}...", "Works well", "UK verified"],
             "cons": ["Premium price", "Check stock", "Standard warranty"],
-            "coupons": [] # For Coupons
+            "coupons": [] 
         }
-
-def search_algorithm(input_data):
-    import time
-    print(" HONEY-HIVE APP SIMULATION: \n")
-    
-    user_search = parse_input(input_data)
-    print(f" USER SEARCHES: '{user_search}'\n")
-    
-    results = unified_search(user_search)
-    
-    if results:
-        print(" SCREEN 3: RESULTS GRID")
-        for i, item in enumerate(results):
-            print(f"  [{i+1}] {item['title']} - {item['price']} ({item['store']})")
-            
-        clicked_product = results[0]['title']
-        print(f"\n USER CLICKS CARD [1]: '{clicked_product}'")
-        time.sleep(1)
-        
-        print("\n SCREEN 4: PRODUCT DETAILS & AI REVIEW")
-        print(f" Fetching specs via Direct REST API...")
-        insights = generate_ai_insights(clicked_product)
-        
-        print(f"\n SUMMARY: {insights['summary']}")
-        print(f" PROS: \n - " + "\n - ".join(insights['pros']))
-        print(f" CONS: \n - " + "\n - ".join(insights['cons']))
-        print("\n SCREEN 4 RENDER COMPLETE...")
-    else:
-        print(" Search failed.")
