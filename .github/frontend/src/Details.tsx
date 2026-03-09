@@ -7,6 +7,7 @@ export default function Details() {
   
   // Grabs the specific product the user clicked on
   const product = location.state?.product;
+  console.log("Full Product Data:", product);
 
   const [insights, setInsights] = useState<any>(null);
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -118,7 +119,7 @@ export default function Details() {
           {/* Left Column: Product Info */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             <div className="bg-white rounded-3xl p-8 flex items-center justify-center border-4 border-gray-900 shadow-2xl relative">
-               <span className="absolute top-4 left-4 bg-gray-950 text-amber-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+               <span className="absolute top-4 left-4 bg-amber-500 text-gray-950 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
                   {product.store}
                 </span>
               <img src={product.thumbnail} alt={product.title} className="w-full max-h-80 object-contain mix-blend-multiply" />
@@ -127,8 +128,23 @@ export default function Details() {
             <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 shadow-xl">
               <h1 className="text-2xl font-bold text-white leading-snug mb-4">{product.title}</h1>
               <div className="text-4xl font-black text-amber-400 mb-8">{product.price}</div>
-              <a href={product.link} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-amber-500 text-gray-950 font-bold py-4 rounded-xl hover:bg-amber-400 transition-colors text-lg">
-                Buy on {product.store}
+              <a 
+                href={product.link || product.shopping_portal_link || "#"} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`block w-full text-center font-bold py-4 rounded-xl transition-colors text-lg ${
+                  (product.link || product.shopping_portal_link) 
+                    ? 'bg-amber-500 text-gray-950 hover:bg-amber-400' 
+                    : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                }`}
+                onClick={(e) => {
+                  if (!product.link && !product.shopping_portal_link) {
+                    e.preventDefault();
+                    console.error("Link missing in product object:", product);
+                  }
+                }}
+              >
+                {(product.link || product.shopping_portal_link) ? `Buy on ${product.store}` : 'Link Unavailable'}
               </a>
             </div>
           </div>
@@ -137,7 +153,7 @@ export default function Details() {
           <div className="lg:col-span-7 flex flex-col gap-6">
             {loading ? (
               <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 flex flex-col items-center justify-center h-full text-amber-500 font-bold animate-pulse">
-                Gemini AI is analyzing reviews and hunting for coupons...
+                Gemini AI is analysing reviews and hunting for coupons...
               </div>
             ) : (
               <>

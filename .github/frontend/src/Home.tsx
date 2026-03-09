@@ -27,26 +27,12 @@ export default function Home() {
     setIsLoggedIn(false);
   };
 
- const handleSearch = async (e: React.FormEvent) => {
-  e.preventDefault();
-    try {
-    const response = await fetch("http://localhost:5000/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: searchQuery }),
-    });
-
-    const data = await response.json();
-
-    console.log("Python returned:", data);
-
-    navigate("/results", { state: { query: searchQuery, result: data } });
-
-  } catch (error) {
-    console.error("Error contacting backend:", error);
-  }
+const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Passes the link directly to the Results page
+      navigate('/results', { state: { query: searchQuery } });
+    }
   };
 
   return (
