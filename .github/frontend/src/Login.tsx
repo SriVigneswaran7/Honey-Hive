@@ -137,9 +137,10 @@ export default function Login() {
               <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
             </div>
 
+            {/* SECONDARY ACTION */}
             <button 
               onClick={() => navigate('/signup')}
-              className="w-full bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 transition-all text-lg"
+              className="w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95"
             >
               Create Account
             </button>

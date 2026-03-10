@@ -233,7 +233,12 @@ export default function Results() {
                   <button onClick={() => navigate('/review', { state: { product } })} className="w-full bg-amber-500 text-gray-950 font-black py-3.5 rounded-full hover:bg-amber-400 transition-all shadow-lg active:scale-95">
                     AI Review & Specs
                   </button>
-                  <a href={product.link} target="_blank" rel="noreferrer" className="block text-center border-2 border-gray-200 dark:border-white/10 py-3 rounded-full font-bold text-sm text-gray-600 dark:text-gray-300 hover:border-amber-500 hover:text-amber-500 transition-all active:scale-95 bg-white/50 dark:bg-transparent">
+                  <a 
+                    href={product.link} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="block text-center border-2 border-gray-200 dark:border-white/10 py-3 rounded-full font-bold text-sm text-gray-600 dark:text-gray-300 hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all active:scale-95 bg-white/5 dark:bg-transparent"
+                  >
                     View on {product.store}
                   </a>
                 </div>
