@@ -2,6 +2,34 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, Sparkles, Ticket } from 'lucide-react';
 
+const InsightSkeleton = () => (
+  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden h-[600px]">
+    {/* Animated Shimmer Sweep */}
+    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-amber-500/5 to-transparent"></div>
+    
+    <div className="animate-pulse">
+      {/* Header Skeleton */}
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-14 h-14 bg-gray-200 dark:bg-white/5 rounded-2xl"></div>
+        <div className="h-10 w-48 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      </div>
+
+      {/* Summary Paragraph Skeleton */}
+      <div className="space-y-3 mb-12">
+        <div className="h-6 w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+        <div className="h-6 w-5/6 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+        <div className="h-6 w-4/6 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      </div>
+
+      {/* Pros & Cons Columns Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
+        <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function Details() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +122,7 @@ export default function Details() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
       
       {/* Navbar - Unified Hive Design */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
@@ -189,9 +217,10 @@ export default function Details() {
           {/* Right: AI Insights & Coupons */}
           <div className="lg:col-span-7 flex flex-col gap-8">
             {loading ? (
-              <div className="glass-card rounded-[2.5rem] p-12 flex flex-col items-center justify-center h-full border border-gray-200 dark:border-white/10">
-                <div className="w-16 h-16 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mb-6"></div>
-                <p className="text-xl font-bold animate-pulse text-amber-500">AI is crunching reviews...</p>
+              <div className="flex flex-col gap-8">
+                <InsightSkeleton />
+                {/* Optional: Add a small skeleton for coupons if you want, 
+                    but just showing the AI Verdict skeleton usually looks best */}
               </div>
             ) : (
               <>
