@@ -151,7 +151,10 @@ export default function Details() {
               )}
             </div>
           ) : (
-            <button onClick={() => navigate('/login')} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full font-bold text-sm shadow-lg hover:scale-105 active:scale-95">
+            <button 
+              onClick={() => navigate('/login', { state: { from: location.pathname, product: product } })} 
+              className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50"
+            >
               Log In
             </button>
           )}

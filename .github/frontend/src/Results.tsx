@@ -89,7 +89,7 @@ export default function Results() {
         {/* Back Arrow + Logo */}
         <div className="flex items-center gap-6">
           <button 
-            onClick={() => navigate(-1)} 
+            onClick={() => navigate('/')}
             className="relative group p-2 transition-all active:scale-90"
             aria-label="Go Back"
           >
@@ -200,7 +200,10 @@ export default function Results() {
               )}
             </div>
           ) : (
-            <button onClick={() => navigate('/login')} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50">
+            <button 
+              onClick={() => navigate('/login', { state: { from: location.pathname, query: searchInput } })} 
+              className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50"
+            >
               Log In
             </button>
           )}
