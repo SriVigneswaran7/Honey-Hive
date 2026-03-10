@@ -36,7 +36,7 @@ export default function History() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
+    <div className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
       
       {/* FIXED BACKGROUND GLOWS */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>

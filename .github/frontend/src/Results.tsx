@@ -2,6 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon } from 'lucide-react';
 
+// Drop this right above your 'export default function Results() {' line
+const SkeletonCard = () => (
+  <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
+    {/* Image Placeholder */}
+    <div className="h-60 bg-gray-200 dark:bg-white/5 rounded-3xl mb-6 shadow-inner"></div>
+    
+    {/* Title Placeholders */}
+    <div className="h-6 w-3/4 bg-gray-200 dark:bg-white/5 rounded-full mb-2"></div>
+    <div className="h-6 w-1/2 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
+    
+    {/* Price Placeholder */}
+    <div className="h-10 w-1/3 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
+    
+    {/* Buttons Placeholders */}
+    <div className="mt-auto space-y-3">
+      <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+    </div>
+  </div>
+);
+
 export default function Results() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,7 +102,7 @@ export default function Results() {
   }, [initialQuery]);
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
       
       {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
@@ -137,6 +158,13 @@ export default function Results() {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  sessionStorage.removeItem(`honeyhive_results_${searchInput}`);
+                  fetchProducts(searchInput);
+                }
+              }}
               className="w-full bg-transparent py-2 px-6 focus:outline-none font-medium text-sm text-gray-900 dark:text-white"
             />
             <button
@@ -213,9 +241,14 @@ export default function Results() {
       {/* Product Grid */}
       <main className="max-w-7xl mx-auto px-6 mt-12 relative z-10">
         {loading ? (
-          <div className="flex flex-col items-center justify-center mt-32">
-            <div className="w-16 h-16 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mb-6"></div>
-            <p className="font-bold animate-pulse text-gray-500 tracking-wide text-lg">Scraping the sweetest deals...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Render 6 skeleton cards while waiting for the backend */}
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

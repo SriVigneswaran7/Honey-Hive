@@ -50,7 +50,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30">
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30">
       
       {/* Navbar - Transparent with glass-like feel */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
