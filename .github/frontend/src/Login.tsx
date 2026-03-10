@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Sun, Moon, X } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,22 +10,67 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isDark, setIsDark] = useState(false);
 
+  const [error, setError] = useState('');
+
+  // Auto-clear error toast after 3 seconds
   useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+  // Let the animation start, then check status after 10ms
+  const checkStatus = setTimeout(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus === 'true') {
       navigate('/', { replace: true });
     }
-  }, [navigate]);
+  }, 10);
+
+  setIsDark(document.documentElement.classList.contains('dark'));
+  
+  return () => clearTimeout(checkStatus);
+}, [navigate]);
 
   // Grab the full state so we don't lose the product or query
   const returnState = location.state || {};
   const from = returnState.from || "/";
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('isLoggedIn', 'true');
-    // Pass the state BACK to the previous page
-    navigate(from, { replace: true, state: returnState }); 
+    setError(''); // Clear any old errors
+
+    try {
+      // 1. Send the credentials to your Python backend
+      const response = await fetch('http://127.0.0.1:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      // 2. Check if the backend approved the login
+      if (response.ok) {
+        // Success! Log them in
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // (Optional) You can save the user's data from the DB here later:
+        // localStorage.setItem('userEmail', data.email); 
+
+        navigate(from, { replace: true, state: returnState }); 
+      } else {
+        // 3. Trigger your Premium Toast with the DB's exact error message
+        setError(data.error || 'Invalid credentials. Please try again.');
+      }
+    } catch (err) {
+      // 4. Fallback if the Python server is offline or crashes
+      setError('Cannot connect to server. Please try again later.');
+    }
   };
 
   const toggleTheme = () => {
@@ -41,11 +86,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative">
+    <div key="login-page" className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative">
       
       {/* BACKGROUND GLOWS */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[40px] pointer-events-none"></div>
 
       {/* NAVBAR - MATCHED TO HOME.TSX */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
@@ -81,7 +126,7 @@ export default function Login() {
       {/* CENTERED LOGIN CARD */}
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-md relative group">
-          <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-2xl opacity-50 animate-pulse pointer-events-none"></div>
+          <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-xl opacity-50 animate-pulse pointer-events-none"></div>
           
           <div className="relative glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl">
             <div className="text-center mb-10">
@@ -147,6 +192,26 @@ export default function Login() {
           </div>
         </div>
       </main>
+
+      {/* PREMIUM TOAST NOTIFICATION */}
+      {error && (
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="relative glass-card border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-2xl px-6 py-4 flex items-center gap-4 overflow-hidden bg-gray-900/90 backdrop-blur-xl">
+            {/* Red sweeping glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+            
+            <p className="font-bold text-red-500 text-sm relative z-10">{error}</p>
+            
+            <button 
+              onClick={() => setError('')} 
+              className="text-red-500/70 hover:text-red-500 transition-colors relative z-10"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
