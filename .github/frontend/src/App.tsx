@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import Home from './Home';
 import Login from './Login';
 import './index.css';
@@ -8,17 +9,36 @@ import Signup from './Signup';
 import History from './History';
 
 function App() {
+  // Checks local storage on initial load so the theme stays consistent
+  useEffect(() => {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/results" element={<Results />} />
-        <Route path="/review" element={<Details />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/history" element={<History />} />
-      </Routes>
-    </Router>
+    <div className="min-h-screen w-full relative overflow-hidden transition-colors duration-700 bg-white dark:bg-slate-950">
+      
+      {/* Glow Effect */}
+      <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-amber-400/40 dark:bg-amber-600/20 rounded-full blur-[120px] animate-glow pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-rose-400/40 dark:bg-indigo-600/20 rounded-full blur-[120px] animate-glow [animation-delay:2s] pointer-events-none z-0" />
+
+      {/* UI layer*/}
+      <div className="relative z-10">
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/review" element={<Details />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/history" element={<History />} />
+          </Routes>
+        </Router>
+      </div>
+    </div>
   );
 }
 

@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Sun, Moon } from 'lucide-react';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 1. Grab the state to remember where they came from
+  const returnState = location.state || {};
+  const from = returnState.from || "/";
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +18,16 @@ export default function Signup() {
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  // 2. THE GHOST KILLER & Theme Initialization
+  useEffect(() => {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus === 'true') {
+      navigate('/', { replace: true });
+    }
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, [navigate]);
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,90 +37,156 @@ export default function Signup() {
       setError('Passwords do not match. Please try again.');
       return; 
     }
-
     if (!agreed) return; 
-    localStorage.setItem('hive_user_logged_in', 'true');
-    navigate('/');
+    
+    // 3. Use the exact same key as Login.tsx
+    localStorage.setItem('isLoggedIn', 'true');
+    
+    // 4. Navigate back to their search/product with the packed bags
+    navigate(from, { replace: true, state: returnState });
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center relative font-sans text-gray-100 selection:bg-amber-500/30">
-      <button onClick={() => navigate('/login')} className="absolute top-8 left-8 text-gray-500 hover:text-amber-500 transition-colors p-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-      </button>
+    <div className="min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
+      
+      {/* FIXED BACKGROUND GLOWS */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <div className="bg-gray-900 border-2 border-gray-800 p-10 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden mt-10 mb-10">
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <h2 className="text-4xl font-extrabold tracking-tight text-white text-center mb-8 relative z-10">
-          Create <span className="text-amber-500">Account.</span>
-        </h2>
-
-        <form onSubmit={handleSignUp} className="flex flex-col gap-5 relative z-10">
-          <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg" required />
-          <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg" required />
-          
-          <div className="relative">
-            <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg" required />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-amber-500 transition-colors">
-              {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-white placeholder-gray-500 transition-all text-lg" required />
-          </div>
-
-          {error && <p className="text-red-500 text-sm font-bold text-center mt-1">{error}</p>}
-
-          <div className="flex items-center gap-3 mt-2">
-           <input 
-              type="checkbox" 
-              id="terms" 
-              checked={agreed} 
-              onChange={() => agreed ? setAgreed(false) : setShowModal(true)} 
-              className="w-5 h-5 accent-amber-500 cursor-pointer" 
-              required 
-            />
-            <label htmlFor="terms" className="text-gray-400 text-sm">
-              I agree to the <span onClick={() => setShowModal(true)} className="text-amber-500 hover:text-amber-400 cursor-pointer font-bold underline">Terms and Agreements</span>
-            </label>
-          </div>
-
-          <button type="submit" disabled={!agreed} className={`w-full font-bold py-4 rounded-2xl transition-all mt-2 text-lg shadow-lg ${agreed ? 'bg-amber-500 text-gray-950 hover:bg-amber-400 shadow-amber-500/20' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
-            Sign Up
+      {/* UNIFIED NAVBAR */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
+        <div className="flex items-center gap-6">
+          <button onClick={() => navigate('/login', { state: returnState })} className="relative group p-2 transition-all active:scale-90">
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
           </button>
-        </form>
-
-        <div className="flex items-center my-8 relative z-10">
-          <div className="flex-grow border-t-2 border-gray-800"></div>
-          <span className="mx-4 text-gray-500 text-sm font-bold uppercase tracking-widest">or</span>
-          <div className="flex-grow border-t-2 border-gray-800"></div>
+          
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
         </div>
 
-        <button onClick={() => navigate('/login')} className="w-full bg-transparent border-2 border-gray-800 text-gray-300 font-bold py-4 rounded-2xl hover:border-amber-500 hover:text-amber-500 transition-colors text-lg relative z-10">
-          Log In
+        <button onClick={toggleTheme} className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500">
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
-      </div>
+      </nav>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-gray-900 border-2 border-amber-500/50 p-8 rounded-3xl max-w-lg w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-amber-500 mb-4">Terms and Conditions of Use</h3>
-            <div className="text-gray-300 mb-6 leading-relaxed space-y-4 text-sm">
-              <p><strong>1. Academic Demonstration:</strong> This application is strictly an academic project prototype.</p>
-              <p><strong>2. Data Storage & Privacy:</strong> Any information submitted through this form will be transmitted to and stored within our active backend databases. For your privacy and security, you are strictly advised <strong>not</strong> to use real names, genuine email addresses, active passwords, or any sensitive personal data.</p>
-              <p><strong>3. Assumption of Risk:</strong> By proceeding, you acknowledge these risks. Any submission of genuine personal information is done entirely of your own volition. The developers assume no liability for any breach, loss, or unauthorized exposure of such data.</p>
+      {/* MAIN CONTENT WRAPPER */}
+      <main className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-md relative group">
+          <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-2xl opacity-50 animate-pulse pointer-events-none"></div>
+          
+          <div className="relative glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white mb-2">
+                Create <span className="text-amber-500">Account.</span>
+              </h2>
             </div>
+
+            {/* FORM LOGIC - UNTOUCHED */}
+            <form onSubmit={handleSignUp} className="space-y-5">
+              <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm pr-12" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-500 transition-colors">
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              </div>
+
+              {error && <p className="text-red-500 text-sm font-bold text-center mt-1">{error}</p>}
+
+              <div className="flex items-center gap-3 pt-2">
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  checked={agreed} 
+                  onChange={() => agreed ? setAgreed(false) : setShowModal(true)} 
+                  className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer" 
+                  required 
+                />
+                <label htmlFor="terms" className="text-sm text-gray-500 dark:text-gray-400">
+                  I agree to the <span onClick={() => setShowModal(true)} className="text-amber-500 hover:text-amber-400 cursor-pointer font-bold hover:underline transition-all">Terms and Agreements</span>
+                </label>
+              </div>
+
+              <div className="relative group/btn pt-2">
+                <div className={`absolute inset-0 bg-amber-500/40 rounded-full blur-xl transition-opacity duration-300 ${agreed ? 'opacity-0 group-hover/btn:opacity-100 animate-pulse' : 'opacity-0'}`}></div>
+                <button 
+                  type="submit" 
+                  disabled={!agreed} 
+                  className={`relative w-full font-black py-4 rounded-full transition-all shadow-lg text-lg z-10 ${agreed ? 'bg-amber-500 text-gray-950 hover:bg-amber-400 active:scale-95' : 'bg-gray-200 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed border border-gray-300 dark:border-white/10'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+            </form>
+
+            <div className="flex items-center my-6">
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+              <span className="mx-4 text-gray-400 text-[10px] font-black uppercase tracking-widest">or</span>
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+            </div>
+
+            <button onClick={() => navigate('/login', { state: returnState })} className="w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95">
+              Log In
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* RE-STYLED GLASS MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowModal(false)}>
+          {/* Glass Card Container */}
+          <div className="glass-card rounded-[2.5rem] border border-gray-200 dark:border-white/10 p-10 max-w-lg w-full shadow-2xl relative overflow-hidden group animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Glows */}
+            <div className="absolute top-[-20%] left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute bottom-[-20%] right-[-20%] w-60 h-60 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <h3 className="text-3xl font-black text-amber-500 mb-6 tracking-tight relative z-10">Terms and Conditions of Use</h3>
+            
+            {/* Text Area Re-styled for Glass Theme */}
+            <div className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed space-y-4 text-sm font-medium relative z-10 h-80 overflow-y-auto pr-4 selection:bg-amber-500/20">
+              <p><strong className="text-gray-900 dark:text-white font-bold">1. Academic Demonstration:</strong> This application is strictly an academic project prototype for demonstration purposes only.</p>
+              <p><strong className="text-gray-900 dark:text-white font-bold">2. Data Storage & Privacy:</strong> Any information submitted through this form will be transmitted to and stored within our active backend databases. For your privacy and security, you are <span className="text-amber-500 font-bold">strictly advised not</span> to use real names, genuine email addresses, active passwords, or any sensitive personal data.</p>
+              <p><strong className="text-gray-900 dark:text-white font-bold">3. Assumption of Risk:</strong> By proceeding, you acknowledge these risks. Any submission of genuine personal information is done entirely of your own volition. The developers assume no liability for any breach, loss, or unauthorized exposure of such data.</p>
+              <div className="h-4"></div>
+            </div>
+
+            {/* Accept Button re-styled to match the secondary button standard */}
             <button 
               onClick={() => {
                 setAgreed(true);
                 setShowModal(false);
               }} 
-              className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-700 hover:text-amber-500 transition-colors text-sm"
+              className="relative w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95 z-10"
             >
-              I understand and have read the terms and agreements
+              I understand and have read the terms
             </button>
           </div>
         </div>

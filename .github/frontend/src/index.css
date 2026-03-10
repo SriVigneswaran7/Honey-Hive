@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* The "Master" Glass Class */
+  .glass-card {
+    @apply relative overflow-hidden transition-all duration-500;
+    
+    /* Light Mode */
+    @apply bg-white/40 backdrop-blur-xl backdrop-saturate-150;
+    @apply border border-white/30 shadow-2xl shadow-gray-200/50;
+    
+    /* Dark Mode */
+    @apply dark:bg-slate-900/40 dark:backdrop-blur-2xl dark:backdrop-saturate-200;
+    @apply dark:border-white/10 dark:shadow-none;
+  }
+
+  /* Rim Light Effect */
+  .glass-card::before {
+    content: "";
+    @apply absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none;
+  }
+}
+
+/* Glow Effect */
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.animate-glow {
+  animation: float 15s ease-in-out infinite;
+}
