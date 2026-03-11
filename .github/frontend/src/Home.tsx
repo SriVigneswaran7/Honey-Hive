@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30">
       
-      {/* Navbar - Transparent with glass-like feel */}
+      {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
         <div className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer">
           Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
@@ -60,7 +60,7 @@ export default function Home() {
         
         <div className="font-medium flex items-center gap-4">
           
-          {/* THE NEW THEME TOGGLE */}
+          {/* Theme Toggle */}
           <button 
             onClick={toggleTheme} 
             className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 mr-2"
@@ -85,7 +85,7 @@ export default function Home() {
 
                 {showProfileMenu && (
                   <>
-                    {/* FIX 3: Invisible full-screen overlay to close menu when clicking outside */}
+                    {/* Dropdown exit */}
                     <div 
                       className="fixed inset-0 z-40" 
                       onClick={() => setShowProfileMenu(false)}
@@ -107,7 +107,7 @@ export default function Home() {
                           </button>
                         ))}
                         
-                        {/* FIX 2: Restored View All History Button */}
+                        {/* View All History Button */}
                         <button 
                           onClick={() => {
                             setShowProfileMenu(false);

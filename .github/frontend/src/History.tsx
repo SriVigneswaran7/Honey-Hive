@@ -38,14 +38,15 @@ export default function History() {
   return (
     <div className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
       
-      {/* FIXED BACKGROUND GLOWS */}
+      {/* Glow Effect */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* UNIFIED NAVBAR */}
+      {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
         <div className="flex items-center gap-6">
-          {/* Back button returns to the exact previous screen */}
+
+          {/* Back button */}
           <button onClick={() => navigate(-1)} className="relative group p-2 transition-all active:scale-90">
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
@@ -67,7 +68,7 @@ export default function History() {
         </button>
       </nav>
 
-      {/* MAIN CONTENT */}
+      {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full p-6 relative z-10 mt-4">
         
         <div className="mb-10 text-center md:text-left">
@@ -78,7 +79,7 @@ export default function History() {
         </div>
 
         <div className="glass-card rounded-[2.5rem] p-4 sm:p-8 border border-gray-200 dark:border-white/10 shadow-2xl relative group">
-          {/* Subtle container glow */}
+          {/* Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-rose-500/5 rounded-[2.5rem] opacity-50 pointer-events-none"></div>
 
           {pastSearches.length > 0 ? (
@@ -86,7 +87,7 @@ export default function History() {
               {pastSearches.map((item) => (
                 <li 
                   key={item.id} 
-                  // When hooked up to the backend, this onClick will navigate to Results and pass the query
+
                   onClick={() => navigate('/results', { state: { query: item.query } })}
                   className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group/item hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.1)] transition-all cursor-pointer active:scale-[0.98]"
                 >
