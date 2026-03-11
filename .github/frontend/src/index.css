@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer components {
-  /* The "Master" Glass Class */
+  /* The Glass Class */
   .glass-card {
     @apply relative overflow-hidden transition-all duration-500;
     
@@ -23,8 +23,6 @@
   }
 }
 
-/* --- ANIMATIONS --- */
-
 /* Glow Effect */
 @keyframes float {
   0% { transform: translate(0, 0) scale(1); }
@@ -41,7 +39,7 @@
 @keyframes pageEnter {
   from {
     opacity: 0;
-    transform: translateY(8px); /* Less distance, less work for the GPU */
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -50,6 +48,5 @@
 }
 
 .animate-page {
-  /* Using a standard ease-out is lighter than the complex bezier for this specific page */
   animation: pageEnter 250ms ease-out forwards;
 }

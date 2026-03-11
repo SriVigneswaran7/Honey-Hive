@@ -12,7 +12,7 @@ export default function Login() {
 
   const [error, setError] = useState('');
 
-  // Auto-clear error toast after 3 seconds
+  // Auto-clear error popup
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(''), 3000);
@@ -21,7 +21,6 @@ export default function Login() {
   }, [error]);
 
   useEffect(() => {
-  // Let the animation start, then check status after 10ms
   const checkStatus = setTimeout(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus === 'true') {
@@ -88,14 +87,14 @@ export default function Login() {
   return (
     <div key="login-page" className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative">
       
-      {/* BACKGROUND GLOWS */}
+      {/* Glow Effect */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[40px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[40px] pointer-events-none"></div>
 
-      {/* NAVBAR - MATCHED TO HOME.TSX */}
+      {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
         <div className="flex items-center gap-6">
-          {/* Glowing Back Arrow */}
+          {/* Back Arrow */}
           <button 
             onClick={() => navigate(from)} 
             className="relative group p-2 transition-all active:scale-90"
@@ -123,7 +122,7 @@ export default function Login() {
         </button>
       </nav>
 
-      {/* CENTERED LOGIN CARD */}
+      {/* Login Card */}
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-md relative group">
           <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-xl opacity-50 animate-pulse pointer-events-none"></div>
@@ -182,7 +181,6 @@ export default function Login() {
               <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
             </div>
 
-            {/* SECONDARY ACTION */}
             <button 
               onClick={() => navigate('/signup')}
               className="w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95"
@@ -193,11 +191,11 @@ export default function Login() {
         </div>
       </main>
 
-      {/* PREMIUM TOAST NOTIFICATION */}
+      {/* Error Popup */}
       {error && (
         <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="relative glass-card border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-2xl px-6 py-4 flex items-center gap-4 overflow-hidden bg-gray-900/90 backdrop-blur-xl">
-            {/* Red sweeping glow effect */}
+            {/* Red Glow Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
             
             <p className="font-bold text-red-500 text-sm relative z-10">{error}</p>

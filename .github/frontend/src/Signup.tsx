@@ -20,7 +20,6 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // 2. THE GHOST KILLER & Theme Initialization
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus === 'true') {
@@ -29,7 +28,7 @@ export default function Signup() {
     setIsDark(document.documentElement.classList.contains('dark'));
   }, [navigate]);
 
-  // Auto-clear error toast after 3 seconds
+  // Auto-clears error popup
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(''), 3000);
@@ -90,11 +89,11 @@ export default function Signup() {
   return (
     <div key="signup-page" className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
       
-      {/* FIXED BACKGROUND GLOWS */}
+      {/* Glow Effect */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* UNIFIED NAVBAR */}
+      {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => navigate('/login', { state: returnState })} className="relative group p-2 transition-all active:scale-90">
@@ -118,7 +117,7 @@ export default function Signup() {
         </button>
       </nav>
 
-      {/* MAIN CONTENT WRAPPER */}
+      {/* Maon Content Wrapper */}
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-md relative group">
           <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-2xl opacity-50 animate-pulse pointer-events-none"></div>
@@ -130,7 +129,7 @@ export default function Signup() {
               </h2>
             </div>
 
-            {/* FORM LOGIC - UNTOUCHED */}
+            {/* Form Logic */}
             <form onSubmit={handleSignUp} className="space-y-5">
               <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
               <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
@@ -185,19 +184,18 @@ export default function Signup() {
         </div>
       </main>
 
-      {/* RE-STYLED GLASS MODAL */}
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowModal(false)}>
-          {/* Glass Card Container */}
+        <div className="fixed inset-0 bg-gray-900/40 flex items-center justify-center z-[100] p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowModal(false)}>
+          
           <div className="glass-card rounded-[2.5rem] border border-gray-200 dark:border-white/10 p-10 max-w-lg w-full shadow-2xl relative overflow-hidden group animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
             
-            {/* Modal Glows */}
+            {/* Glow Effect */}
             <div className="absolute top-[-20%] left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
             <div className="absolute bottom-[-20%] right-[-20%] w-60 h-60 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
             <h3 className="text-3xl font-black text-amber-500 mb-6 tracking-tight relative z-10">Terms and Conditions of Use</h3>
             
-            {/* Text Area Re-styled for Glass Theme */}
             <div className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed space-y-4 text-sm font-medium relative z-10 h-80 overflow-y-auto pr-4 selection:bg-amber-500/20">
               <p><strong className="text-gray-900 dark:text-white font-bold">1. Academic Demonstration:</strong> This application is strictly an academic project prototype for demonstration purposes only.</p>
               <p><strong className="text-gray-900 dark:text-white font-bold">2. Data Storage & Privacy:</strong> Any information submitted through this form will be transmitted to and stored within our active backend databases. For your privacy and security, you are <span className="text-amber-500 font-bold">strictly advised not</span> to use real names, genuine email addresses, active passwords, or any sensitive personal data.</p>
@@ -205,40 +203,6 @@ export default function Signup() {
               <div className="h-4"></div>
             </div>
 
-            {/* Accept Button re-styled to match the secondary button standard */}
-            <button 
-              onClick={() => {
-                setAgreed(true);
-                setShowModal(false);
-              }} 
-              className="relative w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95 z-10"
-            >
-              I understand and have read the terms
-            </button>
-          </div>
-        </div>
-      )}
-      {/* RE-STYLED GLASS MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowModal(false)}>
-          {/* Glass Card Container */}
-          <div className="glass-card rounded-[2.5rem] border border-gray-200 dark:border-white/10 p-10 max-w-lg w-full shadow-2xl relative overflow-hidden group animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-            
-            {/* Modal Glows */}
-            <div className="absolute top-[-20%] left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-            <div className="absolute bottom-[-20%] right-[-20%] w-60 h-60 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-
-            <h3 className="text-3xl font-black text-amber-500 mb-6 tracking-tight relative z-10">Terms and Conditions of Use</h3>
-            
-            {/* Text Area Re-styled for Glass Theme */}
-            <div className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed space-y-4 text-sm font-medium relative z-10 h-80 overflow-y-auto pr-4 selection:bg-amber-500/20">
-              <p><strong className="text-gray-900 dark:text-white font-bold">1. Academic Demonstration:</strong> This application is strictly an academic project prototype for demonstration purposes only.</p>
-              <p><strong className="text-gray-900 dark:text-white font-bold">2. Data Storage & Privacy:</strong> Any information submitted through this form will be transmitted to and stored within our active backend databases. For your privacy and security, you are <span className="text-amber-500 font-bold">strictly advised not</span> to use real names, genuine email addresses, active passwords, or any sensitive personal data.</p>
-              <p><strong className="text-gray-900 dark:text-white font-bold">3. Assumption of Risk:</strong> By proceeding, you acknowledge these risks. Any submission of genuine personal information is done entirely of your own volition. The developers assume no liability for any breach, loss, or unauthorized exposure of such data.</p>
-              <div className="h-4"></div>
-            </div>
-
-            {/* Accept Button */}
             <button 
               onClick={() => {
                 setAgreed(true);
@@ -252,11 +216,11 @@ export default function Signup() {
         </div>
       )}
 
-      {/* PREMIUM TOAST NOTIFICATION */}
+      {/* Error Popup */}
       {error && (
         <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="relative glass-card border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-2xl px-6 py-4 flex items-center gap-4 overflow-hidden bg-gray-900/90 backdrop-blur-xl">
-            {/* Red sweeping glow effect */}
+            {/* Red Glow Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
             
             <p className="font-bold text-red-500 text-sm relative z-10">{error}</p>

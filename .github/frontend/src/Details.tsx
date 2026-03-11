@@ -4,7 +4,7 @@ import { User, Clock, LogOut, Sun, Moon, Sparkles, Ticket } from 'lucide-react';
 
 const InsightSkeleton = () => (
   <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden h-[600px]">
-    {/* Animated Shimmer Sweep */}
+    
     <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-amber-500/5 to-transparent"></div>
     
     <div className="animate-pulse">
@@ -124,7 +124,7 @@ export default function Details() {
   return (
     <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
       
-      {/* Navbar - Unified Hive Design */}
+      {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => navigate(-1)} className="relative group p-2 transition-all active:scale-90" aria-label="Go Back">
@@ -227,9 +227,8 @@ export default function Details() {
                 {insights && (
                   <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden group">
                     
-                    {/* THE TWO-LAYER AI PULSE ENGINE */}
+                   
                     <div className="absolute -top-24 -right-24 w-80 h-80 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                      {/* LAYER 2 (The Engine): Always breathing in the background, only seen when group is hovered */}
                       <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-[80px] animate-pulse"></div>
                     </div>
                     
