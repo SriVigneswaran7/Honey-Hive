@@ -1,63 +1,124 @@
-1. Overview
+# Honey-Hive System Modelling
 
-This document presents the system modelling for the ELEE1149 group coursework project. The system is a web-based product comparison and review assistant that allows a user to input either a product name or a product URL, retrieve matching product offers, and generate AI-assisted product insights.
+## 1. Overview
 
-The modelling in this document reflects both the current implementation and the intended system design described in the requirements. The current implementation already includes a Flask backend, a search workflow, Amazon URL extraction, Google Shopping search through SerpAPI, and AI-generated product insights using Gemini.
+This document presents the **system modelling** for the **ELEE1149 group coursework project**. The system, named **Honey-Hive**, is a web-based product comparison and review assistant that allows a user to input either a **product name** or a **product URL**, retrieve matching product offers, and generate **AI-assisted product insights**.
 
-The system modelling aims to demonstrate how the project aligns with software engineering principles by clearly communicating system structure, behaviour, and design decisions.
+The modelling in this document reflects both the **current implementation** and the **intended system design** described in the project requirements.
 
-2. System Context
+The current implementation already includes:
 
-The system is designed as a web application consisting of three main layers:
+- **Flask backend API**
+- **Product search workflow**
+- **Amazon URL extraction**
+- **Google Shopping queries via SerpAPI**
+- **AI-generated product insights using Gemini**
 
-Presentation Layer
+The purpose of this modelling document is to demonstrate how the system aligns with **software engineering principles** by clearly communicating:
 
-Frontend user interface
+- **System structure**
+- **System behaviour**
+- **Design decisions**
+- **Component responsibilities**
 
-Handles user input and displays results
+---
 
-Application Layer
+## 2. System Context
 
-Flask backend API
+The system is designed as a **web application** consisting of **three main architectural layers**.
 
-Handles routing, validation, processing logic, and API orchestration
+### 2.1 Presentation Layer
 
-Service Layer
+The **frontend interface** provides the interaction point for the user.
 
-External APIs providing product search and AI functionality
+**Responsibilities include:**
 
-Main User Goal
+- Collecting **user input**
+- Sending **requests to the backend**
+- Displaying **product comparison results**
+- Presenting **AI-generated insights**
 
-The user wants to quickly compare a product by entering either:
+---
 
-a product search query (e.g., “Sony WH-1000XM5 headphones”), or
+### 2.2 Application Layer
 
-a direct product URL (e.g., an Amazon product link)
+The **Flask backend API** acts as the **central processing component**.
 
-The system retrieves product offers and optionally generates AI-based product insights.
+**Responsibilities include:**
 
-3. Architectural Style and Justification
+- Handling **API routing**
+- Performing **input validation**
+- Executing **business logic**
+- Orchestrating interactions with **external services**
 
-The system follows a client-server architecture with a modular backend design.
+---
 
-The architecture separates the system into the following responsibilities:
+### 2.3 Service Layer
 
-| Layer             | Responsibility                           |
-| ----------------- | ---------------------------------------- |
-| Frontend          | Collect user input and present results   |
-| Backend API       | Process requests, perform routing logic  |
+The system relies on **external APIs** to provide **product search** and **AI processing capabilities**.
+
+**External services include:**
+
+- **SerpAPI** — used for retrieving **product search results**
+- **Gemini AI** — used for generating **structured AI-based product insights**
+
+---
+
+### 2.4 Primary User Goal
+
+The **primary user goal** is to quickly compare a product by entering either:
+
+**A product search query**
+
+Example:
+
+```
+Sony WH-1000XM5 headphones
+```
+
+or
+
+**A direct product URL**
+
+Example:
+
+```
+Amazon product link
+```
+
+The system retrieves **matching product offers** and optionally generates **AI-assisted product insights**.
+
+---
+
+## 3. Architectural Style and Design Justification
+
+The system follows a **client–server architecture** with a **modular backend design**.
+
+The architecture separates the system into **clearly defined responsibilities**.
+
+| Layer | Responsibility |
+|------|------|
+| Frontend | Collect user input and present results |
+| Backend API | Process requests and perform routing logic |
 | External Services | Provide search results and AI processing |
 
-This separation improves maintainability, scalability, and clarity of system behaviour.
+This architectural separation improves:
 
-3.1 Architectural Justification
-Separation of Concerns
+- **Maintainability**
+- **Scalability**
+- **System clarity**
 
-The frontend is responsible for presentation and interaction, while the backend handles processing and decision-making. This separation reduces coupling and makes the system easier to maintain.
+---
 
-Modularity
+## 3.1 Architectural Justification
 
-The backend logic is divided into dedicated modules:
+### Separation of Concerns
+
+The **frontend** is responsible for presentation and interaction, while the **backend** performs processing and decision-making. This separation reduces coupling and improves **system maintainability**.
+
+### Modularity
+
+The backend logic is divided into **specialised modules**, allowing individual components to be developed, tested, and maintained independently.
 
 | Module       | Responsibility                                    |
 | ------------ | ------------------------------------------------- |
