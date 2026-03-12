@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from extract import run_extraction
-from search import parse_input, unified_search, generate_ai_insights
+from search import parse_input, unified_search, generate_ai_insights, evaluate_trust
 
 app = Flask(__name__)
 CORS(app)
@@ -41,6 +41,18 @@ def review():
         "insights": insights,
         "coupons": insights.get("coupons", [])
     })
+
+@app.route("/api/trust", methods=["POST"])
+def get_trust():
+    data = request.json
+    stores = data.get("stores", [])
+    
+    if not stores:
+        return jsonify({"error": "No stores provided"}), 400
+        
+    print(f"\n[SERVER] Generating Trust Scores for: {stores}")
+    trust_scores = evaluate_trust(stores)
+    return jsonify({"trust_scores": trust_scores})
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

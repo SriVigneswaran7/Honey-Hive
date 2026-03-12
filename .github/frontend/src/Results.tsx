@@ -36,6 +36,8 @@ export default function Results() {
   // Comparison Logic States
   const [selectedForCompare, setSelectedForCompare] = useState<any[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [isComparingLoading, setIsComparingLoading] = useState(false);
+  const [trustScores, setTrustScores] = useState<Record<string, string>>({});
 
   const recentSearches = [
     { id: 1, query: 'Sony WH-1000XM5' },
@@ -346,9 +348,27 @@ export default function Results() {
               >
                 Clear
               </button>
+
               <button 
                 disabled={selectedForCompare.length < 2}
-                onClick={() => setShowCompareModal(true)}
+                onClick={async () => {
+                  setShowCompareModal(true);
+                  setIsComparingLoading(true);
+                  try {
+                    const stores = selectedForCompare.map(p => p.store);
+                    const res = await fetch('http://127.0.0.1:5000/api/trust', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ stores })
+                    });
+                    const data = await res.json();
+                    setTrustScores(data.trust_scores || {});
+                  } catch (err) {
+                    console.error("Failed to fetch trust scores", err);
+                  } finally {
+                    setIsComparingLoading(false);
+                  }
+                }}
                 className={`px-6 py-2.5 rounded-full font-black transition-all active:scale-95 shadow-lg text-sm
                   ${selectedForCompare.length === 2 
                     ? 'bg-amber-500 text-gray-950 hover:bg-amber-400' 
@@ -364,11 +384,8 @@ export default function Results() {
       {/* Overlay Modal */}
       {showCompareModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-          
           <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-lg" onClick={() => setShowCompareModal(false)}></div>
-          
-          
-          <div className="relative w-full max-w-5xl glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
+          <div className="relative z-10 w-full max-w-5xl glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
             
             {/* Glow Effect */}
             <div className="absolute top-[-20%] left-[-10%] w-96 h-96 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
@@ -395,8 +412,7 @@ export default function Results() {
                   // Reads the data coming from search.py
                   const ratingValue = product.rating !== "N/A" ? product.rating : "No Rating";
                   const reviewCount = product.reviews || 0;
-                  const trustScore = product.trust_score || "Moderate";
-                  const isHighlyTrusted = trustScore === "High";
+                  const storeName = product.store || "Unknown";
 
                   return (
                     <div key={idx} className="flex flex-col">
@@ -421,12 +437,19 @@ export default function Results() {
                         {/* Spec Block 2: AI Trust Score */}
                         <div className="glass-card p-4 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] backdrop-blur-md flex justify-between items-center">
                           <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-500/50">AI Trust Score</p>
-                          {isHighlyTrusted ? (
-                            <p className="font-bold text-green-600 dark:text-green-400 text-sm flex items-center gap-1.5"><Check size={14} /> High Reliability</p>
-                          ) : trustScore === "Low" ? (
-                            <p className="font-bold text-red-600 dark:text-red-400 text-sm">Low Reliability</p>
+                          {isComparingLoading ? (
+                            <div className="h-5 w-24 bg-gray-300 dark:bg-white/10 rounded-full animate-pulse"></div>
                           ) : (
-                            <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">Moderate Reliability</p>
+                            (() => {
+                              const score = trustScores[storeName] || "Moderate";
+                              if (score === "High") {
+                                return <p className="font-bold text-green-600 dark:text-green-400 text-sm flex items-center gap-1.5"><Check size={14} /> High Reliability</p>;
+                              } else if (score === "Low") {
+                                return <p className="font-bold text-red-600 dark:text-red-400 text-sm">Low Reliability</p>;
+                              } else {
+                                return <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">Moderate Reliability</p>;
+                              }
+                            })()
                           )}
                         </div>
 
