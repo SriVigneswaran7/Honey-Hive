@@ -120,57 +120,97 @@ The **frontend** is responsible for presentation and interaction, while the **ba
 
 The backend logic is divided into **specialised modules**, allowing individual components to be developed, tested, and maintained independently.
 
-| Module       | Responsibility                                    |
-| ------------ | ------------------------------------------------- |
-| `server.py`  | API routing and request handling                  |
-| `search.py`  | Search optimisation, shopping search, AI insights |
-| `extract.py` | Amazon product link extraction                    |
+## 3.2 Architectural Decisions and Requirement Alignment
 
-This modular structure improves maintainability and readability.
+The architectural design of **Honey-Hive** is aligned with both **functional** and **non-functional requirements**.
 
-Scalability
+### Module Responsibilities
 
-External APIs such as SerpAPI and Gemini AI are used to offload heavy processing tasks.
+| Module | Responsibility |
+|------|------|
+| `server.py` | API routing and request handling |
+| `search.py` | Search optimisation and shopping queries |
+| `extract.py` | Amazon product URL extraction |
 
-Benefits include:
+This **modular structure** improves:
 
-Reduced computational load on the local server
+- **Readability**
+- **Maintainability**
+- **Extensibility**
 
-Faster response times
+---
 
-Ability to scale without implementing complex scraping infrastructure
+### Scalability
 
-Reliability
+External services such as **SerpAPI** and **Gemini AI** are used to offload computationally intensive tasks.
 
-The backend performs validation checks and exception handling when communicating with external services. This prevents system crashes when external API responses fail.
+**Benefits include:**
 
-Maintainability
+- Reduced **server processing load**
+- Improved **response times**
+- Simplified **system scalability**
 
-Separating the system into small, specialised modules makes it easier for developers to modify individual features without affecting other components.
+---
 
-3.2 Architectural Decisions and Requirement Alignment
+### Reliability
 
-The architectural decisions in the Honey-Hive system are closely aligned with both functional and non-functional requirements.
+The backend performs **validation checks** and **exception handling** when communicating with external services, preventing system failures when APIs return unexpected responses.
 
-External API Integration
+---
 
-The system relies on external APIs such as SerpAPI and Gemini to perform product search and AI-based analysis. This architectural decision supports the scalability requirement by delegating computationally intensive operations such as large-scale product search and natural language processing to specialised external services.
+### Maintainability
 
-Modular Backend Design
+Separating system responsibilities into **small modules** allows developers to modify **individual features** without affecting other system components.
 
-Separating the backend into independent modules (`search.py`, `extract.py`, and AI insight generation) improves maintainability and extensibility. Each module has a clearly defined responsibility and can be modified or replaced without affecting other components of the system.
+---
 
-Client–Server Architecture
+## 3.2 Architectural Decisions and Requirement Alignment
 
-The separation between frontend and backend enables the system to support multiple clients in the future. The backend API acts as a reusable service layer that could support web interfaces, mobile clients, or additional integrations.
+The architectural design of **Honey-Hive** is aligned with both **functional** and **non-functional requirements**.
 
-Fault Tolerance
+### External API Integration
 
-External API calls are encapsulated within backend modules. Error handling and validation logic in the backend layer ensure that failures in external services do not cause system-wide crashes.
+The system relies on **SerpAPI** and **Gemini AI** to perform **product search** and **AI-based review analysis**.
 
-These architectural decisions collectively support system scalability, reliability, and maintainability while allowing rapid integration of external data sources.
+Delegating these tasks to specialised services improves **system scalability** and removes the need for complex **web scraping** or **natural language processing infrastructure**.
 
-4. High-Level System Architecture
+---
+
+### Modular Backend Design
+
+The backend is structured as **independent modules** (`search.py`, `extract.py`, and AI insight generation).
+
+This modular design allows each component to **evolve independently** and improves **system extensibility**.
+
+---
+
+### Client–Server Architecture
+
+Separating the **frontend** from the **backend API** allows the system to support **multiple future clients**, including:
+
+- Web interfaces
+- Mobile applications
+- Third-party integrations
+
+---
+
+### Fault Tolerance
+
+External API calls are **encapsulated inside backend modules**.
+
+Validation and **error handling mechanisms** ensure that failures in external services do **not cause system-wide crashes**.
+
+---
+
+These architectural decisions collectively support:
+
+- **Scalability**
+- **Reliability**
+- **Maintainability**
+
+---
+
+## 4. High-Level System Architecture
 
 ```mermaid
 flowchart TD
