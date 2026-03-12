@@ -65,75 +65,72 @@ def parse_input(input_list):
 
 def unified_search(user_input: str):
     api_key = os.getenv("SERPAPI_KEY")
-    gemini_key = os.getenv("GEMINI_API_KEY")
     params = {
         "engine": "google_shopping",
         "q": user_input,
         "gl": "uk",
-        "api_key": api_key
+        "api_key": api_key,
+        "num": 30
     }
     try:
         response = requests.get("https://serpapi.com/search", params=params)
         data = response.json()
         
         results = []
-        shopping_results = data.get("shopping_results", [])[:5]
-        
-        # Collect unique store names
-        store_names = list(set([item.get("source") for item in shopping_results if item.get("source")]))
-        trust_scores = {}
-        
-        if gemini_key and store_names:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-            prompt = f"""
-            You are a UK retail expert. Rate these stores: {store_names}.
-            
-            CRITERIA:
-            - 'High': Major household names/manufacturers (e.g., Apple, Amazon, Currys, Argos, John Lewis, Tesco, Samsung, Nike).
-            - 'Moderate': Established smaller businesses.
-            - 'Low': Unknown or sketchy third-party sellers.
-            
-            Return ONLY a raw JSON object where keys are the store names and values are the scores. No markdown.
-            """
-            payload = {"contents": [{"parts": [{"text": prompt}]}]}
-            try:
-                ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=5).json()
-                text_output = ai_resp["candidates"][0]["content"]["parts"][0]["text"]
-                clean_text = text_output.replace("```json", "").replace("```", "").strip()
-                trust_scores = json.loads(clean_text)
-            except Exception as e:
-                print(f"[TRUST SCORE ERROR] AI evaluation failed: {e}")
-        
-        # Normailsation for different letter cases
-        normalized_trust = {k.lower().strip(): v for k, v in trust_scores.items()}
-        
-        for item in shopping_results:
+        for item in data.get("shopping_results", [])[:6]:
             actual_link = item.get("link") or item.get("product_link") or item.get("shopping_portal_link")
-            store = item.get("source", "Unknown")
-            
-            big_brands = ['apple', 'amazon', 'currys', 'argos', 'john lewis', 'tesco', 'samsung', 'nike', 'adidas']
-            is_big_brand = any(brand in store.lower() for brand in big_brands)
-            
-            if is_big_brand:
-                final_score = "High"
-            else:
-                # Fallbacks to Gemini's opinion for unknown stores
-                final_score = normalized_trust.get(store.lower().strip(), "Moderate")
-            
             results.append({
-                "store": store,
+                "store": item.get("source", "Unknown"),
                 "title": item.get("title"),
                 "price": item.get("price"),
                 "thumbnail": item.get("thumbnail"),
                 "link": actual_link,
                 "rating": item.get("rating", "N/A"),
-                "reviews": item.get("reviews", 0),
-                "trust_score": final_score
+                "reviews": item.get("reviews", 0)
             })
         return results
     except Exception as e:
         print(f"Search Error: {e}")
         return []
+
+def evaluate_trust(stores: list):
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    results = {}
+    big_brands = ['apple', 'amazon', 'currys', 'argos', 'john lewis', 'tesco', 'samsung', 'nike', 'adidas']
+    
+    stores_for_ai = []
+    
+    for store in stores:
+        store_lower = store.lower().strip()
+        if any(brand in store_lower for brand in big_brands):
+            results[store] = "High"
+        else:
+            stores_for_ai.append(store)
+            
+    if gemini_key and stores_for_ai:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        prompt = f"""
+        You are a UK retail expert. Rate these stores: {stores_for_ai}.
+        CRITERIA: 'High' (Major household names), 'Moderate' (Established smaller businesses), 'Low' (Unknown/sketchy).
+        Return ONLY a raw JSON object where keys are the exact store names and values are the scores. No markdown.
+        """
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        try:
+            ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=5).json()
+            clean_text = ai_resp["candidates"][0]["content"]["parts"][0]["text"].replace("```json", "").replace("```", "").strip()
+            ai_scores = json.loads(clean_text)
+            
+            # Map AI scores back (case-insensitive)
+            normalized_ai = {k.lower().strip(): v for k, v in ai_scores.items()}
+            for store in stores_for_ai:
+                results[store] = normalized_ai.get(store.lower().strip(), "Moderate")
+        except Exception as e:
+            print(f"Trust Error: {e}")
+            for store in stores_for_ai: results[store] = "Moderate"
+    else:
+        for store in stores_for_ai: results[store] = "Moderate"
+            
+    return results
 
 def generate_ai_insights(product_title: str):
     serp_key = os.getenv("SERPAPI_KEY")
