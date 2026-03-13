@@ -5,4 +5,13 @@ frontend/dist/
 __pycache__/
 .DS_Store
 node_modules/
-.env
+# Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+# SQLite
+*.db
+*.sqlite3
