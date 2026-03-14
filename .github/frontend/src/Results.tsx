@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Clock, LogOut, Sun, Moon, X, Check } from 'lucide-react';
+import { User, Clock, LogOut, Sun, Moon, X, Check, Filter, ArrowUpDown } from 'lucide-react';
 
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
@@ -32,7 +32,9 @@ export default function Results() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDark, setIsDark] = useState(false);
-
+  // Filtering & Sorting State
+  const [selectedStore, setSelectedStore] = useState('All');
+  const [sortOrder, setSortOrder] = useState<'default' | 'low-high' | 'high-low'>('default');
   // Comparison Logic States
   const [selectedForCompare, setSelectedForCompare] = useState<any[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
@@ -116,6 +118,21 @@ export default function Results() {
   useEffect(() => {
     if (initialQuery) fetchProducts(initialQuery);
   }, [initialQuery]);
+
+  // Calculate unique stores for the dropdown
+  const uniqueStores = ['All', ...Array.from(new Set(products.map(p => p.store)))];
+
+  // Derived state: Filter first, then Sort
+  const filteredProducts = products
+    .filter(p => selectedStore === 'All' || p.store === selectedStore)
+    .sort((a, b) => {
+      if (sortOrder === 'default') return 0;
+      
+      const priceA = parseFloat(a.price.replace(/[^0-9.]/g, '')) || 0;
+      const priceB = parseFloat(b.price.replace(/[^0-9.]/g, '')) || 0;
+      
+      return sortOrder === 'low-high' ? priceA - priceB : priceB - priceA;
+    });
 
   return (
     <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
@@ -256,6 +273,38 @@ export default function Results() {
 
       {/* Product Grid */}
       <main className="max-w-7xl mx-auto px-6 mt-12 relative z-10">
+        
+        {/* Dynamic Filter Bar */}
+        {!loading && products.length > 0 && (
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 glass-card p-4 rounded-3xl border border-gray-200 dark:border-white/10">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Filter size={18} className="text-gray-500" />
+              <select 
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="bg-white/40 dark:bg-gray-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer w-full sm:w-auto rounded-xl px-4 py-2 transition-all shadow-[0_4px_15px_rgba(0,0,0,0.05)]"
+              >
+                {uniqueStores.map(store => (
+                  <option key={store} value={store} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">{store}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <ArrowUpDown size={18} className="text-gray-500" />
+              <select 
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+                className="bg-transparent text-gray-900 dark:text-white font-bold focus:outline-none cursor-pointer w-full sm:w-auto"
+              >
+                <option value="default" className="bg-white dark:bg-gray-900">Default Match</option>
+                <option value="low-high" className="bg-white dark:bg-gray-900">Price: Low to High</option>
+                <option value="high-low" className="bg-white dark:bg-gray-900">Price: High to Low</option>
+              </select>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Renders 6 skeleton cards while waiting for the Data */}
@@ -268,7 +317,7 @@ export default function Results() {
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product, index) => {
+            {filteredProducts.map((product, index) => {
               // Checks selection status for this card
               const isSelected = selectedForCompare.some(p => p.title === product.title);
 
