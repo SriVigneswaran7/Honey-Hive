@@ -4,7 +4,8 @@ from extract import run_extraction
 from search import parse_input, unified_search, generate_ai_insights, evaluate_trust
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import subprocess, sys, os
+from coupons import find_and_rank_codes
 app = Flask(__name__)
 CORS(app)
 def get_db_connection():
@@ -115,5 +116,23 @@ def login():
     else:
         return jsonify({"error": "Invalid email or password."}), 401
 
+@app.route("/api/coupons", methods=["POST"])
+def get_coupons():
+    data    = request.json
+    url     = data.get("url", "")
+    store   = data.get("store", "")
+    title   = data.get("title", "")
+ 
+    print(f"\n[SERVER] Finding coupons — store: {store} | title: {title[:50]}")
+ 
+    codes = find_and_rank_codes(
+        url=url,
+        store=store,
+        title=title,
+        skip_google=False,
+        use_browser=True,   # API calls skip Playwright for speed
+    )
+ 
+    return jsonify({"codes": codes})
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
