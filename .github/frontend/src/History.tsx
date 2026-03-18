@@ -12,16 +12,26 @@ export default function History() {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus !== 'true') {
       navigate('/', { replace: true });
+    } else {
+      // Fetch real data from backend
+      const fetchHistory = async () => {
+        const email = localStorage.getItem('userEmail');
+        if (!email) return;
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+          setPastSearches(data.history || []);
+        } catch (err) {
+          console.error("Failed to fetch history", err);
+        }
+      };
+      fetchHistory();
     }
     setIsDark(document.documentElement.classList.contains('dark'));
   }, [navigate]);
 
   // Temporary: This mock data will be replaced by a live database fetch later.
-  const [pastSearches] = useState([
-    { id: 1, query: 'Sony WH-1000XM5 Wireless Headphones', date: '2026-03-08', dealsFound: 4 },
-    { id: 2, query: 'Keychron K2 Mechanical Keyboard', date: '2026-03-07', dealsFound: 2 },
-    { id: 3, query: 'LG C3 OLED TV 55"', date: '2026-03-05', dealsFound: 7 },
-  ]);
+  const [pastSearches, setPastSearches] = useState<any[]>([]);
 
   const toggleTheme = () => {
     const newTheme = !isDark;
