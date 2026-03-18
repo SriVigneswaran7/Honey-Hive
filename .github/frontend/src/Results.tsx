@@ -40,6 +40,7 @@ export default function Results() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [isComparingLoading, setIsComparingLoading] = useState(false);
   const [trustScores, setTrustScores] = useState<Record<string, string>>({});
+  const lastFetchedQuery = useRef<string | null>(null);
 
   const recentSearches = [
     { id: 1, query: 'Sony WH-1000XM5' },
@@ -117,7 +118,10 @@ export default function Results() {
   };
 
   useEffect(() => {
-    if (initialQuery) fetchProducts(initialQuery);
+    if (initialQuery && lastFetchedQuery.current !== initialQuery) {
+      lastFetchedQuery.current = initialQuery; 
+      fetchProducts(initialQuery);             
+    }
   }, [initialQuery]);
 
   // Calculate unique stores for the dropdown
