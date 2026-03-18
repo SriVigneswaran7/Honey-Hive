@@ -89,7 +89,8 @@ export default function Results() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/search?q=${encodeURIComponent(query)}`);
+      const userEmail = localStorage.getItem('userEmail') || '';
+      const response = await fetch(`http://127.0.0.1:8000/api/search?q=${encodeURIComponent(query)}&user_email=${encodeURIComponent(userEmail)}`);
       const data = await response.json();
       const resultsArray = data.shopping_results || [];
       setProducts(resultsArray);
@@ -405,7 +406,7 @@ export default function Results() {
                   setIsComparingLoading(true);
                   try {
                     const stores = selectedForCompare.map(p => p.store);
-                    const res = await fetch('http://127.0.0.1:5000/api/trust', {
+                    const res = await fetch('http://127.0.0.1:8000/api/trust', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ stores })
