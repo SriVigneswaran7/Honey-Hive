@@ -63,21 +63,46 @@ def parse_input(input_list):
         return context_text
         
 
-def unified_search(user_input: str):
+def unified_search(user_input: str, min_price: float = None, max_price: float = None):
     api_key = os.getenv("SERPAPI_KEY")
     params = {
         "engine": "google_shopping",
         "q": user_input,
         "gl": "uk",
         "api_key": api_key,
-        "num": 30
+        "num": 30 # Fetching 30 gives us plenty of room to throw away the bad ones
     }
+    
+    # 1. Ask Google to try its best to filter prices
+    if min_price is not None or max_price is not None:
+        tbs_parts = ["mr:1", "price:1"]
+        if min_price is not None:
+            tbs_parts.append(f"ppr_min:{int(min_price)}")
+        if max_price is not None:
+            tbs_parts.append(f"ppr_max:{int(max_price)}")
+        params["tbs"] = ",".join(tbs_parts)
+
     try:
         response = requests.get("https://serpapi.com/search", params=params)
         data = response.json()
         
         results = []
-        for item in data.get("shopping_results", [])[:6]:
+        for item in data.get("shopping_results", []):
+            raw_price = str(item.get("price", "0"))
+            
+            # 2. Extract the actual number from the price string (removes £, $, commas)
+            try:
+                price_float = float(re.sub(r'[^\d.]', '', raw_price))
+            except:
+                price_float = 0.0
+                
+            # 3. THE IRONCLAD CHECK: Throw it in the trash if it breaks our rules
+            if min_price is not None and price_float < min_price:
+                continue
+            if max_price is not None and price_float > max_price:
+                continue
+                
+            # If it survives the check, format it and add it to our list
             actual_link = item.get("link") or item.get("product_link") or item.get("shopping_portal_link")
             results.append({
                 "store": item.get("source", "Unknown"),
@@ -88,11 +113,16 @@ def unified_search(user_input: str):
                 "rating": item.get("rating", "N/A"),
                 "reviews": item.get("reviews", 0)
             })
+            
+            # Stop once we have 6 perfectly priced items
+            if len(results) == 6:
+                break
+                
         return results
     except Exception as e:
         print(f"Search Error: {e}")
         return []
-
+    
 def evaluate_trust(stores: list):
     gemini_key = os.getenv("GEMINI_API_KEY")
     results = {}
