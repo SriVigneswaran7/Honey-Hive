@@ -64,8 +64,9 @@ export default function Signup() {
         // Success! Log them in automatically
         localStorage.setItem('isLoggedIn', 'true');
         
-        // Save the user's email for history tracking across the app
+        // Save the user's email and name for the UI
         localStorage.setItem('userEmail', email); 
+        localStorage.setItem('userName', name); // <-- THIS IS THE MAGIC LINE
 
         navigate(from, { replace: true, state: returnState });
       } else {

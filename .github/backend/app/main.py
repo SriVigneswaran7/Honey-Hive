@@ -46,15 +46,16 @@ def root():
 
 # Unified Search Route
 @app.get("/api/search")
-async def search(q: str, user_email: str = None, db: Session = Depends(get_db)):
-    print(f"\n[SERVER] Processing search for: {q}")
+async def search(q: str, user_email: str = None, min_price: float = None, max_price: float = None, db: Session = Depends(get_db)):
+    print(f"\n[SERVER] Processing search for: {q} | Min: {min_price} | Max: {max_price}")
     
     # Check for Amazon link or search query
     if "amazon.co.uk" in q or "amazon.com" in q:
         results = run_extraction(q)
     else:
         optimised_query = parse_input(q)
-        results = unified_search(optimised_query)
+        # Pass the new price variables to the search function
+        results = unified_search(optimised_query, min_price, max_price)
 
     # Database Logic: Save to history if user is logged in
     if user_email and results:

@@ -58,8 +58,15 @@ export default function Login() {
         // Success! Log them in
         localStorage.setItem('isLoggedIn', 'true');
         
-        // Save the user's email so the Search can use it for History tracking
+        // Save the user's email and name
         localStorage.setItem('userEmail', email); 
+        
+        // Try to grab the name from the database response, otherwise fallback to email prefix
+        if (data.name) {
+            localStorage.setItem('userName', data.name);
+        } else {
+            localStorage.setItem('userName', email.split('@')[0]);
+        }
 
         navigate(from, { replace: true, state: returnState }); 
       } else {

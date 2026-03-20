@@ -5,13 +5,20 @@ import { User, Clock, LogOut, Sun, Moon, X, Check, Filter, ArrowUpDown } from 'l
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
     
+    {/* Ghost Comparison Button */}
+    <div className="absolute top-4 right-4 w-10 h-10 bg-gray-200 dark:bg-white/5 rounded-full z-20 shadow-sm"></div>
+
+    {/* Ghost Image Area */}
     <div className="h-60 bg-gray-200 dark:bg-white/5 rounded-3xl mb-6 shadow-inner"></div>
     
+    {/* Ghost Title Lines */}
     <div className="h-6 w-3/4 bg-gray-200 dark:bg-white/5 rounded-full mb-2"></div>
     <div className="h-6 w-1/2 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
     
+    {/* Ghost Price */}
     <div className="h-10 w-1/3 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
     
+    {/* Ghost Buttons */}
     <div className="mt-auto space-y-3">
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
@@ -40,12 +47,36 @@ export default function Results() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [isComparingLoading, setIsComparingLoading] = useState(false);
   const [trustScores, setTrustScores] = useState<Record<string, string>>({});
+  const lastFetchedQuery = useRef<string | null>(null);
+  
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [storeSearchQuery, setStoreSearchQuery] = useState(''); 
+  
+  // NEW: Price Filter State
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
-  const recentSearches = [
-    { id: 1, query: 'Sony WH-1000XM5' },
-    { id: 2, query: 'Keychron K2 Keyboard' },
-    { id: 3, query: 'LG C3 OLED TV 55"' },
-  ];
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        
+        if (data.history) {
+          setRecentSearches(data.history.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent searches", error);
+      }
+    };
+
+    fetchRecent();
+  }, [showProfileMenu]);
 
   useEffect(() => {
     if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -82,19 +113,36 @@ export default function Results() {
 
   const fetchProducts = async (query: string) => {
     if (!query) return;
-    const cachedData = sessionStorage.getItem(`honeyhive_results_${query}`);
+    
+    // Build dynamic cache key and URL based on current price states
+    let cacheKey = `honeyhive_results_${query}`;
+    let apiUrl = `http://127.0.0.1:8000/api/search?q=${encodeURIComponent(query)}`;
+    
+    const userEmail = localStorage.getItem('userEmail') || '';
+    if (userEmail) apiUrl += `&user_email=${encodeURIComponent(userEmail)}`;
+    
+    if (minPrice) {
+      cacheKey += `_min_${minPrice}`;
+      apiUrl += `&min_price=${minPrice}`;
+    }
+    if (maxPrice) {
+      cacheKey += `_max_${maxPrice}`;
+      apiUrl += `&max_price=${maxPrice}`;
+    }
+
+    const cachedData = sessionStorage.getItem(cacheKey);
     if (cachedData) {
       setProducts(JSON.parse(cachedData));
       return;
     }
+    
     setLoading(true);
     try {
-      const userEmail = localStorage.getItem('userEmail') || '';
-      const response = await fetch(`http://127.0.0.1:8000/api/search?q=${encodeURIComponent(query)}&user_email=${encodeURIComponent(userEmail)}`);
+      const response = await fetch(apiUrl);
       const data = await response.json();
       const resultsArray = data.shopping_results || [];
       setProducts(resultsArray);
-      sessionStorage.setItem(`honeyhive_results_${query}`, JSON.stringify(resultsArray));
+      sessionStorage.setItem(cacheKey, JSON.stringify(resultsArray));
     } catch (error) {
       console.error("Failed to fetch products", error);
     } finally {
@@ -117,7 +165,10 @@ export default function Results() {
   };
 
   useEffect(() => {
-    if (initialQuery) fetchProducts(initialQuery);
+    if (initialQuery && lastFetchedQuery.current !== initialQuery) {
+      lastFetchedQuery.current = initialQuery; 
+      fetchProducts(initialQuery);             
+    }
   }, [initialQuery]);
 
   // Calculate unique stores for the dropdown
@@ -215,6 +266,22 @@ export default function Results() {
         
         {/* Right Section */}
         <div className="font-medium flex items-center gap-4">
+          
+          {/* New Filter Button in Navbar */}
+          {!loading && products.length > 0 && (
+            <button 
+              onClick={() => setShowFilterModal(true)} 
+              className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 relative"
+              aria-label="Filters"
+            >
+              <Filter size={20} />
+              {/* Red dot notification if a filter is active */}
+              {(selectedStore !== 'All' || sortOrder !== 'default' || minPrice || maxPrice) && (
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-gray-950"></span>
+              )}
+            </button>
+          )}
+
           <button 
             onClick={toggleTheme} 
             className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400"
@@ -238,16 +305,34 @@ export default function Results() {
                   <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
                     <div className="p-4 border-b border-gray-200 dark:border-white/10">
                       <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
-                      <p className="font-bold text-gray-900 dark:text-white truncate text-sm">user@honeyhive.com</p>
+                      <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                        {localStorage.getItem('userEmail') || 'Loading...'}
+                      </p>
                     </div>
                     <div className="p-2">
                       <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
-                      {recentSearches.map((item) => (
-                        <button key={item.id} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3">
-                          <Clock size={14} className="opacity-50" />
-                          <span className="truncate">{item.query}</span>
-                        </button>
-                      ))}
+                      {recentSearches.length > 0 ? (
+                        recentSearches.map((item, index) => (
+                          <button 
+                            key={index} 
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              const query = item.product_url || item.query;
+                              setSearchInput(query);
+                              sessionStorage.removeItem(`honeyhive_results_${query}`);
+                              fetchProducts(query);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                          >
+                            <Clock size={14} className="opacity-50 flex-shrink-0" />
+                            <span className="truncate">{item.product_url || item.query}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                          No recent searches yet.
+                        </div>
+                      )}
                       <button onClick={() => { setShowProfileMenu(false); navigate('/history'); }} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
                         View All History
                       </button>
@@ -274,37 +359,6 @@ export default function Results() {
 
       {/* Product Grid */}
       <main className="max-w-7xl mx-auto px-6 mt-12 relative z-10">
-        
-        {/* Dynamic Filter Bar */}
-        {!loading && products.length > 0 && (
-          <div className="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4 glass-card p-4 rounded-3xl border border-gray-200 dark:border-white/10">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Filter size={18} className="text-gray-500" />
-              <select 
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="bg-white/40 dark:bg-gray-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer w-full sm:w-auto rounded-xl px-4 py-2 transition-all shadow-[0_4px_15px_rgba(0,0,0,0.05)]"
-              >
-                {uniqueStores.map(store => (
-                  <option key={store} value={store} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">{store}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <ArrowUpDown size={18} className="text-gray-500" />
-              <select 
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as any)}
-                className="bg-transparent text-gray-900 dark:text-white font-bold focus:outline-none cursor-pointer w-full sm:w-auto"
-              >
-                <option value="default" className="bg-white dark:bg-gray-900">Default Match</option>
-                <option value="low-high" className="bg-white dark:bg-gray-900">Price: Low to High</option>
-                <option value="high-low" className="bg-white dark:bg-gray-900">Price: High to Low</option>
-              </select>
-            </div>
-          </div>
-        )}
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -370,6 +424,161 @@ export default function Results() {
           </div>
         )}
       </main>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-24 sm:pt-32 pb-4 px-4 sm:px-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-md" onClick={() => setShowFilterModal(false)}></div>
+          <div className="relative z-10 w-full max-w-md glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
+            
+            {/* Glow Effect inside the Glass */}
+            <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-rose-500/20 dark:bg-rose-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+
+            {/* Header */}
+            <div className="relative z-10 p-6 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500"><Filter size={20} /></div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Filters & Sort</h2>
+              </div>
+              <button onClick={() => setShowFilterModal(false)} className="p-2 rounded-full text-gray-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all active:scale-90">
+                <X size={20} strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Options Body */}
+            <div className="relative z-10 p-8 space-y-8 overflow-y-auto max-h-[60vh]">
+              
+              {/* Store Options (Scrollable & Searchable) */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Filter by Store</h3>
+                  {selectedStore !== 'All' && (
+                    <button 
+                      onClick={() => setSelectedStore('All')} 
+                      className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
+                {/* Store Search Input */}
+                <div className="relative mb-3 group/search">
+                  <input 
+                    type="text" 
+                    placeholder="Search stores..." 
+                    value={storeSearchQuery}
+                    onChange={(e) => setStoreSearchQuery(e.target.value)}
+                    className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-4 pr-10 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm text-gray-900 dark:text-white placeholder:text-gray-400 backdrop-blur-md"
+                  />
+                  {storeSearchQuery && (
+                    <button 
+                      onClick={() => setStoreSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Vertical Scroll Box */}
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 pb-2 selection:bg-amber-500/30">
+                  {uniqueStores
+                    .filter(store => store.toLowerCase().includes(storeSearchQuery.toLowerCase()))
+                    .map(store => (
+                    <button
+                      key={store}
+                      onClick={() => setSelectedStore(store)}
+                      className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border backdrop-blur-md
+                        ${selectedStore === store 
+                          ? 'bg-amber-500 border-amber-500 text-gray-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
+                          : 'bg-white/30 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500/50 hover:text-amber-500'}`}
+                    >
+                      {store}
+                    </button>
+                  ))}
+                  
+                  {/* Empty State if search yields no results */}
+                  {uniqueStores.filter(store => store.toLowerCase().includes(storeSearchQuery.toLowerCase())).length === 0 && (
+                    <div className="w-full py-4 text-center text-sm font-medium text-gray-500">
+                      No stores found matching "{storeSearchQuery}"
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price Range Options */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+                  Price Range <span className="bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded text-[8px]">New Search</span>
+                </h3>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-full group/input">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black group-focus-within/input:text-amber-500 transition-colors">£</span>
+                    <input 
+                      type="number" 
+                      placeholder="Min" 
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-8 pr-4 focus:outline-none focus:border-amber-500 transition-all font-bold text-sm text-gray-900 dark:text-white backdrop-blur-md"
+                    />
+                  </div>
+                  <span className="text-gray-400 font-bold">-</span>
+                  <div className="relative w-full group/input">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black group-focus-within/input:text-amber-500 transition-colors">£</span>
+                    <input 
+                      type="number" 
+                      placeholder="Max" 
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-8 pr-4 focus:outline-none focus:border-amber-500 transition-all font-bold text-sm text-gray-900 dark:text-white backdrop-blur-md"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">Sort Results</h3>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { id: 'default', label: 'Default Match' },
+                    { id: 'low-high', label: 'Price: Low to High' },
+                    { id: 'high-low', label: 'Price: High to Low' }
+                  ].map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => setSortOrder(option.id as any)}
+                      className={`w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all border flex items-center justify-between backdrop-blur-md
+                        ${sortOrder === option.id 
+                          ? 'bg-amber-500/10 border-amber-500 text-amber-500 dark:text-amber-400' 
+                          : 'bg-white/40 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500/50 hover:text-amber-500'}`}
+                    >
+                      {option.label}
+                      {sortOrder === option.id && <Check size={18} strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="relative z-10 p-6 bg-white/30 dark:bg-white/5 border-t border-gray-200 dark:border-white/10 backdrop-blur-md">
+              <button 
+                onClick={() => {
+                  setShowFilterModal(false);
+                  fetchProducts(searchInput); 
+                }}
+                className="w-full bg-amber-500 text-gray-950 font-black py-4 rounded-full hover:bg-amber-400 transition-all shadow-lg active:scale-95 text-lg"
+              >
+                Apply & View Results
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Floating Compare Bar */}
       {selectedForCompare.length > 0 && (
