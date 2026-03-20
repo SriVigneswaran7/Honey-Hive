@@ -5,13 +5,20 @@ import { User, Clock, LogOut, Sun, Moon, X, Check, Filter, ArrowUpDown } from 'l
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
     
+    {/* Ghost Comparison Button */}
+    <div className="absolute top-4 right-4 w-10 h-10 bg-gray-200 dark:bg-white/5 rounded-full z-20 shadow-sm"></div>
+
+    {/* Ghost Image Area */}
     <div className="h-60 bg-gray-200 dark:bg-white/5 rounded-3xl mb-6 shadow-inner"></div>
     
+    {/* Ghost Title Lines */}
     <div className="h-6 w-3/4 bg-gray-200 dark:bg-white/5 rounded-full mb-2"></div>
     <div className="h-6 w-1/2 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
     
+    {/* Ghost Price */}
     <div className="h-10 w-1/3 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
     
+    {/* Ghost Buttons */}
     <div className="mt-auto space-y-3">
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
