@@ -12,46 +12,47 @@ The models below articulate our system structure, dynamic behaviour, data persis
 ## 2. High-Level System Architecture (Container Model)
 The system employs a strict **Client–Server Architecture**, divided into four distinct logical zones: Presentation, Application, Data, and External Services. 
 
-The following UML Component Diagram illustrates how these layers interact. We utilise a Left-to-Right flow to accurately represent the typical lifecycle of a web request.
+The following UML Component Diagram illustrates how these layers interact. We utilise a Left-to-Right (`LR`) flow with heavily weighted data-paths to accurately represent the typical lifecycle of a web request.
 
 ```mermaid
 graph LR
-    %% Clean structural layout without overriding native GitHub themes
+    %% Structural layout relying on native GitHub themes for perfect readability
     U((User))
 
-    subgraph Presentation
-        FE[React UI / Vite]
+    subgraph Presentation Layer
+        FE["React UI / Vite"]
     end
 
-    subgraph Application Server
-        API[FastAPI Router]
-        Auth[Auth Service]
-        Search[Price Interceptor]
-        AI[AI Insights]
+    subgraph Application Server Layer
+        API["FastAPI Router"]
+        Auth["Auth Service"]
+        Search["Price Interceptor"]
+        AI["AI Insights"]
         
-        API --> Auth
-        API --> Search
-        API --> AI
+        %% Thick internal routing lines for visual clarity
+        API ==> Auth
+        API ==> Search
+        API ==> AI
     end
 
-    subgraph Persistence
-        ORM[SQLAlchemy]
-        DB[(SQLite DB)]
+    subgraph Persistence Layer
+        ORM["SQLAlchemy ORM"]
+        DB[("SQLite Database")]
         
-        ORM <--> DB
+        ORM <==> DB
     end
 
-    subgraph Third-Party APIs
-        Serp[SerpApi]
-        Gemini[Gemini 1.5 Pro]
+    subgraph Third-Party Providers
+        Serp["SerpApi Engine"]
+        Gemini["Gemini 1.5 Pro"]
     end
 
-    %% Flow interactions
-    U -- "Interacts" --> FE
-    FE -- "REST / JSON" --> API
-    Auth <--> ORM
-    Search --> Serp
-    AI --> Gemini
+    %% Thick, clear arrows for major data flow
+    U == "Browser Interaction" ==> FE
+    FE == "REST API (JSON)" ==> API
+    Auth <==> ORM
+    Search ==> Serp
+    AI ==> Gemini
 ```
 
 ### 2.1 Component Responsibilities
@@ -65,7 +66,7 @@ By mapping our logical components to our physical file tree, we ensure strict tr
 ---
 
 ## 3. Dynamic System Behaviour (Sequence Model)
-To understand the system's runtime behaviour, we map the flow of data through the architecture. This diagram uses lifeline activations (the vertical blocks) to demonstrate processing states during an authenticated search.
+To understand the system's runtime behaviour, we map the flow of data through the architecture. This diagram uses lifeline activations (the solid vertical blocks on the transaction lines) to explicitly demonstrate processing states and system bottlenecks during an authenticated search.
 
 ```mermaid
 sequenceDiagram
@@ -127,7 +128,7 @@ The system requires persistent storage for user accounts and search history. We 
 
 ```mermaid
 erDiagram
-    %% Reordered to allow Mermaid to create a more balanced layout
+    %% Relationship links defined first to optimise Mermaid's automatic spacing
     USERS ||--o{ SEARCH_HISTORY : "performs"
     COUPONS |o--|{ SEARCH_HISTORY : "matches"
 
