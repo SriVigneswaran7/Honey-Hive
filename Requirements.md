@@ -1,37 +1,55 @@
 # Requirements Specification: Honey-Hive
 
-## 1. Functional Requirements (FR)
-| ID | Category | Requirement Description | Priority |
-| :--- | :--- | :--- | :--- |
-| **FR-01** | Input Handling | The system shall provide a text input field for users to paste a product URL for processing. | High |
-| **FR-02** | Data Scraping | The Python backend shall extract the product name, price, and specs from the provided URL. | High |
-| **FR-03** | Market Comparison | The system shall query at least 3 alternative retailers for identical or similar products. | High |
-| **FR-04** | Coupon Discovery | The app shall search for and display active discount codes or promo links for the specific product. | Medium |
-| **FR-05** | Review Analysis | The system shall provide a summarized "Sentiment Score" (Pros/Cons) based on aggregated user reviews. | Medium |
-| **FR-06** | UI/UX Display | The JavaScript frontend shall render the comparison data in a clean, filterable table format. | High |
+## 1. Introduction & Software Process Model
+Honey-Hive is an AI-assisted product comparison platform designed to streamline the deal-hunting process for consumers. To navigate the complexities of integrating third-party APIs alongside AI-generated insights, we adopted an **Iterative and Incremental Development Model**. 
 
-## 2. Non-Functional Requirements (NFR)
-| ID | Category | Requirement Description | Priority |
-| :--- | :--- | :--- | :--- |
-| **NFR-01** | Performance | The "Link to Result" processing time must not exceed 10 seconds. | Medium |
-| **NFR-02** | Security | All data interchange between the frontend and backend must be encrypted via HTTPS/TLS. | High |
-| **NFR-03** | Scalability | The backend architecture shall allow for new retail sites to be added via modular scrapers. | Medium |
-| **NFR-04** | Reliability | The system shall handle "Invalid URL" errors gracefully without crashing the web app. | High |
+Given the prompt-driven nature of this coursework, an iterative approach was essential. It allowed us to build the core backend architecture first (FastAPI and SerpApi integration), test the outputs, and then progressively layer on complex features like the custom Price Interceptor and the React-based Glassmorphic frontend. This ensured our engineering decisions remained flexible and aligned with our evolving technical constraints.
 
-## 3. User Requirements (UR)
-| ID | Name | Description | Priority |
-| :--- | :--- | :--- | :--- |
-| **UR-01** | Product Submission | The user must be able to paste a URL from a supported retail site into a central search bar. | High |
-| **UR-02** | Automated Extraction | The system must automatically extract and display the product title, image, price, and specs. | High |
-| **UR-03** | Price Comparison | The system must search for the same product across at least 3 other retail platforms and list their prices. | High |
-| **UR-04** | Review Summarization| The system should provide a summarized "Sentiment Analysis" based on customer reviews. | Medium |
-| **UR-05** | Discount Detection | The system must search for and display applicable promo codes or active discounts for the product. | Medium |
-| **UR-06** | Responsive Dashboard | The user must see all comparison data on a single dashboard that works on both mobile and desktop. | High |
-| **UR-07** | Error Handling | The system must notify the user if a link is broken, unsupported, or if no alternatives were found. | High |
+## 2. Functional Requirements (FR)
+Functional requirements define the core behaviour and features the system must provide. To demonstrate sound engineering judgement, these requirements have been categorised using the **MoSCoW** prioritisation technique (Must have, Should have, Could have, Won't have).
 
-## 4. Technical Implementation Workflow (Image Handling Example)
-| Step | Component | Action |
-| :--- | :--- | :--- |
-| **Extraction** | Python (Scraper) | Identifies the `src` attribute of the main product image tag. |
-| **Transfer** | JSON / API | Passes the image URL string from the server to the browser. |
-| **Rendering** | JavaScrpt/React | Sets the `src` attribute of an `<img>` tag in the HTML. |
+| ID | Category | Requirement Description | Priority | Traceability (Implementation) |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-01** | Live Search | The system must query the SerpApi (Google Shopping) engine to retrieve and normalise real-time product market data. | Must | `search.py`, `Home.tsx` |
+| **FR-02** | Strict Filtering | The system must enforce absolute budget limits (Min/Max price) using a custom regex-based **Price Interceptor** to override standard API inaccuracies. | Must | `search.py`, `Results.tsx` |
+| **FR-03** | AI Data Parsing | The system must leverage the Gemini 1.5 Pro API to extract product specifications and generate summaritive reviews from raw market data. | Must | `extract.py`, `Details.tsx` |
+| **FR-04** | Battle Mode | The system must provide a side-by-side comparison interface, allowing users to queue products in a persistent floating selection bar. | Must |`Results.tsx` |
+| **FR-05** | Authentication | The system must support secure user registration and login using JWT (JSON Web Tokens). | Must | `auth_service.py`, `security.py` |
+| **FR-06** | History Persistence| The system must automatically save logged-in users' search queries and deal counts to a relational database (SQLite via SQLAlchemy). | Must | `main.py`, `History.tsx` |
+| **FR-07** | AI Trust Score | The system should calculate and display a vendor reliability rating to protect users from untrustworthy third-party sellers. | Should | `search.py` |
+| **FR-08** | Coupon Engine | The system should cross-reference searched products against an internal database of active promotional codes. | Should | *Target: April* |
+| **FR-09** | Password Recovery | The system should allow users to securely reset forgotten passwords via an SMTP-delivered email token (using Mailtrap for development). | Should | *Target: April* |
+| **FR-10** | Admin Dashboard | The system could include a Role-Based Access Control (RBAC) dashboard for administrators to track user metrics and manage the coupon database. | Could | *Target: April* |
+
+## 3. Non-Functional Requirements (NFR)
+Non-functional requirements dictate the system's quality attributes, performance benchmarks, and architectural constraints.
+
+| ID | Category | Requirement Description | Priority | Traceability |
+| :--- | :--- | :--- | :--- | :--- |
+| **NFR-01** | Performance | The asynchronous FastAPI backend must process and return standard search payloads in under 5 seconds to prevent user drop-off. | High | `main.py` (Uvicorn) |
+| **NFR-02** | UX / Interface | The frontend must employ a high-fidelity **Glassmorphic design system** featuring translucent layers, ambient glows, and full Dark/Light mode support. | High | Tailwind CSS, `App.tsx` |
+| **NFR-03** | Visual Stability | The system must completely eliminate layout shifting during data fetches by deploying structured Skeleton Loading (Ghost) components. | High | `Results.tsx`, `Details.tsx`|
+| **NFR-04** | Security | All user passwords must be salted and cryptographically hashed using the `bcrypt` algorithm prior to database insertion. | High | `security.py` |
+| **NFR-05** | Maintainability | The backend codebase must follow a modular, decoupled architecture (separating routing, database models, and external API extraction) to allow for scalable future development. | Medium | `models.py`, `db.py`, `extract.py` |
+| **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md`, Inline Comments |
+
+## 4. User Requirements (UR)
+These represent the system capabilities from the end-user's perspective, guiding our frontend design choices.
+
+| ID | Name | User Goal Description | Priority |
+| :--- | :--- | :--- | :--- |
+| **UR-01** | Seamless Discovery | As a user, I want to search for a product (e.g., "Sony Headphones") and instantly see a grid of offers from various retailers. | High |
+| **UR-02** | Budget Accuracy | As a user, I want to set a maximum price and trust that the system will strictly filter out anything above my budget. | High |
+| **UR-03** | Direct Comparison | As a user, I want to select multiple products and place them in a 'Battle Mode' to easily compare their specifications and AI reviews. | High |
+| **UR-04** | Data Retention | As a user, I want to be able to log in and view my past search history so I do not lose track of previous deals. | Medium |
+| **UR-05** | Savings | As a user, I want the platform to automatically notify me if there is a valid discount code for the item I am looking at. | Medium |
+
+## 5. Requirement Traceability Matrix
+To ensure comprehensive testing and to validate that our engineering decisions directly address user needs, the following matrix maps our User Requirements through to functional implementation and verification.
+
+| User Req | Functional Req | Architectural Component | Verification Method (Testing Strategy) |
+| :--- | :--- | :--- | :--- |
+| **UR-01** | **FR-01, FR-03** | SerpApi Router & Gemini Parser | Integration test simulating a standard search query payload; verify JSON normalisation. |
+| **UR-02** | **FR-02** | Python Regex Price Interceptor | Unit test feeding the interceptor an array of mock products where 50% exceed the `max_price` parameter. |
+| **UR-03** | **FR-04** | React State / BattleModal | End-to-End (E2E) UI test verifying that selected products persist in the floating bar across page navigations. |
+| **UR-04** | **FR-05, FR-06** | SQLAlchemy DB / JWT Auth | Automated test verifying that a search query is successfully committed to the SQLite `history` table only if a valid Bearer token is present. |
