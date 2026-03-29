@@ -10,27 +10,27 @@ Functional requirements define the core behaviour and features the system must p
 
 | ID | Category | Requirement Description | Priority | Traceability (Implementation) |
 | :--- | :--- | :--- | :--- | :--- |
-| **FR-01** | Live Search | The system must query the SerpApi (Google Shopping) engine to retrieve and normalise real-time product market data. | Must | `search.py`, `Home.tsx` |
-| **FR-02** | Strict Filtering | The system must enforce absolute budget limits (Min/Max price) using a custom regex-based **Price Interceptor** to override standard API inaccuracies. | Must | `search.py`, `Results.tsx` |
-| **FR-03** | AI Data Parsing | The system must leverage the Gemini 1.5 Pro API to extract product specifications and generate summaritive reviews from raw market data. | Must | `extract.py`, `Details.tsx` |
-| **FR-04** | Battle Mode | The system must provide a side-by-side comparison interface, allowing users to queue products in a persistent floating selection bar. | Must |`Results.tsx` |
-| **FR-05** | Authentication | The system must support secure user registration and login using JWT (JSON Web Tokens). | Must | `auth_service.py`, `security.py` |
-| **FR-06** | History Persistence| The system must automatically save logged-in users' search queries and deal counts to a relational database (SQLite via SQLAlchemy). | Must | `main.py`, `History.tsx` |
-| **FR-07** | AI Trust Score | The system should calculate and display a vendor reliability rating to protect users from untrustworthy third-party sellers. | Should | `search.py` |
-| **FR-08** | Coupon Engine | The system should cross-reference searched products against an internal database of active promotional codes. | Should | *Target: April* |
-| **FR-09** | Password Recovery | The system should allow users to securely reset forgotten passwords via an SMTP-delivered email token (using Mailtrap for development). | Should | *Target: April* |
-| **FR-10** | Admin Dashboard | The system could include a Role-Based Access Control (RBAC) dashboard for administrators to track user metrics and manage the coupon database. | Could | *Target: April* |
+| **FR-01** | Live Search | The system must query the SerpApi (Google Shopping) engine to retrieve and normalise real-time product market data. | Must | `backend/app/search.py`, `frontend/src/Home.tsx` |
+| **FR-02** | Strict Filtering | The system must enforce absolute budget limits (Min/Max price) using a custom regex-based **Price Interceptor** to override standard API inaccuracies. | Must | `backend/app/search.py`, `frontend/src/Results.tsx` |
+| **FR-03** | AI Data Parsing | The system must leverage the Gemini 1.5 Pro API to extract product specifications and generate summaritive reviews from raw market data. | Must | `backend/app/extract.py`, `frontend/src/Details.tsx` |
+| **FR-04** | Battle Mode | The system must provide a side-by-side comparison interface, allowing users to queue products in a persistent state for evaluation. | Must | `frontend/src/Results.tsx`, `frontend/src/Details.tsx` |
+| **FR-05** | Authentication | The system must support secure user registration and login using JWT (JSON Web Tokens). | Must | `backend/app/auth_service.py`, `frontend/src/Signup.tsx`, `frontend/src/Login.tsx` |
+| **FR-06** | History Persistence| The system must automatically save logged-in users' search queries and deal counts to a relational database (SQLite via SQLAlchemy). | Must | `backend/app/main.py`, `frontend/src/History.tsx`, `backend/honeyhive.db` |
+| **FR-07** | AI Trust Score | The system should calculate and display a vendor reliability rating to protect users from untrustworthy third-party sellers. | Should | `backend/app/search.py` |
+| **FR-08** | Coupon Engine | The system should cross-reference searched products against an internal dataset of active promotional codes. | Should | `backend/dataset/coupons.json` *(Target: April Sprint)* |
+| **FR-09** | Password Recovery | The system should allow users to securely reset forgotten passwords via an SMTP-delivered email token (using Mailtrap for development). | Should | `backend/app/auth_service.py` *(Target: April Sprint)* |
+| **FR-10** | Admin Dashboard | The system could include a Role-Based Access Control (RBAC) dashboard for administrators to track user metrics and manage the coupon database. | Could | `frontend/src/App.tsx` *(Target: April Sprint)* |
 
 ## 3. Non-Functional Requirements (NFR)
 Non-functional requirements dictate the system's quality attributes, performance benchmarks, and architectural constraints.
 
 | ID | Category | Requirement Description | Priority | Traceability |
 | :--- | :--- | :--- | :--- | :--- |
-| **NFR-01** | Performance | The asynchronous FastAPI backend must process and return standard search payloads in under 5 seconds to prevent user drop-off. | High | `main.py` (Uvicorn) |
-| **NFR-02** | UX / Interface | The frontend must employ a high-fidelity **Glassmorphic design system** featuring translucent layers, ambient glows, and full Dark/Light mode support. | High | Tailwind CSS, `App.tsx` |
-| **NFR-03** | Visual Stability | The system must completely eliminate layout shifting during data fetches by deploying structured Skeleton Loading (Ghost) components. | High | `Results.tsx`, `Details.tsx`|
-| **NFR-04** | Security | All user passwords must be salted and cryptographically hashed using the `bcrypt` algorithm prior to database insertion. | High | `security.py` |
-| **NFR-05** | Maintainability | The backend codebase must follow a modular, decoupled architecture (separating routing, database models, and external API extraction) to allow for scalable future development. | Medium | `models.py`, `db.py`, `extract.py` |
+| **NFR-01** | Performance | The asynchronous FastAPI backend must process and return standard search payloads in under 5 seconds to prevent user drop-off. | High | `backend/app/main.py` (Uvicorn) |
+| **NFR-02** | UX / Interface | The frontend must employ a high-fidelity **Glassmorphic design system** featuring translucent layers, ambient glows, and full Dark/Light mode support. | High | `frontend/tailwind.config.js`, `frontend/src/index.css` |
+| **NFR-03** | Visual Stability | The system must completely eliminate layout shifting during data fetches by deploying structured Skeleton Loading (Ghost) component states. | High | `frontend/src/Results.tsx` |
+| **NFR-04** | Security | All user passwords must be salted and cryptographically hashed using the `bcrypt` algorithm prior to database insertion. | High | `backend/app/security.py` |
+| **NFR-05** | Maintainability | The backend codebase must follow a modular, decoupled architecture (separating routing, database models, and external API extraction) to allow for scalable future development. | Medium | `backend/app/models.py`, `backend/app/db.py`, `backend/app/extract.py` |
 | **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md`, Inline Comments |
 
 ## 4. User Requirements (UR)
@@ -49,7 +49,7 @@ To ensure comprehensive testing and to validate that our engineering decisions d
 
 | User Req | Functional Req | Architectural Component | Verification Method (Testing Strategy) |
 | :--- | :--- | :--- | :--- |
-| **UR-01** | **FR-01, FR-03** | SerpApi Router & Gemini Parser | Integration test simulating a standard search query payload; verify JSON normalisation. |
-| **UR-02** | **FR-02** | Python Regex Price Interceptor | Unit test feeding the interceptor an array of mock products where 50% exceed the `max_price` parameter. |
-| **UR-03** | **FR-04** | React State / BattleModal | End-to-End (E2E) UI test verifying that selected products persist in the floating bar across page navigations. |
-| **UR-04** | **FR-05, FR-06** | SQLAlchemy DB / JWT Auth | Automated test verifying that a search query is successfully committed to the SQLite `history` table only if a valid Bearer token is present. |
+| **UR-01** | **FR-01, FR-03** | `search.py` Router & `extract.py` Gemini Parser | Integration test simulating a standard search query payload; verify JSON normalisation. |
+| **UR-02** | **FR-02** | Python Regex Price Interceptor (`search.py`) | Unit test feeding the interceptor an array of mock products where 50% exceed the `max_price` parameter. |
+| **UR-03** | **FR-04** | React State (`Results.tsx`, `Details.tsx`) | End-to-End (E2E) UI test verifying that selected products persist in the UI across user interactions. |
+| **UR-04** | **FR-05, FR-06** | SQLAlchemy DB (`models.py`) / JWT Auth | Automated test verifying that a search query is successfully committed to the SQLite `history` table only if a valid Bearer token is present. |
