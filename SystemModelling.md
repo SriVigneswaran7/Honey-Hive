@@ -15,44 +15,72 @@ The system employs a strict **Client–Server Architecture**, divided into four 
 The following UML Component Diagram illustrates how these layers interact. We utilise a Left-to-Right (`LR`) flow with heavily weighted data-paths to accurately represent the typical lifecycle of a web request.
 
 ```mermaid
-graph LR
-    %% Structural layout relying on native GitHub themes for perfect readability
-    U((User))
-
-    subgraph Presentation Layer
-        FE["React UI / Vite"]
+flowchart LR
+    %% -----------------------------------------
+    %% INDUSTRIAL MODERN THEME DEFINITIONS
+    %% -----------------------------------------
+    classDef default fill:#1e293b,stroke:#475569,stroke-width:2px,color:#f8fafc,rx:6,ry:6,font-family:sans-serif;
+    
+    %% Accent Nodes (Dark backgrounds, thick neon borders)
+    classDef client fill:#0f172a,stroke:#3b82f6,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
+    classDef server fill:#0f172a,stroke:#f59e0b,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
+    classDef data fill:#0f172a,stroke:#10b981,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
+    classDef external fill:#0f172a,stroke:#8b5cf6,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
+    classDef userNode fill:#334155,stroke:#cbd5e1,stroke-width:3px,color:#f8fafc,rx:50,ry:50;
+    
+    %% -----------------------------------------
+    %% SYSTEM ARCHITECTURE
+    %% -----------------------------------------
+    U((User)):::userNode
+    
+    subgraph Presentation["Presentation Layer"]
+        FE["React UI / Vite"]:::client
     end
-
-    subgraph Application Server Layer
-        API["FastAPI Router"]
-        Auth["Auth Service"]
-        Search["Price Interceptor"]
-        AI["AI Insights"]
-        
-        %% Thick internal routing lines for visual clarity
-        API ==> Auth
-        API ==> Search
-        API ==> AI
+    
+    subgraph Application["Application Server Layer"]
+        API["FastAPI Router"]:::server
+        Auth["Auth Service"]:::server
+        Search["Price Interceptor"]:::server
+        AI["AI Insights"]:::server
     end
-
-    subgraph Persistence Layer
-        ORM["SQLAlchemy ORM"]
-        DB[("SQLite Database")]
-        
-        ORM <==> DB
+    
+    subgraph Persistence["Persistence Layer"]
+        ORM["SQLAlchemy ORM"]:::data
+        DB[("SQLite Database")]:::data
     end
-
-    subgraph Third-Party Providers
-        Serp["SerpApi Engine"]
-        Gemini["Gemini 1.5 Pro"]
+    
+    subgraph ThirdParty["Third-Party Providers"]
+        Serp["SerpApi Engine"]:::external
+        Gemini["Gemini 1.5 Pro"]:::external
     end
-
-    %% Thick, clear arrows for major data flow
-    U == "Browser Interaction" ==> FE
-    FE == "REST API (JSON)" ==> API
+    
+    %% -----------------------------------------
+    %% DATA FLOW (THICK ARROWS)
+    %% -----------------------------------------
+    U ==>|Browser Interaction| FE
+    FE ==>|REST API JSON| API
+    
+    API ==> Auth
+    API ==> Search
+    API ==> AI
+    
     Auth <==> ORM
+    ORM <==> DB
+    
     Search ==> Serp
     AI ==> Gemini
+    
+    %% -----------------------------------------
+    %% HEAVY ROUTING AND CONTAINER STYLES
+    %% -----------------------------------------
+    %% Forces all connecting lines to be thick, industrial slate-grey
+    linkStyle default stroke:#64748b,stroke-width:4px,fill:none;
+    
+    %% Styles the background containers to look like technical blueprints
+    style Presentation fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
+    style Application fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
+    style Persistence fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
+    style ThirdParty fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
 ```
 
 ### 2.1 Component Responsibilities
@@ -69,10 +97,29 @@ By mapping our logical components to our physical file tree, we ensure strict tr
 To understand the system's runtime behaviour, we map the flow of data through the architecture. This diagram uses lifeline activations (the solid vertical blocks on the transaction lines) to explicitly demonstrate processing states and system bottlenecks during an authenticated search.
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'fontFamily': 'sans-serif',
+    'background': 'transparent',
+    'actorBkg': '#0f172a',
+    'actorBorder': '#3b82f6',
+    'actorTextColor': '#f8fafc',
+    'actorLineColor': '#475569',
+    'signalColor': '#94a3b8',
+    'signalTextColor': '#f8fafc',
+    'noteBkgColor': '#0f172a',
+    'noteBorderColor': '#f59e0b',
+    'noteTextColor': '#f59e0b',
+    'activationBorderColor': '#f59e0b',
+    'activationBkgColor': '#0f172a',
+    'sequenceNumberColor': '#0f172a'
+  }
+}}%%
 sequenceDiagram
     autonumber
     
-    actor U as User
+    participant U as User
     participant FE as React (UI)
     participant API as FastAPI
     participant DB as SQLite
@@ -81,7 +128,7 @@ sequenceDiagram
 
     U->>FE: Enters query "Headphones" (Max £100)
     activate FE
-    FE->>FE: Render Skeleton Loaders
+    FE->>FE: Mount Skeleton Loaders
     
     FE->>API: GET /api/search (Bearer Token)
     activate API
@@ -96,14 +143,15 @@ sequenceDiagram
     Serp-->>API: Raw JSON Payload
     deactivate Serp
     
-    Note over API: Price Interceptor Logic runs.<br/>Strips results > £100.
+    %% Clean, glowing system event note (Removed the clunky red rect)
+    Note over API: Price Interceptor Logic executes.<br/>Strips all results > £100 constraint.
     
-    API->>Gem: Send top 3 results
+    API->>Gem: Dispatch top 3 candidates
     activate Gem
     Gem-->>API: AI Insights & Trust Score
     deactivate Gem
     
-    API->>DB: Log search to History Table
+    API->>DB: Log transaction to History Table
     activate DB
     DB-->>API: Commit Successful
     deactivate DB
@@ -111,7 +159,7 @@ sequenceDiagram
     API-->>FE: Return Cleaned JSON Array
     deactivate API
     
-    FE->>FE: Replace Skeletons with Data
+    FE->>FE: Unmount Skeletons, Render Data
     FE-->>U: Display Formatted Results
     deactivate FE
 ```
@@ -127,6 +175,14 @@ This sequence highlights two critical engineering decisions:
 The system requires persistent storage for user accounts and search history. We utilise a relational model managed by **SQLAlchemy** (`backend/app/models.py`) to map Python objects to our **SQLite** database (`backend/honeyhive.db`).
 
 ```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'fontFamily': 'sans-serif',
+    'background': 'transparent',
+    'lineColor': '#f59e0b'
+  }
+}}%%
 erDiagram
     %% Relationship links defined first to optimise Mermaid's automatic spacing
     USERS ||--o{ SEARCH_HISTORY : "performs"
