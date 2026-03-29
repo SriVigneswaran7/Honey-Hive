@@ -1,280 +1,175 @@
-# Honey-Hive System Modelling
+# Honey-Hive: System Modelling & Architecture
 
 ## 1. Overview
+This document outlines the formal system modelling for the **Honey-Hive** platform. It demonstrates the structural and behavioural design of the application, reflecting a mature software engineering approach. 
 
-This document presents the **system modelling** for the **ELEE1149 group coursework project**. The system, named **Honey-Hive**, is a web-based product comparison and review assistant that allows a user to input either a **product name** or a **product URL**, retrieve matching product offers, and generate **AI-assisted product insights**.
+Honey-Hive is an AI-assisted product comparison platform. To meet the non-functional requirements for high performance and scalability, the architecture transitions away from monolithic, synchronous frameworks (such as Flask) in favour of a highly decoupled, asynchronous **FastAPI** backend and a **React (Vite)** frontend. This design natively supports non-blocking I/O operations, which is critical when orchestrating multiple external services like SerpApi and Google's Gemini LLM.
 
-The modelling in this document reflects both the **current implementation** and the **intended system design** described in the project requirements.
-
-The current implementation already includes:
-
-- **Flask backend API**
-- **Product search workflow**
-- **Amazon URL extraction**
-- **Google Shopping queries via SerpAPI**
-- **AI-generated product insights using Gemini**
-
-The purpose of this modelling document is to demonstrate how the system aligns with **software engineering principles** by clearly communicating:
-
-- **System structure**
-- **System behaviour**
-- **Design decisions**
-- **Component responsibilities**
+The models below articulate our system structure, dynamic behaviour, data persistence, and the engineering justifications behind these choices.
 
 ---
 
-## 2. System Context
+## 2. High-Level System Architecture (Container Model)
+The system employs a strict **Client–Server Architecture**, divided into four distinct logical zones: Presentation, Application, Data, and External Services. 
 
-The system is designed as a **web application** consisting of **three main architectural layers**.
-
-### 2.1 Presentation Layer
-
-The **frontend interface** provides the interaction point for the user.
-
-**Responsibilities include:**
-
-- Collecting **user input**
-- Sending **requests to the backend**
-- Displaying **product comparison results**
-- Presenting **AI-generated insights**
-
----
-
-### 2.2 Application Layer
-
-The **Flask backend API** acts as the **central processing component**.
-
-**Responsibilities include:**
-
-- Handling **API routing**
-- Performing **input validation**
-- Executing **business logic**
-- Orchestrating interactions with **external services**
-
----
-
-### 2.3 Service Layer
-
-The system relies on **external APIs** to provide **product search** and **AI processing capabilities**.
-
-**External services include:**
-
-- **SerpAPI** — used for retrieving **product search results**
-- **Gemini AI** — used for generating **structured AI-based product insights**
-
----
-
-### 2.4 Primary User Goal
-
-The **primary user goal** is to quickly compare a product by entering either:
-
-**A product search query**
-
-Example:
-
-```
-Sony WH-1000XM5 headphones
-```
-
-or
-
-**A direct product URL**
-
-Example:
-
-```
-Amazon product link
-```
-
-The system retrieves **matching product offers** and optionally generates **AI-assisted product insights**.
-
----
-
-## 3. Architectural Style and Design Justification
-
-The system follows a **client–server architecture** with a **modular backend design**.
-
-The architecture separates the system into **clearly defined responsibilities**.
-
-| Layer | Responsibility |
-|------|------|
-| Frontend | Collect user input and present results |
-| Backend API | Process requests and perform routing logic |
-| External Services | Provide search results and AI processing |
-
-This architectural separation improves:
-
-- **Maintainability**
-- **Scalability**
-- **System clarity**
-
----
-
-## 3.1 Architectural Justification
-
-### Separation of Concerns
-
-The **frontend** is responsible for presentation and interaction, while the **backend** performs processing and decision-making. This separation reduces coupling and improves **system maintainability**.
-
-### Modularity
-
-The backend logic is divided into **specialised modules**, allowing individual components to be developed, tested, and maintained independently.
-
-## 3.2 Architectural Decisions and Requirement Alignment
-
-The architectural design of **Honey-Hive** is aligned with both **functional** and **non-functional requirements**.
-
-### Module Responsibilities
-
-| Module | Responsibility |
-|------|------|
-| `server.py` | API routing and request handling |
-| `search.py` | Search optimisation and shopping queries |
-| `extract.py` | Amazon product URL extraction |
-
-This **modular structure** improves:
-
-- **Readability**
-- **Maintainability**
-- **Extensibility**
-
----
-
-### Scalability
-
-External services such as **SerpAPI** and **Gemini AI** are used to offload computationally intensive tasks.
-
-**Benefits include:**
-
-- Reduced **server processing load**
-- Improved **response times**
-- Simplified **system scalability**
-
----
-
-### Reliability
-
-The backend performs **validation checks** and **exception handling** when communicating with external services, preventing system failures when APIs return unexpected responses.
-
----
-
-### Maintainability
-
-Separating system responsibilities into **small modules** allows developers to modify **individual features** without affecting other system components.
-
----
-
-## 3.2 Architectural Decisions and Requirement Alignment
-
-The architectural design of **Honey-Hive** is aligned with both **functional** and **non-functional requirements**.
-
-### External API Integration
-
-The system relies on **SerpAPI** and **Gemini AI** to perform **product search** and **AI-based review analysis**.
-
-Delegating these tasks to specialised services improves **system scalability** and removes the need for complex **web scraping** or **natural language processing infrastructure**.
-
----
-
-### Modular Backend Design
-
-The backend is structured as **independent modules** (`search.py`, `extract.py`, and AI insight generation).
-
-This modular design allows each component to **evolve independently** and improves **system extensibility**.
-
----
-
-### Client–Server Architecture
-
-Separating the **frontend** from the **backend API** allows the system to support **multiple future clients**, including:
-
-- Web interfaces
-- Mobile applications
-- Third-party integrations
-
----
-
-### Fault Tolerance
-
-External API calls are **encapsulated inside backend modules**.
-
-Validation and **error handling mechanisms** ensure that failures in external services do **not cause system-wide crashes**.
-
----
-
-These architectural decisions collectively support:
-
-- **Scalability**
-- **Reliability**
-- **Maintainability**
-
----
-
-## 4. High-Level System Architecture
+The following UML Component Diagram illustrates how these layers interact. We utilise a Left-to-Right flow to accurately represent the typical lifecycle of a web request.
 
 ```mermaid
-flowchart TD
+graph LR
+    %% Clean structural layout without overriding native GitHub themes
+    U((User))
 
-User --> Frontend
+    subgraph Presentation
+        FE[React UI / Vite]
+    end
 
-subgraph Presentation Layer
-Frontend
-end
+    subgraph Application Server
+        API[FastAPI Router]
+        Auth[Auth Service]
+        Search[Price Interceptor]
+        AI[AI Insights]
+        
+        API --> Auth
+        API --> Search
+        API --> AI
+    end
 
-subgraph Application Layer
-Backend
-SearchModule
-ExtractionModule
-AIReviewModule
-end
+    subgraph Persistence
+        ORM[SQLAlchemy]
+        DB[(SQLite DB)]
+        
+        ORM <--> DB
+    end
 
-subgraph External Services
-SerpAPI
-GeminiAPI
-end
+    subgraph Third-Party APIs
+        Serp[SerpApi]
+        Gemini[Gemini 1.5 Pro]
+    end
 
-Frontend --> Backend
-
-Backend --> SearchModule
-Backend --> ExtractionModule
-Backend --> AIReviewModule
-
-SearchModule --> SerpAPI
-SearchModule --> GeminiAPI
-
-ExtractionModule --> SerpAPI
-
-AIReviewModule --> GeminiAPI
-AIReviewModule --> SerpAPI
-
-Backend --> Frontend
+    %% Flow interactions
+    U -- "Interacts" --> FE
+    FE -- "REST / JSON" --> API
+    Auth <--> ORM
+    Search --> Serp
+    AI --> Gemini
 ```
-Explanation
 
-The user interacts with the frontend interface.
+### 2.1 Component Responsibilities
+By mapping our logical components to our physical file tree, we ensure strict traceability between design and implementation.
 
-The frontend sends a request to the Flask backend.
+* **Frontend (`frontend/src/`):** Manages user state, authentication persistence (via `sessionStorage`), and renders the Glassmorphic UI. Components like `Results.tsx` and `ComparisonTable.tsx` are strictly responsible for presentation, containing no business logic.
+* **API Router (`backend/app/main.py`):** Acts as the primary entry point, managed by Uvicorn. It handles middleware, CORS policy, and routes incoming HTTP requests to specialised service modules.
+* **Search & Interceptor (`backend/app/search.py`):** Handles SerpApi communication. Critically, it contains our custom regex-based **Price Interceptor**, enforcing strict user budget constraints before data is ever returned to the client.
+* **AI Extraction (`backend/app/extract.py`):** Passes normalised market data to Gemini 1.5 Pro to distil unstructured product reviews into structured pros, cons, and vendor trust scores.
 
-The backend determines how to process the input.
+---
 
-The backend communicates with external services.
+## 3. Dynamic System Behaviour (Sequence Model)
+To understand the system's runtime behaviour, we map the flow of data through the architecture. This diagram uses lifeline activations (the vertical blocks) to demonstrate processing states during an authenticated search.
 
-Results are returned to the frontend in JSON format.
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    actor U as User
+    participant FE as React (UI)
+    participant API as FastAPI
+    participant DB as SQLite
+    participant Serp as SerpApi
+    participant Gem as Gemini Pro
 
-5. Functional Decomposition
+    U->>FE: Enters query "Headphones" (Max £100)
+    activate FE
+    FE->>FE: Render Skeleton Loaders
+    
+    FE->>API: GET /api/search (Bearer Token)
+    activate API
+    
+    API->>DB: Validate JWT Token
+    activate DB
+    DB-->>API: User Authorised
+    deactivate DB
+    
+    API->>Serp: Fetch Google Shopping Data
+    activate Serp
+    Serp-->>API: Raw JSON Payload
+    deactivate Serp
+    
+    Note over API: Price Interceptor Logic runs.<br/>Strips results > £100.
+    
+    API->>Gem: Send top 3 results
+    activate Gem
+    Gem-->>API: AI Insights & Trust Score
+    deactivate Gem
+    
+    API->>DB: Log search to History Table
+    activate DB
+    DB-->>API: Commit Successful
+    deactivate DB
+    
+    API-->>FE: Return Cleaned JSON Array
+    deactivate API
+    
+    FE->>FE: Replace Skeletons with Data
+    FE-->>U: Display Formatted Results
+    deactivate FE
+```
 
-The backend system is divided into functional components.
+### 3.1 Behavioural Justification
+This sequence highlights two critical engineering decisions:
+1.  **Optimistic UI:** The frontend renders Skeleton states immediately (Step 2) before the backend completes its processing. This ensures zero layout shift and provides a highly responsive perceived performance.
+2.  **Server-Side Filtering:** The Price Interceptor logic occurs entirely on the backend (Step 7) rather than the frontend. This minimises the size of the JSON payload transmitted over the network and prevents clients from reverse-engineering restricted search results.
 
-5.1 Server Layer
+---
 
-Responsible for:
+## 4. Data Modelling (Entity-Relationship Model)
+The system requires persistent storage for user accounts and search history. We utilise a relational model managed by **SQLAlchemy** (`backend/app/models.py`) to map Python objects to our **SQLite** database (`backend/honeyhive.db`).
 
-handling API requests
+```mermaid
+erDiagram
+    %% Reordered to allow Mermaid to create a more balanced layout
+    USERS ||--o{ SEARCH_HISTORY : "performs"
+    COUPONS |o--|{ SEARCH_HISTORY : "matches"
 
-validating input
+    USERS {
+        Integer id PK
+        String email UK "Indexed"
+        String hashed_password
+        Boolean is_active
+        DateTime created_at
+    }
 
-routing requests to appropriate modules
+    SEARCH_HISTORY {
+        Integer id PK
+        Integer user_id FK
+        String search_query
+        Integer deals_found
+        DateTime created_utc
+    }
 
-returning JSON responses
+    COUPONS {
+        Integer id PK
+        String store_name
+        String discount_code
+        Float discount_value
+        Boolean is_active
+    }
+```
 
-5.2 Search Module
+### 4.1 Data Architecture Decisions
+* **Referential Integrity:** The `SEARCH_HISTORY` table employs a Foreign Key (`user_id`) bound to the `USERS` table. This guarantees that relational data remains consistent and allows for cascading deletions if a user account is removed.
+* **Security:** Plain text passwords are never stored. The `hashed_password` column stores cryptographically salted hashes using the `bcrypt` algorithm, mitigating the risk of credential exposure in the event of a database compromise.
+
+---
+
+## 5. Architectural Style and Design Justification
+The architectural design of Honey-Hive is strictly aligned with the functional and non-functional requirements of the project. To achieve a highly maintainable and scalable system, we evaluated the trade-offs of our chosen stack:
+
+### 5.1 Why FastAPI over Flask?
+While initial requirements proposed a Flask backend, the system was upgraded to FastAPI. Because Honey-Hive relies heavily on two external APIs (SerpApi and Gemini), a synchronous framework like Flask would block the main thread while waiting for Google to respond. FastAPI’s native `async/await` support allows the server to handle concurrent user requests even while waiting for LLM generation, drastically improving horizontal scalability.
+
+### 5.2 Fault Tolerance and Boundary Protection
+External services are inherently unreliable. Our architecture encapsulates the SerpApi and Gemini calls within dedicated modules (`search.py` and `extract.py`). We implement rigorous `try/except` blocks and input validation via Pydantic schemas. If Gemini goes down, the system gracefully degrades—returning the product search results with a generic fallback message rather than crashing the entire application.
+
+### 5.3 Modularity and Extensibility
+By decoupling the application into a Presentation Layer (React) and an Application Layer (FastAPI), we achieve high extensibility. Should the project require a mobile application in the future, the React Native codebase could plug directly into the existing FastAPI routing layer without requiring a single line of backend code to be rewritten.
