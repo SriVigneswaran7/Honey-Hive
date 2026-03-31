@@ -17,9 +17,9 @@ Functional requirements define the core behaviour and features the system must p
 | **FR-05** | Authentication | The system must support secure user registration and login using JWT (JSON Web Tokens). | Must | `backend/app/auth_service.py`, `frontend/src/Signup.tsx`, `frontend/src/Login.tsx` |
 | **FR-06** | History Persistence| The system must automatically save logged-in users' search queries and deal counts to a relational database (SQLite via SQLAlchemy). | Must | `backend/app/main.py`, `frontend/src/History.tsx`, `backend/honeyhive.db` |
 | **FR-07** | AI Trust Score | The system should calculate and display a vendor reliability rating to protect users from untrustworthy third-party sellers. | Should | `backend/app/search.py` |
-| **FR-08** | Coupon Engine | The system should cross-reference searched products against an internal dataset of active promotional codes. | Should | `backend/dataset/coupons.json` *(Target: April Sprint)* |
-| **FR-09** | Password Recovery | The system should allow users to securely reset forgotten passwords via an SMTP-delivered email token (using Mailtrap for development). | Should | `backend/app/auth_service.py` *(Target: April Sprint)* |
-| **FR-10** | Admin Dashboard | The system could include a Role-Based Access Control (RBAC) dashboard for administrators to track user metrics and manage the coupon database. | Could | `frontend/src/App.tsx` *(Target: April Sprint)* |
+| **FR-08** | Coupon Engine | The system should cross-reference searched products against an internal dataset of active promotional codes. | Should | `backend/dataset/coupons.json` *(Target: April)* |
+| **FR-09** | Password Recovery | The system should allow users to securely reset forgotten passwords via an SMTP-delivered email token (using Mailtrap for development). | Should | `backend/app/auth_service.py` *(Target: April)* |
+| **FR-10** | Admin Dashboard | The system could include a Role-Based Access Control (RBAC) dashboard for administrators to track user metrics and manage the coupon database. | Could | `frontend/src/App.tsx` *(Target: April)* |
 
 ## 3. Non-Functional Requirements (NFR)
 Non-functional requirements dictate the system's quality attributes, performance benchmarks, and architectural constraints.
@@ -31,7 +31,7 @@ Non-functional requirements dictate the system's quality attributes, performance
 | **NFR-03** | Visual Stability | The system must completely eliminate layout shifting during data fetches by deploying structured Skeleton Loading (Ghost) component states. | High | `frontend/src/Results.tsx` |
 | **NFR-04** | Security | All user passwords must be salted and cryptographically hashed using the `bcrypt` algorithm prior to database insertion. | High | `backend/app/security.py` |
 | **NFR-05** | Maintainability | The backend codebase must follow a modular, decoupled architecture (separating routing, database models, and external API extraction) to allow for scalable future development. | Medium | `backend/app/models.py`, `backend/app/db.py`, `backend/app/extract.py` |
-| **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md`, Inline Comments |
+| **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md` |
 
 ## 4. User Requirements (UR)
 These represent the system capabilities from the end-user's perspective, guiding our frontend design choices.
