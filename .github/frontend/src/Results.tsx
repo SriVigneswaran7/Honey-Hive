@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Clock, LogOut, Sun, Moon, X, Check, Tag, Copy, Loader2, ChevronRight } from 'lucide-react';
+import { User, Clock, LogOut, Sun, Moon, X, Check, Tag, Copy, Loader2, ChevronRight, Filter, ArrowUpDown } from 'lucide-react';
 
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
-    <div className="h-60 bg-gray-200 dark:bg-white/5 rounded-3xl mb-6 shadow-inner"></div>
-    <div className="h-6 w-3/4 bg-gray-200 dark:bg-white/5 rounded-full mb-2"></div>
-    <div className="h-6 w-1/2 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
-    <div className="h-10 w-1/3 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
-import { User, Clock, LogOut, Sun, Moon, X, Check, Filter, ArrowUpDown } from 'lucide-react';
-
-const SkeletonCard = () => (
-  <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
-    
     {/* Ghost Comparison Button */}
     <div className="absolute top-4 right-4 w-10 h-10 bg-gray-200 dark:bg-white/5 rounded-full z-20 shadow-sm"></div>
 
@@ -35,10 +26,10 @@ const SkeletonCard = () => (
 );
 
 // Coupon Modal Component
-const CouponModal = ({ product, onClose }: { product: any; onClose: () => void }) => {
-  const [codes, setCodes] = useState<any[]>([]);
+const CouponModal = ({ product, onClose }) => {
+  const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState<string | null>(null);
+  const [copied, setCopied] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -63,15 +54,15 @@ const CouponModal = ({ product, onClose }: { product: any; onClose: () => void }
       }
     };
     fetchCodes();
-  }, [product.link]);
+  }, [product.link, product.store, product.title]);
 
-  const handleCopy = (code: string) => {
+  const handleCopy = (code) => {
     navigator.clipboard.writeText(code);
     setCopied(code);
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const confidenceConfig: Record<string, { color: string; bg: string; dot: string; label: string }> = {
+  const confidenceConfig = {
     high:   { color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20', dot: 'bg-emerald-500', label: 'Best Bet' },
     medium: { color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20',     dot: 'bg-amber-500',   label: 'Worth Trying' },
     low:    { color: 'text-gray-500 dark:text-gray-400',       bg: 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10',                dot: 'bg-gray-400',    label: 'Unlikely' },
@@ -82,7 +73,6 @@ const CouponModal = ({ product, onClose }: { product: any; onClose: () => void }
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={onClose} />
 
       <div className="relative z-10 w-full max-w-lg glass-card rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
-
         {/* Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -196,25 +186,27 @@ const CouponModal = ({ product, onClose }: { product: any; onClose: () => void }
 export default function Results() {
   const navigate = useNavigate();
   const location = useLocation();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef(null);
 
   const initialQuery = location.state?.query || '';
 
   const [searchInput, setSearchInput] = useState(initialQuery);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  
   // Filtering & Sorting State
   const [selectedStore, setSelectedStore] = useState('All');
-  const [sortOrder, setSortOrder] = useState<'default' | 'low-high' | 'high-low'>('default');
+  const [sortOrder, setSortOrder] = useState('default');
+  
   // Comparison Logic States
-  const [selectedForCompare, setSelectedForCompare] = useState<any[]>([]);
+  const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [isComparingLoading, setIsComparingLoading] = useState(false);
-  const [trustScores, setTrustScores] = useState<Record<string, string>>({});
-  const lastFetchedQuery = useRef<string | null>(null);
+  const [trustScores, setTrustScores] = useState({});
+  const lastFetchedQuery = useRef(null);
   
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [storeSearchQuery, setStoreSearchQuery] = useState(''); 
@@ -223,21 +215,16 @@ export default function Results() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
-  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+
+  // Coupon Modal State
+  const [couponProduct, setCouponProduct] = useState(null);
 
   useEffect(() => {
     const fetchRecent = async () => {
       const userEmail = localStorage.getItem('userEmail');
       if (!userEmail || !showProfileMenu) return;
 
-  // Coupon Modal State
-  const [couponProduct, setCouponProduct] = useState<any | null>(null);
-
-  const recentSearches = [
-    { id: 1, query: 'Sony WH-1000XM5' },
-    { id: 2, query: 'Keychron K2 Keyboard' },
-    { id: 3, query: 'LG C3 OLED TV 55"' },
-  ];
       try {
         const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
@@ -256,8 +243,8 @@ export default function Results() {
   useEffect(() => {
     if (localStorage.getItem('isLoggedIn') === 'true') setIsLoggedIn(true);
     setIsDark(document.documentElement.classList.contains('dark'));
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
     };
@@ -283,7 +270,7 @@ export default function Results() {
     }
   };
 
-  const fetchProducts = async (query: string) => {
+  const fetchProducts = async (query) => {
     if (!query) return;
     
     // Build dynamic cache key and URL based on current price states
@@ -322,7 +309,7 @@ export default function Results() {
     }
   };
 
-  const toggleCompare = (product: any) => {
+  const toggleCompare = (product) => {
     const isSelected = selectedForCompare.some(p => p.title === product.title);
     if (isSelected) {
       setSelectedForCompare(selectedForCompare.filter(p => p.title !== product.title));
@@ -417,94 +404,93 @@ export default function Results() {
 
         {/* Right Section */}
         <div className="font-medium flex items-center gap-4">
-          <button onClick={toggleTheme} className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400" aria-label="Toggle Dark Mode">
-          
-          {/* New Filter Button in Navbar */}
-          {!loading && products.length > 0 && (
-            <button 
-              onClick={() => setShowFilterModal(true)} 
-              className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 relative"
-              aria-label="Filters"
-            >
-              <Filter size={20} />
-              {/* Red dot notification if a filter is active */}
-              {(selectedStore !== 'All' || sortOrder !== 'default' || minPrice || maxPrice) && (
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-gray-950"></span>
-              )}
-            </button>
-          )}
-
-          <button 
-            onClick={toggleTheme} 
-            className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400"
-            aria-label="Toggle Dark Mode"
-          >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
-          {isLoggedIn ? (
-            <div className="relative" ref={menuRef}>
-              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)] relative z-50">
-                <User size={24} />
+          <div className="flex items-center gap-4">
+            {/* New Filter Button in Navbar */}
+            {!loading && products.length > 0 && (
+              <button 
+                onClick={() => setShowFilterModal(true)} 
+                className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 relative"
+                aria-label="Filters"
+              >
+                <Filter size={20} />
+                {/* Red dot notification if a filter is active */}
+                {(selectedStore !== 'All' || sortOrder !== 'default' || minPrice || maxPrice) && (
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-gray-950"></span>
+                )}
               </button>
-              {showProfileMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
-                  <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
-                    <div className="p-4 border-b border-gray-200 dark:border-white/10">
-                      <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
-                      <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
-                        {localStorage.getItem('userEmail') || 'Loading...'}
-                      </p>
-                    </div>
-                    <div className="p-2">
-                      <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
-                      {recentSearches.length > 0 ? (
-                        recentSearches.map((item, index) => (
-                          <button 
-                            key={index} 
-                            onClick={() => {
-                              setShowProfileMenu(false);
-                              const query = item.product_url || item.query;
-                              setSearchInput(query);
-                              sessionStorage.removeItem(`honeyhive_results_${query}`);
-                              fetchProducts(query);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
-                          >
-                            <Clock size={14} className="opacity-50 flex-shrink-0" />
-                            <span className="truncate">{item.product_url || item.query}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
-                          No recent searches yet.
-                        </div>
-                      )}
-                      <button onClick={() => { setShowProfileMenu(false); navigate('/history'); }} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
-                        View All History
-                      </button>
-                    </div>
-                    <div className="p-2 border-t border-gray-200 dark:border-white/10">
-                      <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-3 font-bold">
-                        <LogOut size={16} /> Log Out
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <button onClick={() => navigate('/login', { state: { from: location.pathname, query: searchInput } })} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50">
-              Log In
+            )}
+
+            <button 
+              onClick={toggleTheme} 
+              className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-          )}
+
+            {isLoggedIn ? (
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)] relative z-50">
+                  <User size={24} />
+                </button>
+                {showProfileMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
+                    <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                      <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
+                        <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                          {localStorage.getItem('userEmail') || 'Loading...'}
+                        </p>
+                      </div>
+                      <div className="p-2">
+                        <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
+                        {recentSearches.length > 0 ? (
+                          recentSearches.map((item, index) => (
+                            <button 
+                              key={index} 
+                              onClick={() => {
+                                setShowProfileMenu(false);
+                                const query = item.product_url || item.query;
+                                setSearchInput(query);
+                                sessionStorage.removeItem(`honeyhive_results_${query}`);
+                                fetchProducts(query);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                            >
+                              <Clock size={14} className="opacity-50 flex-shrink-0" />
+                              <span className="truncate">{item.product_url || item.query}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                            No recent searches yet.
+                          </div>
+                        )}
+                        <button onClick={() => { setShowProfileMenu(false); navigate('/history'); }} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
+                          View All History
+                        </button>
+                      </div>
+                      <div className="p-2 border-t border-gray-200 dark:border-white/10">
+                        <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-3 font-bold">
+                          <LogOut size={16} /> Log Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button onClick={() => navigate('/login', { state: { from: location.pathname, query: searchInput } })} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50">
+                Log In
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
       {/* Product Grid */}
       <main className="max-w-7xl mx-auto px-6 mt-12 relative z-10">
-
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <SkeletonCard /><SkeletonCard /><SkeletonCard />
@@ -703,7 +689,7 @@ export default function Results() {
                   ].map(option => (
                     <button
                       key={option.id}
-                      onClick={() => setSortOrder(option.id as any)}
+                      onClick={() => setSortOrder(option.id)}
                       className={`w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all border flex items-center justify-between backdrop-blur-md
                         ${sortOrder === option.id 
                           ? 'bg-amber-500/10 border-amber-500 text-amber-500 dark:text-amber-400' 
@@ -729,7 +715,6 @@ export default function Results() {
                 Apply & View Results
               </button>
             </div>
-
           </div>
         </div>
       )}
