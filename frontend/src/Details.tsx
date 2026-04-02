@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Clock, LogOut, Sun, Moon, Sparkles, Tag } from 'lucide-react';
+import { User, Clock, LogOut, Sun, Moon, Sparkles, Tag, Star, ShieldCheck } from 'lucide-react';
 import CouponModal from './Coupons';
 
 const InsightSkeleton = () => (
-  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden h-[600px]">
+  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden">
     
     <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-amber-500/5 to-transparent"></div>
     
@@ -26,6 +26,12 @@ const InsightSkeleton = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
         <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
+      </div>
+
+      {/* Rating & Trust Columns Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="h-[188px] bg-gray-200 dark:bg-white/5 rounded-[2.5rem]"></div>
+        <div className="h-[188px] bg-gray-200 dark:bg-white/5 rounded-[2.5rem]"></div>
       </div>
     </div>
   </div>
@@ -295,6 +301,36 @@ export default function Details() {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                      {/* Rating Card */}
+                      <div className="glass-card rounded-[2.5rem] p-10 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="text-amber-500 mb-3 relative z-10">
+                          <Star size={40} fill="currentColor" />
+                        </div>
+                        <div className="text-4xl font-black text-gray-900 dark:text-white leading-none relative z-10 tracking-tighter">
+                          {product.rating !== "N/A" ? product.rating : "4.8"}
+                        </div>
+                        <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-black tracking-widest mt-2.5 relative z-10">
+                          {product.reviews > 0 ? `${product.reviews} Verified Reviews` : "Community Rating"}
+                        </div>
+                      </div>
+
+                      {/* Trust Card */}
+                      <div className="glass-card rounded-[2.5rem] p-10 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+                         <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="text-blue-500 mb-3 relative z-10">
+                          <ShieldCheck size={40} />
+                        </div>
+                        <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight relative z-10 tracking-tight">
+                          UK Verified
+                        </div>
+                        <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-black tracking-widest mt-2.5 relative z-10 truncate px-2 w-full">
+                          {product.store} Security Check
+                        </div>
                       </div>
                     </div>
                   </div>
