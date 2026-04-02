@@ -4,6 +4,7 @@ import json
 import re
 from dotenv import load_dotenv, find_dotenv
 import warnings
+import time
 
 warnings.filterwarnings("ignore")
 load_dotenv(find_dotenv())
@@ -70,7 +71,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         "q": user_input,
         "gl": "uk",
         "api_key": api_key,
-        "num": 30
+        "num": 30 # Fetching 30 gives us plenty of room to throw away the bad ones
     }
     
     # 1. Ask Google to try its best to filter prices
@@ -96,7 +97,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
             except:
                 price_float = 0.0
                 
-            # 3. Discard if it breaks the rules
+            # 3. Discard it breaks our rules
             if min_price is not None and price_float < min_price:
                 continue
             if max_price is not None and price_float > max_price:
@@ -166,49 +167,58 @@ def generate_ai_insights(product_title: str):
     serp_key = os.getenv("SERPAPI_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
     
-    if not gemini_key:
-        print("\n[CRITICAL ERROR] Gemini API Key is missing! Check your .env file.")
-
-    serp_params = {"engine": "google", "q": f"{product_title} expert review verdict", "gl": "uk", "api_key": serp_key}
+    # Fetch deep research (Top 3 snippets)
+    serp_params = {"engine": "google", "q": f"{product_title} technical specifications review", "gl": "uk", "api_key": serp_key}
     try:
         serp_resp = requests.get("https://serpapi.com/search", params=serp_params).json()
-        organic_snippet = serp_resp.get("organic_results", [{}])[0].get("snippet", "Detailed specs pending.")
+        results = serp_resp.get("organic_results", [])
+        organic_snippet = " ".join([r.get("snippet", "") for r in results[:3]])
     except:
-        organic_snippet = "Detailed specs pending."
+        organic_snippet = ""
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
     
+    # The Prompt
     prompt = f"""
-    Act as a tech reviewer. Analyse: {product_title}.
-    Return ONLY a raw JSON object with two arrays. No markdown formatting.
-    Format exactly like this:
-    {{
-        "pros": ["Brief pro 1", "Brief pro 2", "Brief pro 3"],
-        "cons": ["Brief con 1", "Brief con 2", "Brief con 3"]
-    }}
+    Product: {product_title}
+    Context: {organic_snippet}
+    
+    TASK: Write a technical hardware analyst verdict.
+    1. 'summary': 2 sentences. Synthesize the context into a clean professional review. 
+       Use specific tech specs (chips, RAM, display tech). No "..." at the end.
+    2. 'pros': 3 unique strengths from the context. MAX 7 words each. One-liners only.
+    3. 'cons': 3 unique technical limitations. MAX 7 words each. One-liners only.
+    
+    Return ONLY raw JSON. No markdown. No generic filler like "Good choice".
     """
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
     try:
-        ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload).json()
+        time.sleep(0.5) 
+        response = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
         
-        if "error" in ai_resp:
-            raise Exception("Google API Error")
-            
-        text_output = ai_resp["candidates"][0]["content"]["parts"][0]["text"]
-        clean_text = text_output.replace("```json", "").replace("```", "").strip()
-        parsed_data = json.loads(clean_text)
+        if response.status_code != 200:
+            raise Exception(f"API Status {response.status_code}")
+
+        text_output = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        parsed_data = json.loads(re.search(r'\{.*\}', text_output, re.DOTALL).group())
         
         return {
-            "summary": organic_snippet.replace("I ", "Users ").replace("my ", "the ")[:250] + "...",
-            "pros": parsed_data.get("pros", ["Pro 1", "Pro 2", "Pro 3"])[:3],
-            "cons": parsed_data.get("cons", ["Con 1", "Con 2", "Con 3"])[:3]
+            "summary": parsed_data.get("summary", "Technical analysis complete.").strip(),
+            "pros": parsed_data.get("pros", [])[:3],
+            "cons": parsed_data.get("cons", [])[:3]
         }
+
     except Exception as e:
+        print(f"AI insight failed: {e}")
+        summary_fallback = organic_snippet.replace("I ", "Users ").replace("my ", "the ").strip()
+        if summary_fallback.endswith("..."):
+            summary_fallback = summary_fallback[:-3].strip() + "."
+        
+        if not summary_fallback:
+            summary_fallback = f"Detailed technical specifications and user consensus for the {product_title} are available through the retailer links provided below."
+
         return {
-            "summary": organic_snippet,
-            "pros": [f"Good {product_title[:15]}...", "Works well", "UK verified"],
-            "cons": ["Premium price", "Check stock", "Standard warranty"],
-            "coupons": [] 
+            "summary": summary_fallback,
+            "pros": ["UK Verified", "Positive market reception", "Manufacturer-grade reliability"],
+            "cons": ["Stock availability fluctuates", "Price varies across retailers", "Standard warranty terms apply"]
         }
