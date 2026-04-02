@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Tag, Copy } from 'lucide-react';
 
 // Coupon Modal Component
@@ -44,8 +45,9 @@ const CouponModal = ({ product, onClose }: any) => {
     low:    { color: 'text-gray-500 dark:text-gray-400',       bg: 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10',                dot: 'bg-gray-400',    label: 'Unlikely' },
   };
 
-  return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
+  // This "teleports" the modal to the very top of the HTML body, bypassing all scroll/animation traps
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={onClose} />
 
       <div className="relative z-10 w-full max-w-lg glass-card rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
@@ -67,7 +69,7 @@ const CouponModal = ({ product, onClose }: any) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-gray-700 dark:hover:text-white transition-all active:scale-90">
+          <button onClick={onClose} className="p-2 rounded-full text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-all active:scale-90">
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
@@ -155,7 +157,8 @@ const CouponModal = ({ product, onClose }: any) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
