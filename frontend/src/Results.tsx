@@ -24,6 +24,7 @@ const SkeletonCard = () => (
     <div className="mt-auto space-y-3">
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
       <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
     </div>
   </div>
 );
@@ -250,6 +251,7 @@ export default function Results() {
         {/* Right Section */}
         <div className="font-medium flex items-center gap-4">
           <div className="flex items-center gap-4">
+            {/* New Filter Button in Navbar */}
             {!loading && products.length > 0 && (
               <button 
                 onClick={() => setShowFilterModal(true)} 
@@ -257,6 +259,7 @@ export default function Results() {
                 aria-label="Filters"
               >
                 <Filter size={20} />
+                {/* Red dot notification if a filter is active */}
                 {(selectedStore !== 'All' || sortOrder !== 'default' || minPrice || maxPrice) && (
                   <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-gray-950"></span>
                 )}
@@ -342,6 +345,7 @@ export default function Results() {
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product, index) => {
+              // Checks selection status for this card
               const isSelected = selectedForCompare.some(p => p.title === product.title);
               return (
                 <div key={index} className={`relative glass-card rounded-[2.5rem] p-5 flex flex-col border transition-all duration-500 group
@@ -349,6 +353,7 @@ export default function Results() {
                     ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)] scale-[1.02]'
                     : 'border-gray-200 dark:border-white/10 hover:border-amber-500/40 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.2)]'}`}>
 
+                  {/* Compare Button */}
                   <button
                     onClick={() => toggleCompare(product)}
                     className={`absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-90
@@ -377,6 +382,7 @@ export default function Results() {
                       AI Review & Specs
                     </button>
 
+                    {/* Find Discount Codes Button */}
                     <button
                       onClick={() => setCouponProduct(product)}
                       className="w-full flex items-center justify-center gap-2 border-2 border-amber-500/30 py-3 rounded-full font-bold text-sm text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-500/5 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all active:scale-95"

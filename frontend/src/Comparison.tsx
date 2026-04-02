@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check } from 'lucide-react';
 
 export default function CompareModal({
@@ -10,8 +11,8 @@ export default function CompareModal({
 }: any) {
   if (!showCompareModal) return null;
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-lg" onClick={() => setShowCompareModal(false)}></div>
       <div className="relative z-10 w-full max-w-5xl glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
         <div className="absolute top-[-20%] left-[-10%] w-96 h-96 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
@@ -91,6 +92,7 @@ export default function CompareModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

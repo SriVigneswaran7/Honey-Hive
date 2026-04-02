@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Filter, X, Check } from 'lucide-react';
 
 export default function FilterModal({
@@ -16,8 +17,8 @@ export default function FilterModal({
   setStoreSearchQuery,
   onApply
 }: any) {
-  return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-24 sm:pt-32 pb-4 px-4 sm:px-6 animate-in fade-in duration-300">
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-start justify-center pt-24 sm:pt-32 pb-4 px-4 sm:px-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-md" onClick={onClose}></div>
       <div className="relative z-10 w-full max-w-md glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
         
@@ -163,6 +164,7 @@ export default function FilterModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
