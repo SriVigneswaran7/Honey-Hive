@@ -1,0 +1,3975 @@
+# Package marker for "app"from sqlalchemy.orm import Session
+from .users_repo import get_user_by_email
+from .security import verify_password
+
+class AuthResult:
+   def __init__(self, ok: bool, reason: str):
+       self.ok = ok
+       self.reason = reason
+
+def authenticate(db: Session, email: str, password: str) -> AuthResult:
+   user = get_user_by_email(db, email)
+   if user is None:
+       return AuthResult(False, "User not found")
+   if not verify_password(password, user.password_hash):
+       return AuthResult(False, "Invalid password")
+   return AuthResult(True, "Authenticated")import os
+
+def get_env(name: str, default: str) -> str:
+   return os.getenv(name, default)
+
+APP_NAME = get_env("APP_NAME", "Honey-Hive (DB)")
+ENV = get_env("ENV", "dev")
+# SQLite DB file path (relative to .github/backend when you run uvicorn there)
+SQLITE_PATH = get_env("SQLITE_PATH", "./honeyhive.db")#!/usr/bin/env python3
+"""
+discount_scraper.py — finds and verifies real discount codes for any product URL.
+
+Dependencies:
+  pip install requests beautifulsoup4
+  pip install playwright && playwright install chromium   ← for scraping + verification
+
+Usage:
+  python discount_scraper.py "https://www.boohooman.com/product/..."
+  python discount_scraper.py "https://www.boohooman.com/product/..." --verify
+  python discount_scraper.py "https://www.asos.com/..." --verify --output codes.txt
+  python discount_scraper.py "https://example.com/..." --skip-google
+"""
+
+import re
+import sys
+import time
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+import json
+import random
+import argparse
+import urllib.parse
+import os
+from collections import OrderedDict
+from pathlib import Path
+
+# Load .env file manually (no python-dotenv needed)
+def _load_env():
+    for env_path in [Path('.env'), Path(__file__).parent / '.env']:
+        if env_path.exists():
+            for line in env_path.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, _, v = line.partition('=')
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+            break
+_load_env()
+
+try:
+    import requests
+    from bs4 import BeautifulSoup
+except ImportError:
+    print("\n[!] Missing dependencies. Run:\n    pip install requests beautifulsoup4\n")
+    sys.exit(1)
+
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
+try:
+    from playwright_stealth import stealth_sync
+    STEALTH_AVAILABLE = True
+except ImportError:
+    STEALTH_AVAILABLE = False
+
+# ─────────────────────────────────────────────
+#  CONFIG
+# ─────────────────────────────────────────────
+
+TIMEOUT = 12
+MAX_RETRIES = 2
+DELAY = 1.2
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0",
+]
+
+# Strict patterns — only match codes near coupon context words
+CODE_PATTERNS = [
+    r'(?:use\s+code|enter\s+code|apply\s+code|promo\s+code|coupon\s+code|discount\s+code|voucher\s+code)'
+    r'[:\s\-]+[\"\'`]?([A-Za-z0-9\-_]{3,20})[\"\'`]?',
+    r'"(?:code|coupon|promo|voucher|discount_code|coupon_code|promo_code)"\s*:\s*"([A-Za-z0-9\-_]{3,20})"',
+    r'data-(?:code|coupon|promo|discount)[=:\s"\']+([A-Za-z0-9\-_]{3,20})["\']?',
+    r'data-clipboard-text[=:\s"\']+([A-Za-z0-9\-_]{3,20})["\']?',
+    r'with\s+(?:the\s+)?code\s+[\"\'`]?([A-Z0-9\-_]{3,20})[\"\'`]?',
+    r'save\s+\d+%?\s+(?:with|using)\s+[\"\'`]?([A-Z0-9\-_]{3,20})[\"\'`]?',
+]
+
+JUNK_CODES = {
+    # Web/tech junk
+    'HTTP', 'HTTPS', 'HTML', 'JSON', 'TRUE', 'FALSE', 'NULL', 'NONE',
+    'CSS', 'API', 'URL', 'USD', 'EUR', 'GBP', 'PNG', 'JPG', 'SVG',
+    'UTF8', 'UTF16', 'AJAX', 'POST', 'GET', 'PUT', 'DELETE', 'CORS',
+    'CSRF', 'AUTH', 'BASE', 'MAIN', 'NEXT', 'PREV', 'MENU', 'CART',
+    'SHOP', 'PAGE', 'HOME', 'BACK', 'MORE', 'LESS', 'OPEN', 'CLOSE',
+    'LEFT', 'RIGHT', 'TYPE', 'LINK', 'TEXT', 'ICON', 'LOGO', 'HERO',
+    'BETA', 'LIVE', 'TEST', 'DEMO', 'LOAD', 'SHOW', 'HIDE', 'DARK',
+    'LIGHT', 'WIDE', 'FULL', 'FLEX', 'GRID', 'SPAN', 'WRAP',
+    # Common English words that get scraped as false positives
+    'INTO', 'ONTO', 'FROM', 'WITH', 'THIS', 'THAT', 'THEN', 'WHEN',
+    'BEEN', 'HAVE', 'WILL', 'DOES', 'DIDN', 'DOESN', 'WASN', 'ISN',
+    'THEY', 'THEM', 'THEIR', 'WHAT', 'WHICH', 'WHILE', 'WHERE',
+    'YOUR', 'JUST', 'ALSO', 'ONLY', 'OVER', 'SOME', 'SUCH', 'BOTH',
+    'EACH', 'MOST', 'VERY', 'EVEN', 'WELL', 'THAN', 'THEN', 'ONCE',
+    'UPON', 'NEED', 'NEEDED', 'USED', 'USES', 'MAKE', 'MADE', 'TAKE',
+    'TAKEN', 'COME', 'CAME', 'GIVE', 'GIVEN', 'KNOW', 'KNOWN',
+    'FIND', 'FOUND', 'KEEP', 'KEPT', 'CALL', 'CALLED', 'SAID',
+    'WANT', 'WANTED', 'LOOK', 'LOOKED', 'FEEL', 'FELT', 'SEEM',
+    'SEEMED', 'HELP', 'HELPED', 'WORK', 'WORKED', 'PLAY', 'PLAYED',
+    'MOVE', 'MOVED', 'LIVE', 'LIVED', 'HOLD', 'HELD', 'TURN', 'TURNED',
+    'FOLLOW', 'FOLLOWED', 'STOP', 'STOPPED', 'ALLOW', 'ALLOWED',
+    'ADDED', 'MEANS', 'BECOME', 'LEAVE', 'SHOW', 'SHOWN', 'SHOWN',
+    'FORM', 'FORMS', 'PLACE', 'PLACES', 'POINT', 'POINTS', 'PART',
+    'PARTS', 'CASE', 'CASES', 'FACT', 'FACTS', 'AREA', 'AREAS',
+    'SIDE', 'SIDES', 'HAND', 'HANDS', 'YEAR', 'YEARS', 'WEEK',
+    'WEEKS', 'DAYS', 'TIMES', 'TIME', 'WAYS', 'WORD', 'WORDS',
+    'PEOPLE', 'PERSON', 'WORLD', 'LIFE', 'CHILD', 'AFTER', 'AGAIN',
+    'NEVER', 'ALWAYS', 'OFTEN', 'EVERY', 'STILL', 'ABOUT', 'ABOVE',
+    'BELOW', 'BETWEEN', 'UNDER', 'UNTIL', 'WHILE', 'SINCE', 'BEFORE',
+    # GTM/analytics tags
+    'GTM', 'GTAG', 'PIXEL', 'TRACK', 'EVENT', 'LAYER', 'PUSH',
+    # Box/container words
+    'BOX', 'BOXES', 'WRAP', 'INNER', 'OUTER', 'BLOCK', 'INLINE',
+    # Prepositions/articles/conjunctions
+    'PER', 'FOR', 'AND', 'BUT', 'NOT', 'ARE', 'WAS', 'HAS', 'HAD',
+    'ITS', 'OUR', 'OUT', 'USE', 'WAY', 'MAY', 'ANY', 'ALL', 'NOW',
+    'NEW', 'OLD', 'OWN', 'TOO', 'HOW', 'HIS', 'HER', 'WHO', 'CAN',
+}
+
+# Minimum code length to be considered valid (short words like BOX, PER filtered above)
+MIN_CODE_LENGTH = 5
+
+# Coupon aggregator URLs — these render codes via JS so we use Playwright to scrape them
+COUPON_SOURCES = [
+    ("vouchercodes",    "https://www.vouchercodes.co.uk/{domain}/"),
+    ("myvouchercodes",  "https://www.myvouchercodes.co.uk/{domain}/"),
+    ("voucher-discount","https://{domain}.voucher.discount/"),
+    ("savoo",           "https://www.savoo.co.uk/brands/{brand}-discount-codes"),
+    ("groupon",         "https://www.groupon.co.uk/discount-codes/{brand}"),
+    ("dontpayfull",     "https://www.dontpayfull.com/at/{domain}"),
+    ("everysaving",     "https://www.everysaving.co.uk/shop/{domain}"),
+    ("wowcher",         "https://www.wowcher.co.uk/discountcodes/{domain}"),
+    ("savethestudent",  "https://www.savethestudent.org/discount-codes/{brand}-discount-codes.html"),
+    ("uswitch",         "https://www.uswitch.com/voucher-codes/{brand}/"),
+    ("retailmenot",     "https://www.retailmenot.com/view/{domain}"),
+    ("couponfollow",    "https://couponfollow.com/site/{domain}"),
+    ("hotukdeals",      "https://www.hotukdeals.com/vouchers/{brand}"),
+    ("hotukdeals2",     "https://www.hotukdeals.com/search?q={brand}+discount+code"),
+    ("vouchercloud",    "https://www.vouchercloud.com/stores/{brand}"),
+    ("offers",          "https://www.offers.com/stores/{brand}/"),
+]
+
+GOOGLE_SEARCH_URL = "https://www.google.com/search?q={query}&num=15&hl=en-GB"
+
+VALID   = "VALID"
+INVALID = "INVALID"
+UNKNOWN = "UNKNOWN"
+
+# ─────────────────────────────────────────────
+#  UTILITY
+# ─────────────────────────────────────────────
+
+def get_headers():
+    return {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-GB,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "DNT": "1",
+    }
+
+def fetch(url, timeout=None, retries=MAX_RETRIES, method='GET',
+          data=None, json_data=None, headers_extra=None, session=None):
+    t = timeout or TIMEOUT
+    requester = session if session else requests
+    for attempt in range(retries + 1):
+        try:
+            h = get_headers()
+            if headers_extra:
+                h.update(headers_extra)
+            if method == 'POST':
+                resp = requester.post(url, headers=h, timeout=t,
+                                      data=data, json=json_data, allow_redirects=True)
+            else:
+                resp = requester.get(url, headers=h, timeout=t, allow_redirects=True)
+            return resp
+        except requests.exceptions.RequestException as e:
+            if attempt < retries:
+                time.sleep(DELAY * (attempt + 1))
+            else:
+                print(f"  [!] Failed {url[:70]} -> {e}")
+                return None
+
+def extract_domain(url):
+    parsed = urllib.parse.urlparse(url)
+    domain = parsed.netloc.lower()
+    return re.sub(r'^www\.', '', domain)
+
+def extract_base(url):
+    p = urllib.parse.urlparse(url)
+    return f"{p.scheme}://{p.netloc}"
+
+def extract_brand_name(domain):
+    parts = domain.split('.')
+    skip = {'shop', 'store', 'www', 'us', 'uk', 'en', 'buy', 'get', 'co'}
+    for p in parts:
+        if p not in skip and len(p) > 2:
+            return p
+    return parts[0] if parts else domain
+
+def extract_product_info(url, page_text=''):
+    """
+    Extract product name, brand and category from ANY store page.
+    Uses JSON-LD structured data, Open Graph tags, page title and URL as fallbacks.
+    """
+    info = {'product_name': '', 'product_brand': '', 'category': '', 'model': ''}
+
+    if not page_text:
+        # Try to fetch the page if we don't have it
+        resp = fetch(url, timeout=10)
+        if resp:
+            page_text = resp.text
+        else:
+            return info
+
+    soup = BeautifulSoup(page_text, 'html.parser')
+
+    # 1. JSON-LD structured data (most reliable — used by most modern stores)
+    for script in soup.find_all('script', type='application/ld+json'):
+        try:
+            data = json.loads(script.string or '{}')
+            if isinstance(data, list):
+                data = next((d for d in data if d.get('@type') == 'Product'), data[0] if data else {})
+            if data.get('@type', '').lower() == 'product':
+                info['product_name'] = data.get('name', '')
+                brand = data.get('brand', {})
+                info['product_brand'] = brand.get('name', '') if isinstance(brand, dict) else str(brand)
+                info['category'] = data.get('category', '')
+                info['model'] = data.get('model', data.get('mpn', data.get('sku', '')))
+                if info['product_name']:
+                    break
+        except Exception:
+            pass
+
+    # 2. Open Graph tags
+    if not info['product_name']:
+        og = soup.find('meta', property='og:title') or soup.find('meta', attrs={'name': 'twitter:title'})
+        if og:
+            info['product_name'] = og.get('content', '').split('|')[0].split(' - ')[0].strip()
+
+    # 3. Page <title>
+    if not info['product_name']:
+        title = soup.find('title')
+        if title:
+            info['product_name'] = title.get_text().split('|')[0].split(' - ')[0].strip()
+
+    # 4. Common product heading tags
+    if not info['product_name']:
+        for sel in ['h1', '[class*="product-title"]', '[class*="product-name"]',
+                    '[class*="pdp-title"]', '[id*="product-title"]']:
+            el = soup.select_one(sel)
+            if el:
+                info['product_name'] = el.get_text(strip=True)
+                break
+
+    # 5. Extract brand from product name if not found yet
+    if not info['product_brand'] and info['product_name']:
+        # First word of product name is often the brand (Apple iPhone, LG Fridge, Samsung TV)
+        first_word = info['product_name'].split()[0] if info['product_name'].split() else ''
+        if len(first_word) >= 2 and first_word.isalpha():
+            info['product_brand'] = first_word
+
+    # 6. Extract model number from URL + product name
+    combined = url + ' ' + info['product_name']
+    model_match = re.search(r'\b([A-Z]{1,5}[0-9]{2,}[A-Z0-9]{0,10})\b', combined.upper())
+    if model_match and not info['model']:
+        info['model'] = model_match.group(1)
+
+    return info
+
+
+# Category keyword map — used to detect what type of product this is
+CATEGORY_KEYWORDS = {
+    'fridge':      ['FRIDGE', 'FREEZER', 'REFRIGERAT', 'COOLING', 'LARDER'],
+    'washing':     ['WASH', 'LAUNDRY', 'TUMBLE', 'DRYER', 'DRUM'],
+    'dishwasher':  ['DISHWASH'],
+    'oven':        ['OVEN', 'HOB', 'COOKER', 'MICROWAVE', 'AIR FRY'],
+    'tv':          ['TV', 'TELEVISION', 'OLED', 'QLED', 'SCREEN', 'MONITOR'],
+    'laptop':      ['LAPTOP', 'NOTEBOOK', 'MACBOOK', 'CHROMEBOOK'],
+    'pc':          ['DESKTOP', 'PC', 'COMPUTER', 'IMAC', 'ALL-IN-ONE'],
+    'tablet':      ['TABLET', 'IPAD', 'TAB'],
+    'phone':       ['PHONE', 'MOBILE', 'IPHONE', 'SMARTPHONE', 'HANDSET'],
+    'headphones':  ['HEADPHONE', 'EARPHONE', 'EARBUD', 'AIRPOD', 'HEADSET'],
+    'speaker':     ['SPEAKER', 'SOUNDBAR', 'AUDIO', 'STEREO'],
+    'camera':      ['CAMERA', 'DSLR', 'MIRRORLESS', 'WEBCAM', 'CAMCORD'],
+    'gaming':      ['GAMING', 'CONSOLE', 'PS5', 'PS4', 'XBOX', 'NINTENDO', 'SWITCH', 'GAMEPAD'],
+    'printer':     ['PRINTER', 'INK', 'TONER', 'SCANNER'],
+    'vacuum':      ['VACUUM', 'HOOVER', 'DYSON', 'SHARK', 'ROOMBA', 'CORDLESS VAC'],
+    'coffee':      ['COFFEE', 'ESPRESSO', 'NESPRESSO', 'BARISTA'],
+    'clothing':    ['HOODIE', 'SHIRT', 'JEANS', 'JACKET', 'SHORTS', 'DRESS', 'TRAINER'],
+    'shoes':       ['SHOE', 'TRAINER', 'BOOT', 'SNEAKER', 'SANDAL'],
+    'beauty':      ['SKINCARE', 'MOISTUR', 'SERUM', 'MAKEUP', 'FOUNDATION', 'MASCARA'],
+    'fitness':     ['GYM', 'FITNESS', 'PROTEIN', 'SUPPLEMENT', 'WORKOUT'],
+    'furniture':   ['SOFA', 'CHAIR', 'TABLE', 'BED', 'MATTRESS', 'DESK'],
+}
+
+
+def filter_codes_by_product(codes, product_info):
+    """
+    Score every code by relevance to the specific product.
+    Returns (relevant, neutral, irrelevant) lists.
+    """
+    product_name = product_info.get('product_name', '').upper()
+    product_brand = product_info.get('product_brand', '').upper()
+    category = product_info.get('category', '').upper()
+    combined_text = product_name + ' ' + product_brand + ' ' + category
+
+    # Detect which categories this product belongs to
+    detected_categories = set()
+    for cat, keywords in CATEGORY_KEYWORDS.items():
+        if any(kw in combined_text for kw in keywords):
+            detected_categories.add(cat)
+
+    # All keywords for detected categories
+    relevant_keywords = []
+    for cat in detected_categories:
+        relevant_keywords.extend(CATEGORY_KEYWORDS[cat])
+
+    # All keywords for OTHER categories (negative signal)
+    irrelevant_keywords = []
+    for cat, keywords in CATEGORY_KEYWORDS.items():
+        if cat not in detected_categories:
+            irrelevant_keywords.extend(keywords)
+
+    # Brand abbreviations (e.g. LG -> LG, Samsung -> SAM, Apple -> APP)
+    brand_abbrevs = set()
+    if product_brand:
+        brand_abbrevs.add(product_brand[:2])
+        brand_abbrevs.add(product_brand[:3])
+        brand_abbrevs.add(product_brand[:4])
+        brand_abbrevs.add(product_brand)
+
+    relevant = []
+    irrelevant = []
+    neutral = []
+
+    for code in codes:
+        c = code.upper()
+        score = 0
+
+        # Strong positive: code contains product brand name/abbreviation
+        for abbrev in brand_abbrevs:
+            if len(abbrev) >= 2 and abbrev in c:
+                score += 5
+                break
+
+        # Positive: code contains a keyword from detected category
+        for kw in relevant_keywords:
+            if len(kw) >= 4 and kw[:4] in c:
+                score += 3
+                break
+
+        # Negative: code clearly belongs to a different category
+        for kw in irrelevant_keywords:
+            if len(kw) >= 4 and kw[:4] in c:
+                score -= 3
+                break
+
+        # Neutral boost: generic discount codes (SAVE20, 10OFF, BOOST25 etc.)
+        if re.search(r'(SAVE|OFF|DEAL|EXTRA|CODE|BOOST|COOL|WINTER|SUMMER|FLASH)\d', c):
+            score += 1
+        if re.search(r'\d+(OFF|PCT|PERCENT)', c):
+            score += 1
+
+        if score > 0:
+            relevant.append((code, score))
+        elif score < 0:
+            irrelevant.append(code)
+        else:
+            neutral.append(code)
+
+    relevant.sort(key=lambda x: x[1], reverse=True)
+    return [c for c, _ in relevant], neutral, irrelevant
+
+
+def clean_codes(codes):
+    seen = OrderedDict()
+    for c in codes:
+        c = c.strip().upper()
+        # Remove GTM/analytics tag patterns like GTM-XXXX
+        if re.match(r'^GTM-', c):
+            continue
+        if (MIN_CODE_LENGTH <= len(c) <= 20
+                and c not in JUNK_CODES
+                and not re.match(r'^\d+$', c)
+                and re.search(r'[A-Z]', c)
+                # Must contain at least one digit OR be all caps 6+ chars
+                # This filters out plain English words that slip through
+                and (re.search(r'\d', c) or len(c) >= 6)):
+            seen[c] = True
+    return list(seen.keys())
+
+def find_codes_in_text(text):
+    codes = []
+    for pattern in CODE_PATTERNS:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        codes.extend(matches)
+    return codes
+
+def score_code(code):
+    score = 0
+    keywords = ['SAVE', 'OFF', 'FREE', 'DEAL', 'PROMO', 'CODE', 'COUPON',
+                'DISCOUNT', 'FIRST', 'WELCOME', 'NEW', 'VIP', 'EXTRA', 'FLASH']
+    for kw in keywords:
+        if kw in code.upper():
+            score += 3
+    if re.search(r'\d', code):
+        score += 2
+    if 4 <= len(code) <= 15:
+        score += 1
+    return score
+
+def extract_codes_from_html(html):
+    """Extract codes from rendered HTML using both selectors and patterns."""
+    if not html or not isinstance(html, str):
+        return []
+    # Strip null bytes and other problematic chars
+    html = html.replace('\x00', '').encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+    except Exception:
+        return find_codes_in_text(html)
+    codes = []
+
+    selectors = [
+        '[data-clipboard-text]', '[data-code]', '[data-coupon]', '[data-promo]',
+        '[class*="coupon-code"]', '[class*="promo-code"]', '[class*="voucher-code"]',
+        '[class*="code-text"]', '[class*="discount-code"]', '[class*="offer-code"]',
+        'input[readonly]', 'span[class*="code"]', 'div[class*="code"]',
+        'p[class*="code"]', 'strong[class*="code"]', '[class*="copy-code"]',
+        '[class*="reveal"]', 'button[class*="code"]',
+    ]
+
+    for sel in selectors:
+        try:
+            for el in soup.select(sel):
+                combined = el.get_text(strip=True)
+                for attr, val in el.attrs.items():
+                    if isinstance(val, str):
+                        combined += ' ' + val
+                # Short standalone codes (like "AB10") directly in the element
+                stripped = combined.strip().upper()
+                if (3 <= len(stripped) <= 20
+                        and re.match(r'^[A-Z0-9\-_]+$', stripped)
+                        and stripped not in JUNK_CODES
+                        and re.search(r'[A-Z]', stripped)):
+                    codes.append(stripped)
+                codes += find_codes_in_text(combined)
+        except Exception:
+            pass
+
+    codes += find_codes_in_text(html)
+    return clean_codes(codes)
+
+# ─────────────────────────────────────────────
+#  PLATFORM DETECTION
+# ─────────────────────────────────────────────
+
+def detect_platform(base_url, page_text=''):
+    resp = fetch(f"{base_url}/cart.js", timeout=6)
+    if resp and resp.status_code == 200:
+        try:
+            data = resp.json()
+            if 'items' in data:
+                return 'shopify'
+        except Exception:
+            pass
+
+    if not isinstance(page_text, str):
+        page_text = str(page_text)
+    text = page_text.lower()
+    if 'wc-ajax' in text or 'woocommerce' in text:
+        return 'woocommerce'
+    if 'magento' in text or 'mage/' in text:
+        return 'magento'
+    if 'bigcommerce' in text:
+        return 'bigcommerce'
+    return 'unknown'
+
+# ─────────────────────────────────────────────
+#  SOURCE 1 — Coupon aggregators via Playwright
+# ─────────────────────────────────────────────
+
+# Known store voucher/offers pages — these contain codes without JS rendering
+STORE_OWN_PAGES = {
+    'argos':     [
+        'https://www.argos.co.uk/events/voucher-discount-codes',
+        'https://www.argos.co.uk/events/home-appliance-offers',
+        'https://www.argos.co.uk/events/tech-offers',
+        'https://www.argos.co.uk/events/toy-offers',
+    ],
+    'currys':    [
+        'https://www.currys.co.uk/gbuk/promo/voucher-codes.html',
+        'https://www.currys.co.uk/gbuk/promo/deals.html',
+    ],
+    'asos':      ['https://www.asos.com/discover/offers/'],
+    'boohoo':    ['https://www.boohoo.com/page/voucher-codes.html'],
+    'boohooman': ['https://www.boohooman.com/page/voucher-codes.html'],
+    'nike':      ['https://www.nike.com/gb/w/sale'],
+    'jd':        ['https://www.jdsports.co.uk/cms/offers-and-promotions/'],
+    'very':      ['https://www.very.co.uk/offers/voucher-codes.end'],
+    'next':      ['https://www.next.co.uk/voucher-codes'],
+    'johnlewis': ['https://www.johnlewis.com/our-services/price-match-promise'],
+    'tesco':     ['https://www.tesco.com/groceries/en-GB/promotions'],
+    'asda':      ['https://www.asda.com/offers'],
+    'ao':        ['https://ao.com/l/offers/'],
+    'screwfix':  ['https://www.screwfix.com/promotions'],
+    'toolstation':['https://www.toolstation.com/offers'],
+}
+
+def scrape_store_own_pages(domain, brand):
+    """Scrape the store's own voucher/offers pages — most reliable source."""
+    pages = STORE_OWN_PAGES.get(brand, [])
+    if not pages:
+        return []
+
+    print(f"\n[0] Scraping {brand}\'s own offers pages...")
+    all_codes = []
+
+    for url in pages:
+        time.sleep(0.5)
+        resp = fetch(url, timeout=10)
+        if not resp:
+            continue
+        try:
+            html = resp.content.decode('utf-8', errors='replace')
+            codes = extract_codes_from_html(html)
+            # Also run find_codes_in_text on raw html for inline codes
+            codes += find_codes_in_text(html)
+            codes = clean_codes(codes)
+            if codes:
+                print(f"  + {url.split('/')[-1]}: {', '.join(codes)}")
+                all_codes.extend(codes)
+        except Exception as e:
+            print(f"  - {url}: error ({e})")
+
+    return clean_codes(all_codes)
+
+
+def scrape_coupon_sites_playwright(domain, brand):
+    """Use a real browser to scrape coupon sites — handles JS-rendered codes."""
+    print(f"\n[1] Scraping coupon sites with browser (JS-rendered): {domain}")
+    all_codes = []
+
+    # Cookie consent button selectors (must dismiss before codes appear)
+    cookie_selectors = [
+        'button:has-text("Accept All")',
+        'button:has-text("Accept all")',
+        'button:has-text("Accept All Cookies")',
+        'button:has-text("Allow all")',
+        'button:has-text("I Accept")',
+        'button:has-text("Agree")',
+        'button:has-text("OK")',
+        'button:has-text("Got it")',
+        'button:has-text("Close")',
+        '[id*="accept" i][class*="cookie" i]',
+        '[class*="accept-all" i]',
+        '[class*="cookie-accept" i]',
+        '#onetrust-accept-btn-handler',
+        '.cc-accept',
+        '[aria-label*="Accept" i]',
+    ]
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=random.choice(USER_AGENTS),
+            viewport={"width": 1280, "height": 900},
+            locale="en-GB",
+            extra_http_headers={"Accept-Language": "en-GB,en;q=0.9"},
+        )
+        page = context.new_page()
+        if STEALTH_AVAILABLE:
+            stealth_sync(page)
+        page.set_default_timeout(15000)
+
+        for name, template in COUPON_SOURCES:
+            url = template.format(
+                domain=domain,
+                brand=urllib.parse.quote_plus(brand)
+            )
+            try:
+                try:
+                    page.goto(url, wait_until='domcontentloaded', timeout=15000)
+                except Exception:
+                    # Some sites redirect aggressively - try networkidle instead
+                    try:
+                        page.goto(url, wait_until='commit', timeout=10000)
+                    except Exception:
+                        print(f"  - {name}: skipped (redirect blocked)")
+                        continue
+                time.sleep(2)
+
+                # Dismiss cookie banners first
+                for sel in cookie_selectors:
+                    try:
+                        btn = page.query_selector(sel)
+                        if btn and btn.is_visible():
+                            btn.click()
+                            time.sleep(0.8)
+                            break
+                    except Exception:
+                        pass
+
+                # Wait for dynamic content
+                time.sleep(1.5)
+
+                # Click ALL "show code" / "reveal" / "get code" buttons
+                reveal_selectors = [
+                    'button:has-text("Show Code")',
+                    'button:has-text("Reveal Code")',
+                    'button:has-text("Get Code")',
+                    'button:has-text("See Code")',
+                    'button:has-text("Copy Code")',
+                    'button:has-text("Show Voucher")',
+                    'button:has-text("Get Voucher")',
+                    'button:has-text("Reveal")',
+                    '[class*="reveal-code" i]',
+                    '[class*="show-code" i]',
+                    '[class*="get-code" i]',
+                    '[class*="copy-code" i]',
+                    '[class*="coupon-button" i]',
+                    '[data-reveal]',
+                    '[class*="reveal" i]',
+                ]
+                for sel in reveal_selectors:
+                    try:
+                        btns = page.query_selector_all(sel)
+                        for btn in btns[:8]:
+                            try:
+                                if btn.is_visible():
+                                    btn.click()
+                                    time.sleep(0.5)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+
+                time.sleep(1)
+                html = page.content()
+                codes = extract_codes_from_html(html)
+
+                # Also grab text from clipboard-related elements directly
+                clipboard_codes = page.evaluate("""() => {
+                    const els = document.querySelectorAll('[data-clipboard-text], [data-code], [data-coupon], [data-promo-code]');
+                    return Array.from(els).map(el =>
+                        el.getAttribute('data-clipboard-text') ||
+                        el.getAttribute('data-code') ||
+                        el.getAttribute('data-coupon') ||
+                        el.getAttribute('data-promo-code') || ''
+                    ).filter(Boolean);
+                }""")
+                if clipboard_codes:
+                    codes.extend([c.upper() for c in clipboard_codes if c])
+
+                # Grab text from readonly inputs (coupon sites often put code there)
+                input_codes = page.evaluate("""() => {
+                    const inputs = document.querySelectorAll('input[readonly], input[class*="code" i], input[id*="code" i]');
+                    return Array.from(inputs).map(i => i.value).filter(v => v && v.length >= 4 && v.length <= 20);
+                }""")
+                if input_codes:
+                    codes.extend([c.upper() for c in input_codes if c])
+
+                codes = clean_codes(codes)
+
+                if codes:
+                    print(f"  ✓ {name}: {', '.join(codes)}")
+                    all_codes.extend(codes)
+                else:
+                    print(f"  - {name}: none found")
+
+            except Exception as e:
+                short_err = str(e).split('\n')[0][:80]
+                print(f"  - {name}: failed ({short_err})")
+
+        browser.close()
+
+    return clean_codes(all_codes)
+
+def scrape_coupon_sites_requests(domain, brand):
+    """Fallback: scrape coupon sites with plain requests (less effective)."""
+    print(f"\n[1] Scraping coupon sites (requests fallback): {domain}")
+    all_codes = []
+
+    for name, template in COUPON_SOURCES:
+        url = template.format(domain=domain, brand=urllib.parse.quote_plus(brand))
+        time.sleep(DELAY)
+        resp = fetch(url)
+        if not resp:
+            print(f"  - {name}: failed")
+            continue
+        codes = extract_codes_from_html(resp.text)
+        if codes:
+            print(f"  ✓ {name}: {', '.join(codes)}")
+            all_codes.extend(codes)
+        else:
+            print(f"  - {name}: none found")
+
+    return clean_codes(all_codes)
+
+# ─────────────────────────────────────────────
+#  SOURCE 2 — Google search
+# ─────────────────────────────────────────────
+
+def google_search_codes(domain, brand, product_title=''):
+    print(f"\n[2] Google-searching for live codes: {brand}")
+    year = time.strftime("%Y")
+
+    queries = [
+        f'"{brand}" discount code {year}',
+        f'"{brand}" promo code {year} site:vouchercodes.co.uk OR site:retailmenot.com OR site:myvouchercodes.co.uk',
+        f'"{brand}" voucher code working {year}',
+        f'"{domain}" coupon code reddit {year}',
+    ]
+
+    # Add product-specific queries if we have a title
+    if product_title:
+        # Extract key words — skip brand and generic words
+        stop = {brand.lower(), 'the','a','an','and','or','for','of','with','in','on','at','by','from'}
+        words = [w for w in re.findall(r'[a-z]+', product_title.lower()) if w not in stop and len(w) > 3]
+        if words:
+            category = ' '.join(words[:3])
+            queries.insert(0, f'"{brand}" {category} discount code {year}')
+            queries.insert(0, f'"{brand}" {category} voucher code')
+
+    all_codes = []
+
+    for query in queries:
+        encoded = urllib.parse.quote_plus(query)
+        url = GOOGLE_SEARCH_URL.format(query=encoded)
+        time.sleep(DELAY + random.uniform(0.3, 1.0))
+        resp = fetch(url)
+        if not resp:
+            continue
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        for el in soup.select('div.BNeawe, span.aCOpRe, div[data-sncf], div.VwiC3b, div.IsZvec'):
+            codes = find_codes_in_text(el.get_text())
+            if codes:
+                all_codes.extend(codes)
+        # Also scan raw HTML for codes in snippets
+        all_codes.extend(find_codes_in_text(resp.text))
+
+    cleaned = clean_codes(all_codes)
+    print(f"  -> {', '.join(cleaned) if cleaned else 'none found'}")
+    return cleaned
+
+# ─────────────────────────────────────────────
+#  SOURCE 3 — Product page & JS bundles
+# ─────────────────────────────────────────────
+
+def scrape_product_page(url):
+    print(f"\n[3] Scanning product page for embedded codes...")
+    resp = fetch(url)
+    if not resp:
+        return [], ""
+
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    codes = find_codes_in_text(resp.text)
+    js_urls = []
+
+    for script in soup.find_all('script', src=True):
+        src = script['src']
+        if not src.startswith('http'):
+            base = extract_base(url)
+            src = base + ('' if src.startswith('/') else '/') + src
+        js_urls.append(src)
+
+    for script in soup.find_all('script'):
+        if script.string:
+            codes += find_codes_in_text(script.string)
+
+    for js_url in js_urls[:4]:
+        time.sleep(0.4)
+        js_resp = fetch(js_url, timeout=10)
+        if js_resp and any(kw in js_resp.text.lower()
+                           for kw in ['discount', 'coupon', 'promo', 'voucher']):
+            codes += find_codes_in_text(js_resp.text)
+
+    found = clean_codes(codes)
+    print(f"  -> {', '.join(found) if found else 'none found'}")
+    return found, resp.text if resp else ""
+
+# ─────────────────────────────────────────────
+#  VERIFICATION — Playwright (real browser)
+# ─────────────────────────────────────────────
+
+def rank_codes_with_ai(codes, product_info, domain, product_url=''):
+    """
+    Use Gemini API to rank codes by relevance to the specific product.
+    Reads GEMINI_API_KEY from .env file or environment variable.
+    Returns list of dicts: [{code, reason, confidence}]
+    """
+    api_key = os.environ.get('GEMINI_API_KEY', '')
+    if not api_key:
+        print("  [!] GEMINI_API_KEY not found in .env or environment — using basic ranking")
+        return None
+
+    product_name  = product_info.get('product_name', '')
+    product_brand = product_info.get('product_brand', '')
+    category      = product_info.get('category', '')
+    product_desc  = product_name or f"{product_brand} product from {domain}"
+
+    # Always extract product info from URL slug — most reliable source
+    url_slug = product_url.split('/')[-1].replace('-', ' ').replace('_', ' ') if 'product_url' in dir() else ''
+    product_context = product_desc
+    if not product_context or product_context == domain:
+        product_context = url_slug
+
+    prompt = f"""You are a discount code expert. A user is buying this product:
+
+PRODUCT URL: {url_slug}
+PRODUCT NAME: {product_desc}
+STORE: {domain}
+
+From the URL and product name, identify:
+- The brand (e.g. LG, Samsung, Nike, Apple)
+- The category (e.g. fridge freezer, laptop, trainers, TV)
+
+Then rank these {len(codes)} discount codes by how likely they are to work for THIS specific product:
+{', '.join(codes)}
+
+Ranking rules (be strict):
+- HIGH: code contains the exact brand name (LGPERKS10 is HIGH for an LG product)
+- HIGH: code abbreviation matches the category (LKA = Large Kitchen Appliances is HIGH for a fridge)
+- MEDIUM: generic store-wide codes with numbers (BOOST25, WINTER10, SAVE20ACCS)
+- LOW: codes for a completely different brand or category (LAPTOP15, PS5PROPERKS, PENCIL20 are LOW for a fridge)
+- LOW: plain English words that are clearly not codes (BUTTON, TOGETHER, DURING, APPLIES)
+- LOW: long random strings (JNQ425GHVN1TX69D)
+
+Return ONLY a JSON array of the top 5, no markdown, no extra text:
+[
+  {{"code": "CODE", "confidence": "high/medium/low", "reason": "short reason"}},
+  ...
+]"""
+
+    try:
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"gemini-2.5-flash:generateContent?key={api_key}"
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 8192}
+        }
+        resp = requests.post(url, json=payload, timeout=30)
+
+        if resp.status_code != 200:
+            print(f"  [!] Gemini API error (status {resp.status_code}): {resp.text[:200]}")
+            return None
+
+        data = resp.json()
+        text = data['candidates'][0]['content']['parts'][0]['text']
+        text = re.sub(r'```json|```', '', text).strip()
+
+        # If JSON is truncated, try to salvage it by closing the array
+        if not text.endswith(']'):
+            # Remove last incomplete entry and close the array
+            last_complete = text.rfind('},')
+            if last_complete != -1:
+                text = text[:last_complete+1] + '\n]'
+            else:
+                last = text.rfind('}')
+                if last != -1:
+                    text = text[:last+1] + '\n]'
+
+        ranked = json.loads(text)
+        return ranked
+
+    except Exception as e:
+        print(f"  [!] AI ranking error: {e} — using basic ranking")
+        return None
+
+
+def aggregate_and_rank(all_code_lists, product_info=None):
+    freq = {}
+    for codes in all_code_lists:
+        for code in codes:
+            freq[code] = freq.get(code, 0) + 1
+
+    all_codes = list(freq.keys())
+
+    if product_info and (product_info.get('product_name') or product_info.get('product_brand')):
+        relevant, neutral, irrelevant = filter_codes_by_product(all_codes, product_info)
+        ranked = relevant + neutral + irrelevant
+    else:
+        ranked = sorted(all_codes, key=lambda c: (freq[c] * 2 + score_code(c)), reverse=True)
+
+    return ranked, freq
+
+
+def print_results(ranked, freq, url, ai_ranked=None, output_file=None, product_info=None):
+    sep = "=" * 60
+    product_name  = (product_info or {}).get('product_name', '')
+    product_brand = (product_info or {}).get('product_brand', '')
+
+    lines = ["", sep, "  DISCOUNT CODE FINDER RESULTS", f"  Target: {url[:70]}"]
+    if product_name:
+        lines.append(f"  Product: {product_name[:70]}")
+    if product_brand:
+        lines.append(f"  Brand:   {product_brand}")
+    lines.append(sep)
+
+    if not ranked:
+        lines.append("\n  No discount codes found on any source.")
+        lines.append("  The store may have no active public codes right now.")
+    elif ai_ranked:
+        lines.append(f"\n  🎯 TOP {len(ai_ranked)} CODES FOR THIS PRODUCT (AI-ranked):\n")
+        icons = {"high": "🟢", "medium": "🟡", "low": "🔴"}
+        for i, r in enumerate(ai_ranked, 1):
+            icon = icons.get(r.get('confidence', 'low'), '⚪')
+            lines.append(f"    {i}. {icon}  {r['code']:<25} — {r.get('reason', '')}")
+    else:
+        # Fallback: basic ranking
+        lines.append(f"\n  Found {len(ranked)} code(s), ranked by relevance:\n")
+        for i, c in enumerate(ranked, 1):
+            stars = "★★★" if freq.get(c, 0) >= 3 else "★★ " if freq.get(c, 0) >= 2 else "★  "
+            lines.append(f"  {i:>3}. {stars}  {c:<25} (seen on {freq.get(c,1)} source(s))")
+
+    lines += ["", sep,
+              "  Try codes at checkout — highest confidence codes first.",
+              sep, ""]
+
+    output = "\n".join(lines)
+    print(output)
+
+    if output_file:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(output)
+        print(f"  Saved to: {output_file}\n")
+
+
+def find_and_rank_codes(url='', store='', title='', skip_google=False, use_browser=True):
+    """
+    Main entry point for both CLI and API use.
+    Returns a list of dicts: [{code, confidence, reason}, ...]
+    """
+    # Resolve URL — if Google redirect or missing, build from store name
+    if not url or 'google.com' in url:
+        if store:
+            clean_store = store.lower().strip().replace(' ', '')
+            url = f"https://www.{clean_store}.co.uk"
+        else:
+            return []
+
+    if not url.startswith('http'):
+        url = 'https://' + url
+
+    domain = extract_domain(url)
+    brand  = extract_brand_name(domain)
+    base   = extract_base(url)
+
+    all_results = []
+
+    # Source 0: Store's own offers/voucher pages (most reliable)
+    all_results.append(scrape_store_own_pages(domain, brand))
+
+    # Source 1: Coupon aggregators
+    if PLAYWRIGHT_AVAILABLE and use_browser:
+        all_results.append(scrape_coupon_sites_playwright(domain, brand))
+    else:
+        all_results.append(scrape_coupon_sites_requests(domain, brand))
+
+    # Source 2: Google
+    if not skip_google:
+        all_results.append(google_search_codes(domain, brand, product_title=title))
+
+    # Source 3: Product page + JS bundles
+    page_codes, page_text = scrape_product_page(url)
+    all_results.append(page_codes)
+
+    # Detect platform and extract product info
+    detect_platform(base, page_text)
+    product_info = extract_product_info(url, page_text)
+
+    # Override product name with title if provided (API call knows the title)
+    if title and not product_info.get('product_name'):
+        product_info['product_name'] = title
+        # Try to extract brand from title
+        first_word = title.split()[0] if title.split() else ''
+        if len(first_word) >= 2 and first_word.isalpha() and not product_info.get('product_brand'):
+            product_info['product_brand'] = first_word
+
+    ranked, freq = aggregate_and_rank(all_results, product_info)
+
+    if not ranked:
+        return []
+
+    # AI ranking
+    ai_ranked = rank_codes_with_ai(ranked, product_info, domain, product_url=url)
+    if ai_ranked:
+        return ai_ranked
+
+    # Fallback: return top 5 unranked
+    return [{"code": c, "confidence": "medium", "reason": ""} for c in ranked[:5]]
+
+
+def main():
+    global TIMEOUT
+
+    parser = argparse.ArgumentParser(
+        description="Find and AI-rank discount codes for any product page.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python coupons.py "https://www.currys.co.uk/products/..."
+  python coupons.py "https://www.asos.com/..." --output codes.txt
+  python coupons.py "https://www.argos.co.uk/product/..." --skip-google
+        """,
+    )
+    parser.add_argument("url", help="Product page URL (wrap in quotes)")
+    parser.add_argument("--timeout", type=int, default=TIMEOUT,
+                        help=f"Request timeout seconds (default: {TIMEOUT})")
+    parser.add_argument("--output", metavar="FILE", help="Save results to a text file")
+    parser.add_argument("--skip-google", action="store_true",
+                        help="Skip Google scraping (use if being rate-limited)")
+    parser.add_argument("--no-browser", action="store_true",
+                        help="Use requests only, skip Playwright")
+    args = parser.parse_args()
+
+    TIMEOUT = args.timeout
+
+    url = args.url.strip().strip('"').strip("'")
+
+    domain = extract_domain(url)
+    brand  = extract_brand_name(domain)
+
+    print(f"\n{'='*60}")
+    print(f"  Discount Code Scraper")
+    print(f"  URL:    {url[:70]}")
+    print(f"  Domain: {domain}  |  Brand: {brand}")
+    if not PLAYWRIGHT_AVAILABLE:
+        print(f"  [!] Install Playwright for better scraping:")
+        print(f"      pip install playwright && playwright install chromium")
+    print(f"{'='*60}")
+
+    results = find_and_rank_codes(
+        url=url,
+        skip_google=args.skip_google,
+        use_browser=not args.no_browser,
+    )
+
+    print_results(
+        ranked=[r['code'] for r in results],
+        freq={r['code']: 1 for r in results},
+        url=url,
+        ai_ranked=results if results else None,
+        output_file=args.output,
+        product_info={'product_name': '', 'product_brand': ''},
+    )
+
+
+if __name__ == "__main__":
+    main()from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from . import config
+
+class Base(DeclarativeBase):
+   pass
+
+engine = create_engine(
+   f"sqlite:///{config.SQLITE_PATH}",
+   connect_args={"check_same_thread": False},
+   future=True,
+)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
+
+def init_db() -> None:
+   
+   from . import models  
+   Base.metadata.create_all(bind=engine)from .db import SessionLocal
+
+def get_db():
+   db = SessionLocal()
+   try:
+       yield db
+   finally:
+       db.close()import os
+import requests
+import re
+import traceback
+import json
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv, find_dotenv
+
+# Absolute import for your search functions
+from .search import parse_input, unified_search
+
+load_dotenv(find_dotenv())
+
+print("[SYSTEM] extract.py module loaded successfully.", flush=True)
+
+def get_domain_name(url):
+    """Turns 'https://www.currys.co.uk/...' into 'Currys'"""
+    try:
+        domain = urlparse(url).netloc.replace("www.", "")
+        extracted = domain.split('.')[0].capitalize()
+        print(f"[DEBUG] Extracted domain: {extracted} from {url[:30]}...", flush=True)
+        return extracted
+    except:
+        return "Store"
+
+def serpapi_search_fallback(query, engine="google"):
+    """
+    Uses SerpAPI to find product details when direct scraping is blocked.
+    Can use 'google' (organic indexing) or 'amazon' (direct store search).
+    """
+    api_key = os.getenv("SERPAPI_KEY")
+    if not api_key:
+        print("[ERROR] SERPAPI_KEY not found in environment variables.", flush=True)
+        return None
+
+    search_query = query
+    
+    # If using Amazon engine and the query is a URL, we need to extract a text query
+    if engine == "amazon" and "http" in query:
+        print(f"[SERPAPI] Engine is 'amazon', extracting slug from URL...", flush=True)
+        parts = urlparse(query).path.split('/')
+        for part in parts:
+            if '-' in part and len(part) > 10:
+                search_query = part.replace('-', ' ')
+                break
+    
+    print(f"[SERPAPI] Fallback triggered. Engine: {engine} | Final Query: {search_query[:60]}", flush=True)
+    
+    params = {
+        "engine": engine,
+        "q": search_query,
+        "api_key": api_key,
+    }
+    
+    # Add domain-specific params
+    if engine == "amazon":
+        params["amazon_domain"] = "amazon.co.uk"
+    else:
+        params["gl"] = "uk"
+
+    try:
+        print(f"[SERPAPI] Sending request to SerpAPI ({engine} engine)...", flush=True)
+        resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        data = resp.json()
+        
+        if "error" in data:
+            print(f"[SERPAPI ERROR] {engine.upper()} fallback failed: {data['error']}", flush=True)
+            return None
+
+        if engine == "amazon":
+            print(f"[SERPAPI] Parsing Amazon shopping results...", flush=True)
+            result = data.get("shopping_results", [{}])[0]
+            if not result: 
+                print(f"[SERPAPI] No shopping results, checking general search results...", flush=True)
+                result = data.get("search_results", [{}])[0]
+            
+            if result and result.get("title"):
+                print(f"[SERPAPI] Success! Found: {result.get('title')[:40]}...", flush=True)
+                return {
+                    "title": result.get("title"),
+                    "price": result.get("price", "Check Site"),
+                    "thumbnail": result.get("thumbnail", ""),
+                    "link": result.get("link", query)
+                }
+        else:
+            print(f"[SERPAPI] Parsing Google organic results...", flush=True)
+            result = data.get("organic_results", [{}])[0]
+            if result and result.get("title"):
+                print(f"[SERPAPI] Success! Found via Google: {result.get('title')[:40]}...", flush=True)
+                return {
+                    "title": result.get("title"),
+                    "price": "Check Site",
+                    "thumbnail": "",
+                    "link": query if query.startswith("http") else result.get("link")
+                }
+        
+        print(f"[SERPAPI] No usable results found in response data.", flush=True)
+        return None
+    except Exception as e:
+        print(f"[SERPAPI FALLBACK ERROR] {e}", flush=True)
+        return None
+
+def universal_scrape(url):
+    """Safely scrapes product info. Does NOT raise exceptions on 403/500 blocks."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-GB,en;q=0.9'
+    }
+    
+    print(f"[SCRAPER] Attempting direct scrape of: {url[:50]}...", flush=True)
+    try:
+        resp = requests.get(url, headers=headers, timeout=6)
+        
+        if resp.status_code != 200:
+            print(f"[SCRAPER] Blocked by {get_domain_name(url)} (Status {resp.status_code}). Aborting direct scrape.", flush=True)
+            return None
+
+        print(f"[SCRAPER] Page loaded successfully. Parsing HTML...", flush=True)
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        # 1. Grab Title
+        title = None
+        og_title = soup.find("meta", property="og:title")
+        if og_title: 
+            title = og_title.get("content")
+            print(f"[SCRAPER] Found OG Title: {title[:40]}...", flush=True)
+        
+        if not title:
+            title_tag = soup.find("title")
+            title = title_tag.text if title_tag else ""
+            print(f"[SCRAPER] Using standard <title>: {title[:40]}...", flush=True)
+            
+        title = title.split('|')[0].split('-')[0].strip()
+
+        # 2. Grab Image
+        image = ""
+        og_image = soup.find("meta", property="og:image")
+        if og_image: 
+            image = og_image.get("content")
+            print(f"[SCRAPER] Found OG Image URL.", flush=True)
+
+        # 3. Grab Price
+        price = "Check Site"
+        og_price = soup.find("meta", property="product:price:amount")
+        if og_price: 
+            price = f"£{og_price.get('content')}"
+            print(f"[SCRAPER] Found OG Price: {price}", flush=True)
+        else:
+            price_match = re.search(r'£\d{1,5}(?:\.\d{2})?', resp.text)
+            if price_match:
+                price = price_match.group(0)
+                print(f"[SCRAPER] Regex found price in text: {price}", flush=True)
+
+        return {
+            "store": get_domain_name(url),
+            "title": title or "Product",
+            "price": price,
+            "thumbnail": image,
+            "link": url,
+            "rating": "N/A",
+            "reviews": 0
+        }
+    except Exception as e:
+        print(f"[SCRAPER ERROR] {e}", flush=True)
+        return None
+
+def run_extraction(link, min_price=None, max_price=None):
+    try:
+        api_key = os.getenv("SERPAPI_KEY")
+        print(f"\n{'='*60}", flush=True)
+        print(f"[FLOW START] Analyzing Link: {link}", flush=True)
+        print(f"{'='*60}", flush=True)
+        
+        if not api_key:
+            print("[ERROR] SERPAPI_KEY is missing. Check your .env file.", flush=True)
+
+        original_product = None
+        
+        # 1. Amazon Specific Logic
+        if "amazon" in link.lower():
+            print("[LOG] Amazon link detected. Prioritizing Amazon Product API.", flush=True)
+            asin_match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', link, re.IGNORECASE)
+            asin = asin_match.group(1) if asin_match else None
+
+            if asin:
+                print(f"[LOG] ASIN identified: {asin}. Calling SerpAPI 'amazon_product' engine...", flush=True)
+                params = {"engine": "amazon_product", "asin": asin, "amazon_domain": "amazon.co.uk", "api_key": api_key}
+                try:
+                    resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
+                    response = resp.json()
+                    
+                    if "error" in response:
+                        print(f"[SERPAPI ERROR] Response contained error: {response['error']}", flush=True)
+                    elif "product_results" in response:
+                        res = response["product_results"]
+                        print(f"[LOG] ASIN match successful. Title: {res.get('title', 'N/A')[:40]}...", flush=True)
+                        original_product = {
+                            "store": "Amazon UK",
+                            "title": res.get("title", "Amazon Product"),
+                            "price": res.get("price", "Check Site"),
+                            "thumbnail": res.get("main_image") or res.get("image", ""), 
+                            "link": f"https://www.amazon.co.uk/dp/{asin}",
+                            "rating": res.get("rating", "N/A"),
+                            "reviews": res.get("reviews", 0)
+                        }
+                except Exception as e:
+                    print(f"[LOG] SerpAPI request failed: {e}", flush=True)
+            else:
+                print("[LOG] Link detected as Amazon but no ASIN could be parsed from the URL structure.", flush=True)
+
+        # 2. Fallback Logic Chain
+        if not original_product:
+            if "amazon" in link.lower():
+                print("[LOG] Primary Amazon lookup failed. Trying SerpAPI 'amazon' search engine fallback...", flush=True)
+                fallback_data = serpapi_search_fallback(link, engine="amazon")
+                if fallback_data:
+                    original_product = {
+                        "store": "Amazon UK",
+                        "title": fallback_data["title"],
+                        "price": fallback_data["price"],
+                        "thumbnail": fallback_data["thumbnail"],
+                        "link": link,
+                        "rating": "N/A",
+                        "reviews": 0
+                    }
+            
+            # If still no product (or not Amazon), try universal scrape
+            if not original_product:
+                print("[LOG] Proceeding to universal HTML scraper...", flush=True)
+                original_product = universal_scrape(link)
+                
+            # If scraper fails, try Google fallback
+            if not original_product:
+                print("[LOG] HTML scraper failed or blocked. Trying SerpAPI 'google' search fallback...", flush=True)
+                fallback_data = serpapi_search_fallback(link, engine="google")
+                if fallback_data:
+                    original_product = {
+                        "store": get_domain_name(link),
+                        "title": fallback_data["title"],
+                        "price": fallback_data["price"],
+                        "thumbnail": fallback_data["thumbnail"],
+                        "link": link,
+                        "rating": "N/A",
+                        "reviews": 0
+                    }
+
+        # 3. Final Safety Fallback
+        if not original_product:
+            print("[WARNING] All automated extraction methods failed. Generating minimal placeholder from URL.", flush=True)
+            
+            # Smart slug extraction: find the longest hyphenated part of the URL path
+            path_parts = urlparse(link).path.split('/')
+            best_slug = ""
+            for part in path_parts:
+                if len(part) > len(best_slug) and '-' in part:
+                    best_slug = part
+            
+            if not best_slug:
+                best_slug = link.split('/')[-1].split('?')[0] or "Product Page"
+
+            original_product = {
+                "store": get_domain_name(link),
+                "title": best_slug.replace('-', ' ').replace('_', ' ').strip()[:50],
+                "price": "Check Site",
+                "thumbnail": "",
+                "link": link,
+                "rating": "N/A",
+                "reviews": 0
+            }
+
+        print(f"[FLOW] Final Original Item identified: {original_product['title'][:50]} @ {original_product['price']}", flush=True)
+
+        # 4. Find Comparisons
+        print(f"[LOG] Cleaning title for comparative search...", flush=True)
+        clean_title = parse_input(original_product['title'])
+        
+        print(f"[LOG] Searching for competitors with query: '{clean_title}'", flush=True)
+        competitors = unified_search(clean_title, min_price, max_price)
+        print(f"[LOG] Comparison search returned {len(competitors)} results.", flush=True)
+        
+        final_results = [original_product]
+        seen_links = {original_product["link"]} 
+        
+        for comp in competitors:
+            if comp["link"] not in seen_links:
+                final_results.append(comp)
+                seen_links.add(comp["link"])
+                
+        print(f"[FLOW COMPLETE] Returning {len(final_results[:6])} results to client.\n", flush=True)
+        return final_results[:6] 
+        
+    except Exception as e:
+        print(f"\n[!!!] EXTRACTION FLOW FATAL ERROR [!!!]", flush=True)
+        print(f"Error Message: {str(e)}", flush=True)
+        traceback.print_exc()
+        return []from fastapi import FastAPI, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from pydantic import BaseModel
+from typing import List
+
+# Database & Config Imports
+from .db import init_db, SessionLocal
+from .deps import get_db
+from . import config
+from .auth_service import authenticate
+from .seed import ensure_demo_user
+from .models import User, UserProfile, UserInput, ProductSnapshot
+from .security import hash_password
+
+# AI, Search & Extraction Imports
+from .search import parse_input, unified_search, generate_ai_insights, evaluate_trust
+from .extract import run_extraction
+from .coupons import find_and_rank_codes
+
+app = FastAPI(title=config.APP_NAME)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Startup
+@app.on_event("startup")
+def startup_event():
+   init_db()
+   db = SessionLocal()
+   try:
+       ensure_demo_user(db)
+   finally:
+       db.close()
+
+# Basic Root Route
+@app.get("/")
+def root():
+   return {"message": "HoneyHive API running"}
+
+# Unified Search Route
+@app.get("/api/search")
+async def search(q: str, user_email: str = None, min_price: float = None, max_price: float = None, db: Session = Depends(get_db)):
+    print(f"\n[SERVER] Processing search for: {q} | Min: {min_price} | Max: {max_price}")
+    
+    # 1. If it's a URL (Amazon, Currys, Argos, Temu, ANY link)
+    if "http" in q.lower():
+        print("[SERVER] Link detected. Running universal extraction...")
+        results = run_extraction(q, min_price, max_price)
+        
+    # 2. Standard text search (e.g., "Nintendo Switch OLED")
+    else:
+        print("[SERVER] Standard text search triggered.")
+        optimised_query = parse_input(q)
+        results = unified_search(optimised_query, min_price, max_price)
+
+    # Database Logic: Save to history if user is logged in
+    if user_email and results:
+        user = db.query(User).filter(User.email == user_email).first()
+        if user:
+            # Create History Entry
+            user_input = UserInput(user_id=user.id, product_url=q)
+            db.add(user_input)
+            db.commit()
+            db.refresh(user_input)
+
+            top = results[0]
+            try:
+                price_float = float(str(top.get("price", "0")).replace("£", "").replace("$", "").replace(",", "").strip())
+            except:
+                price_float = 0.0
+
+            snapshot = ProductSnapshot(
+                user_input_id=user_input.id,
+                site=top.get("store", "Unknown"),
+                title=top.get("title", "Unknown"),
+                price=price_float,
+                image_url=top.get("thumbnail")
+            )
+            db.add(snapshot)
+            db.commit()
+            print(f"[DB] Saved search to history for {user_email}")
+
+    return {"shopping_results": results}
+
+# AI Review and Trust Routes
+@app.post("/api/review")
+async def review(request: Request):
+    data = await request.json()
+    product_title = data.get("productTitle")
+    print(f"\n[SERVER] Generating AI review for: {product_title}")
+    insights = generate_ai_insights(product_title)
+    return {"insights": insights, "coupons": insights.get("coupons", [])}
+
+@app.post("/api/trust")
+async def get_trust(request: Request):
+    data = await request.json()
+    stores = data.get("stores", [])
+    print(f"\n[SERVER] Evaluating trust for: {stores}")
+    trust_scores = evaluate_trust(stores)
+    return {"trust_scores": trust_scores}
+
+# Auth Routes (Login/Signup)
+class LoginRequest(BaseModel):
+   email: str
+   password: str
+
+class SignupRequest(BaseModel):
+   name: str
+   email: str
+   password: str
+
+@app.post("/auth/login")
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+   result = authenticate(db, payload.email, payload.password)
+   if not result.ok:
+       return {"ok": False, "message": result.reason}
+   return {"ok": True, "message": "Login successful", "email": payload.email}
+
+@app.post("/auth/signup")
+def signup(payload: SignupRequest, db: Session = Depends(get_db)):
+   existing = db.query(User).filter(User.email == payload.email).first()
+   if existing:
+       return {"ok": False, "message": "Email already exists"}
+   
+   user = User(email=payload.email, password_hash=hash_password(payload.password))
+   db.add(user)
+   db.commit()
+   db.refresh(user)
+   
+   profile = UserProfile(user_id=user.id, display_name=payload.name)
+   db.add(profile)
+   db.commit()
+   return {"ok": True, "message": "Signup successful"}
+
+# History Route
+@app.get("/auth/history")
+def get_history(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return {"history": []}
+    
+    history_list = []
+    for item in user.inputs:
+        display_query = item.product_snapshot.title if item.product_snapshot else item.product_url
+        history_list.append({
+            "id": item.id,
+            "query": display_query,
+            "date": item.created_utc.strftime("%Y-%m-%d"),
+            "dealsFound": 1 
+        })
+    return {"history": history_list[::-1]} 
+
+# Coupons Route
+class CouponRequest(BaseModel):
+    url: str = ""
+    store: str = ""
+    title: str = ""
+
+@app.post("/api/coupons")
+def get_coupons(payload: CouponRequest):
+    print(f"\n[SERVER] Finding coupons — store: {payload.store} | title: {payload.title[:50]}")
+    
+    codes = find_and_rank_codes(
+        url=payload.url,
+        store=payload.store,
+        title=payload.title,
+        skip_google=False,
+        use_browser=True, 
+    )
+    
+    return {"codes": codes}# Not needed for DB-only branch.
+# Placeholder to avoid import errors if someone imports it later.from __future__ import annotations
+from datetime import datetime
+from typing import List, Optional
+from sqlalchemy import (
+   String,
+   Integer,
+   DateTime,
+   ForeignKey,
+   Text,
+   Float,
+   UniqueConstraint,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .db import Base
+
+class User(Base):
+   __tablename__ = "users"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+   email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+   password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+   created_utc: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+   inputs: Mapped[List["UserInput"]] = relationship(
+       "UserInput", back_populates="user", cascade="all, delete-orphan"
+   )
+   profile: Mapped["UserProfile"] = relationship(
+       "UserProfile", back_populates="user", cascade="all, delete-orphan", uselist=False
+   )
+
+class UserProfile(Base):
+   __tablename__ = "user_profiles"
+   __table_args__ = (UniqueConstraint("user_id", name="uq_user_profiles_user_id"),)
+   id: Mapped[int] = mapped_column(Integer, primary_key=True)
+   user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+   display_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+   dark_mode: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)  
+   user: Mapped["User"] = relationship("User", back_populates="profile")
+
+class UserInput(Base):
+   __tablename__ = "user_inputs"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+   user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+   product_url: Mapped[str] = mapped_column(String(2048), nullable=False)
+   created_utc: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+   user: Mapped["User"] = relationship("User", back_populates="inputs")
+   product_snapshot: Mapped["ProductSnapshot"] = relationship(
+       "ProductSnapshot", back_populates="user_input", cascade="all, delete-orphan", uselist=False
+   )
+   review_snapshot: Mapped["ReviewSnapshot"] = relationship(
+       "ReviewSnapshot", back_populates="user_input", cascade="all, delete-orphan", uselist=False
+   )
+   coupon_result: Mapped["CouponResult"] = relationship(
+       "CouponResult", back_populates="user_input", cascade="all, delete-orphan", uselist=False
+   )
+   comparison_result: Mapped["ComparisonResult"] = relationship(
+       "ComparisonResult", back_populates="user_input", cascade="all, delete-orphan", uselist=False
+   )
+
+class ProductSnapshot(Base):
+   __tablename__ = "product_snapshots"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True)
+   user_input_id: Mapped[int] = mapped_column(ForeignKey("user_inputs.id"), nullable=False, index=True)
+   site: Mapped[str] = mapped_column(String(64), nullable=False)
+   title: Mapped[str] = mapped_column(String(512), nullable=False)
+   specs_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+   dimensions_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+   price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+   currency: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+   image_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+   user_input: Mapped["UserInput"] = relationship("UserInput", back_populates="product_snapshot")
+
+class ReviewSnapshot(Base):
+   __tablename__ = "review_snapshots"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True)
+   user_input_id: Mapped[int] = mapped_column(ForeignKey("user_inputs.id"), nullable=False, index=True)
+   average_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+   review_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+   sample_reviews_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+   user_input: Mapped["UserInput"] = relationship("UserInput", back_populates="review_snapshot")
+
+class CouponResult(Base):
+   __tablename__ = "coupon_results"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True)
+   user_input_id: Mapped[int] = mapped_column(ForeignKey("user_inputs.id"), nullable=False, index=True)
+   created_utc: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+   source: Mapped[str] = mapped_column(String(64), nullable=False, default="LocalDataset")
+   matched_domain: Mapped[str] = mapped_column(String(255), nullable=False)
+   matched_keywords: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+   coupons_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+   user_input: Mapped["UserInput"] = relationship("UserInput", back_populates="coupon_result")
+
+class ComparisonResult(Base):
+   __tablename__ = "comparison_results"
+   id: Mapped[int] = mapped_column(Integer, primary_key=True)
+   user_input_id: Mapped[int] = mapped_column(ForeignKey("user_inputs.id"), nullable=False, index=True)
+   created_utc: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+   similar_items_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+   best_value_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+   user_input: Mapped["UserInput"] = relationship("UserInput", back_populates="comparison_result")import os
+import requests
+import json
+import re
+from dotenv import load_dotenv, find_dotenv
+import warnings
+
+warnings.filterwarnings("ignore")
+load_dotenv(find_dotenv())
+
+# Pre-scraper
+def fetch_url_title(url):
+    try:
+        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(url, headers=headers, timeout=4)
+        
+        
+        match = re.search(r'<title>(.*?)</title>', response.text, re.IGNORECASE)
+        if match:
+            
+            clean_title = match.group(1).split('|')[0].replace("Buy", "").strip()
+            return clean_title
+        return url
+    except Exception as e:
+        print(f"[SCRAPER ERROR] Could not read webpage: {e}")
+        return url
+
+def parse_input(input_list):
+    gemini_key = os.getenv("GEMINI_API_KEY")
+
+    if not gemini_key:
+        return input_list
+    
+    # Checks the website if URL is pasted
+    if str(input_list).startswith("http"):
+        print(f"[PRE-SCRAPE] Visiting URL to find product name: {input_list}")
+        context_text = fetch_url_title(input_list)
+        print(f"[PRE-SCRAPE] Found title: {context_text}")
+    else:
+        context_text = input_list
+        
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    
+    # Uses Gemini to clean up the link
+    prompt = f"""
+    You are a shopping search optimiser. The raw input is: "{context_text}".
+    Extract the core product name and optimise it for a Google Shopping search.
+    Remove any store names (like "Tesco", "Currys") or promotional text.
+    OUTPUT ONLY THE EXACT SEARCH STRING. No URLs, no labels, no markdown.
+    """
+    
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        response = requests.post(url, json=payload, timeout=5)
+        response_data = response.json()
+        
+        search_query = response_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        print(f"[GEMINI] Final Search Query: {search_query}")
+        return search_query
+    except Exception as e:
+        print(f"AI Optimisation failed: {e}") 
+        return context_text
+        
+
+def unified_search(user_input: str, min_price: float = None, max_price: float = None):
+    api_key = os.getenv("SERPAPI_KEY")
+    params = {
+        "engine": "google_shopping",
+        "q": user_input,
+        "gl": "uk",
+        "api_key": api_key,
+        "num": 30 # Fetching 30 gives us plenty of room to throw away the bad ones
+    }
+    
+    # 1. Ask Google to try its best to filter prices
+    if min_price is not None or max_price is not None:
+        tbs_parts = ["mr:1", "price:1"]
+        if min_price is not None:
+            tbs_parts.append(f"ppr_min:{int(min_price)}")
+        if max_price is not None:
+            tbs_parts.append(f"ppr_max:{int(max_price)}")
+        params["tbs"] = ",".join(tbs_parts)
+
+    try:
+        response = requests.get("https://serpapi.com/search", params=params)
+        data = response.json()
+        
+        results = []
+        for item in data.get("shopping_results", []):
+            raw_price = str(item.get("price", "0"))
+            
+            # 2. Extract the actual number from the price string (removes £, $, commas)
+            try:
+                price_float = float(re.sub(r'[^\d.]', '', raw_price))
+            except:
+                price_float = 0.0
+                
+            # 3. THE IRONCLAD CHECK: Throw it in the trash if it breaks our rules
+            if min_price is not None and price_float < min_price:
+                continue
+            if max_price is not None and price_float > max_price:
+                continue
+                
+            # If it survives the check, format it and add it to our list
+            actual_link = item.get("link") or item.get("product_link") or item.get("shopping_portal_link")
+            results.append({
+                "store": item.get("source", "Unknown"),
+                "title": item.get("title"),
+                "price": item.get("price"),
+                "thumbnail": item.get("thumbnail"),
+                "link": actual_link,
+                "rating": item.get("rating", "N/A"),
+                "reviews": item.get("reviews", 0)
+            })
+            
+            # Stop once we have 6 perfectly priced items
+            if len(results) == 6:
+                break
+                
+        return results
+    except Exception as e:
+        print(f"Search Error: {e}")
+        return []
+    
+def evaluate_trust(stores: list):
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    results = {}
+    big_brands = ['apple', 'amazon', 'currys', 'argos', 'john lewis', 'tesco', 'samsung', 'nike', 'adidas']
+    
+    stores_for_ai = []
+    
+    for store in stores:
+        store_lower = store.lower().strip()
+        if any(brand in store_lower for brand in big_brands):
+            results[store] = "High"
+        else:
+            stores_for_ai.append(store)
+            
+    if gemini_key and stores_for_ai:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        prompt = f"""
+        You are a UK retail expert. Rate these stores: {stores_for_ai}.
+        CRITERIA: 'High' (Major household names), 'Moderate' (Established smaller businesses), 'Low' (Unknown/sketchy).
+        Return ONLY a raw JSON object where keys are the exact store names and values are the scores. No markdown.
+        """
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        try:
+            ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=5).json()
+            clean_text = ai_resp["candidates"][0]["content"]["parts"][0]["text"].replace("```json", "").replace("```", "").strip()
+            ai_scores = json.loads(clean_text)
+            
+            # Map AI scores back (case-insensitive)
+            normalized_ai = {k.lower().strip(): v for k, v in ai_scores.items()}
+            for store in stores_for_ai:
+                results[store] = normalized_ai.get(store.lower().strip(), "Moderate")
+        except Exception as e:
+            print(f"Trust Error: {e}")
+            for store in stores_for_ai: results[store] = "Moderate"
+    else:
+        for store in stores_for_ai: results[store] = "Moderate"
+            
+    return results
+
+def generate_ai_insights(product_title: str):
+    serp_key = os.getenv("SERPAPI_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    
+    if not gemini_key:
+        print("\n[CRITICAL ERROR] Gemini API Key is missing! Check your .env file.")
+
+    serp_params = {"engine": "google", "q": f"{product_title} expert review verdict", "gl": "uk", "api_key": serp_key}
+    try:
+        serp_resp = requests.get("https://serpapi.com/search", params=serp_params).json()
+        organic_snippet = serp_resp.get("organic_results", [{}])[0].get("snippet", "Detailed specs pending.")
+    except:
+        organic_snippet = "Detailed specs pending."
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    
+    prompt = f"""
+    Act as a tech reviewer. Analyse: {product_title}.
+    Return ONLY a raw JSON object with two arrays. No markdown formatting.
+    Format exactly like this:
+    {{
+        "pros": ["Brief pro 1", "Brief pro 2", "Brief pro 3"],
+        "cons": ["Brief con 1", "Brief con 2", "Brief con 3"]
+    }}
+    """
+    
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+    try:
+        ai_resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload).json()
+        
+        if "error" in ai_resp:
+            raise Exception("Google API Error")
+            
+        text_output = ai_resp["candidates"][0]["content"]["parts"][0]["text"]
+        clean_text = text_output.replace("```json", "").replace("```", "").strip()
+        parsed_data = json.loads(clean_text)
+        
+        return {
+            "summary": organic_snippet.replace("I ", "Users ").replace("my ", "the ")[:250] + "...",
+            "pros": parsed_data.get("pros", ["Pro 1", "Pro 2", "Pro 3"])[:3],
+            "cons": parsed_data.get("cons", ["Con 1", "Con 2", "Con 3"])[:3]
+        }
+    except Exception as e:
+        return {
+            "summary": organic_snippet,
+            "pros": [f"Good {product_title[:15]}...", "Works well", "UK verified"],
+            "cons": ["Premium price", "Check stock", "Standard warranty"],
+            "coupons": [] 
+        }from passlib.context import CryptContext
+pwd_context = CryptContext(
+   schemes=["pbkdf2_sha256"],
+   deprecated="auto",
+)
+
+def hash_password(plain_password: str) -> str:
+   return pwd_context.hash(plain_password)
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+   return pwd_context.verify(plain_password, password_hash)from sqlalchemy.orm import Session
+from .models import User
+from .security import hash_password
+
+def ensure_demo_user(db: Session) -> None:
+   email = "demo@honeyhive.local"
+   demo_password = "DemoPass123!"
+   existing = db.query(User).filter(User.email == email).one_or_none()
+   if existing:
+       return
+   user = User(
+       email=email,
+       password_hash=hash_password(demo_password)
+   )
+   db.add(user)
+   db.commit()from sqlalchemy.orm import Session
+from .models import Optional, User
+
+def get_user_by_email(db: Session, email: str) -> Optional[User]:
+   return db.query(User).filter(User.email == email).one_or_none()import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import Home from './Home';
+import Login from './Login';
+import './index.css';
+import Results from './Results';
+import Details from './Details';
+import Signup from './Signup';
+import History from './History';
+
+function App() {
+  // Checks local storage on initial load so the theme stays consistent
+  useEffect(() => {
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  return (
+    <div className="min-h-screen w-full relative overflow-hidden transition-colors duration-700 bg-white dark:bg-slate-950">
+      
+      {/* Glow Effect */}
+      <div className="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] bg-amber-400/40 dark:bg-amber-600/20 rounded-full blur-[120px] animate-glow pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[800px] h-[800px] bg-rose-400/40 dark:bg-indigo-600/20 rounded-full blur-[120px] animate-glow [animation-delay:2s] pointer-events-none z-0" />
+
+      {/* UI layer*/}
+      <div className="relative z-10">
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/review" element={<Details />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/history" element={<History />} />
+          </Routes>
+        </Router>
+      </div>
+    </div>
+  );
+}
+
+export default App;import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { User, Clock, LogOut, Sun, Moon, Sparkles, Ticket } from 'lucide-react';
+
+const InsightSkeleton = () => (
+  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden h-[600px]">
+    
+    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-amber-500/5 to-transparent"></div>
+    
+    <div className="animate-pulse">
+      {/* Header Skeleton */}
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-14 h-14 bg-gray-200 dark:bg-white/5 rounded-2xl"></div>
+        <div className="h-10 w-48 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      </div>
+
+      {/* Summary Paragraph Skeleton */}
+      <div className="space-y-3 mb-12">
+        <div className="h-6 w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+        <div className="h-6 w-5/6 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+        <div className="h-6 w-4/6 bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      </div>
+
+      {/* Pros & Cons Columns Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
+        <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
+      </div>
+    </div>
+  </div>
+);
+
+export default function Details() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const menuRef = useRef<HTMLDivElement>(null);
+  
+  const product = location.state?.product;
+
+  const [insights, setInsights] = useState<any>(null);
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        
+        if (data.history) {
+          setRecentSearches(data.history.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent searches", error);
+      }
+    };
+
+    fetchRecent();
+  }, [showProfileMenu]);
+
+  useEffect(() => {
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      setIsLoggedIn(true);
+    }
+    setIsDark(document.documentElement.classList.contains('dark'));
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+    navigate('/');
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  useEffect(() => {
+    if (!product) return;
+    const fetchAIData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productTitle: product.title })
+        });
+        const data = await response.json();
+        setInsights(data.insights);
+        setCoupons(data.coupons || []);
+      } catch (error) {
+        console.error("Failed to fetch AI insights", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAIData();
+  }, [product]);
+
+  const handleCopyCode = (code: string) => {
+    setCopiedCode(code);
+    navigator.clipboard.writeText(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col items-center justify-center">
+        <h2 className="text-2xl mb-4 font-bold">No product selected.</h2>
+        <button onClick={() => navigate(-1)} className="bg-amber-500 text-gray-950 px-8 py-3 rounded-full font-black shadow-lg">Go Back</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
+      
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
+        <div className="flex items-center gap-6">
+          <button onClick={() => navigate(-1)} className="relative group p-2 transition-all active:scale-90" aria-label="Go Back">
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+        </div>
+        
+        <div className="font-medium flex items-center gap-4">
+          <button onClick={toggleTheme} className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 mr-2">
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {isLoggedIn ? (
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)] relative z-50">
+                <User size={24} />
+              </button>
+              {showProfileMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
+                  <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                    <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                      <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
+                      <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                        {localStorage.getItem('userEmail') || 'Loading...'}
+                      </p>
+                    </div>
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
+                      {recentSearches.length > 0 ? (
+                        recentSearches.map((item, index) => (
+                          <button 
+                            key={index} 
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              navigate('/results', { state: { query: item.product_url || item.query } });
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                          >
+                            <Clock size={14} className="opacity-50 flex-shrink-0" />
+                            <span className="truncate">{item.product_url || item.query}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                          No recent searches yet.
+                        </div>
+                      )}
+                      <button onClick={() => { setShowProfileMenu(false); navigate('/history'); }} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
+                        View All History
+                      </button>
+                    </div>
+                    <div className="p-2 border-t border-gray-200 dark:border-white/10">
+                      <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-3 font-bold">
+                        <LogOut size={16} /> Log Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button 
+              onClick={() => navigate('/login', { state: { from: location.pathname, product: product } })} 
+              className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50"
+            >
+              Log In
+            </button>
+          )}
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 mt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Left: Product Media Card */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            <div className="glass-card rounded-[2.5rem] p-8 flex items-center justify-center border border-gray-200 dark:border-white/10 relative overflow-hidden group">
+               <span className="absolute top-6 left-6 bg-gray-900/90 text-amber-500 text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-lg z-10">
+                  {product.store}
+                </span>
+              <img src={product.thumbnail} alt="" className="w-full max-h-96 object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-700" />
+            </div>
+            
+            <div className="glass-card rounded-[2.5rem] p-8 border border-gray-200 dark:border-white/10 shadow-xl">
+              <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight mb-4 tracking-tighter">{product.title}</h1>
+              <div className="text-5xl font-black text-amber-500 mb-8 tracking-tighter">{product.price}</div>
+              <a 
+                href={product.link || product.shopping_portal_link || "#"} 
+                target="_blank" rel="noreferrer"
+                className="block w-full text-center bg-amber-500 text-gray-950 font-black py-5 rounded-full hover:bg-amber-400 transition-all text-xl shadow-lg shadow-amber-500/20 active:scale-95"
+              >
+                Buy on {product.store}
+              </a>
+            </div>
+          </div>
+
+          {/* Right: AI Insights & Coupons */}
+          <div className="lg:col-span-7 flex flex-col gap-8">
+            {loading ? (
+              <div className="flex flex-col gap-8">
+                <InsightSkeleton />
+                {/* Optional: Add a small skeleton for coupons if you want, 
+                    but just showing the AI Verdict skeleton usually looks best */}
+              </div>
+            ) : (
+              <>
+                {insights && (
+                  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden group">
+                    
+                   
+                    <div className="absolute -top-24 -right-24 w-80 h-80 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-[80px] animate-pulse"></div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-8 relative z-10">
+                      <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500"><Sparkles size={32} /></div>
+                      <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">AI Verdict</h2>
+                    </div>
+
+                    <p className="text-gray-600 dark:text-gray-300 text-xl leading-relaxed mb-10 font-medium relative z-10">{insights.summary}</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                      <div className="bg-white/50 dark:bg-white/5 rounded-3xl p-6 border border-gray-200 dark:border-white/5">
+                        <h3 className="text-green-500 font-black text-lg uppercase tracking-widest mb-4">Pros</h3>
+                        <ul className="space-y-3">
+                          {insights.pros.map((pro: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-gray-700 dark:text-gray-300 font-medium">
+                              <span className="text-green-500 mt-1">●</span>{pro}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-white/50 dark:bg-white/5 rounded-3xl p-6 border border-gray-200 dark:border-white/5">
+                        <h3 className="text-red-500 font-black text-lg uppercase tracking-widest mb-4">Cons</h3>
+                        <ul className="space-y-3">
+                          {insights.cons.map((con: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-gray-700 dark:text-gray-300 font-medium">
+                              <span className="text-red-500 mt-1">●</span>{con}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {coupons.length > 0 && (
+                  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10">
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 bg-green-500/10 rounded-2xl text-green-500"><Ticket size={32} /></div>
+                      <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">Active Offers</h2>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {coupons.map((coupon, idx) => (
+                        <div key={idx} className="bg-white/50 dark:bg-white/5 rounded-[2rem] p-6 border border-gray-200 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6 group hover:border-amber-500/30 transition-all">
+                          <div className="text-center sm:text-left">
+                            <h3 className="text-amber-500 font-black text-xl tracking-tight">{coupon.title}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 font-medium">{coupon.description}</p>
+                          </div>
+                          <div className="flex shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-500/50">
+                            <div className="bg-gray-100 dark:bg-gray-900 px-6 py-3 font-mono font-bold tracking-[0.2em] text-lg">{coupon.code}</div>
+                            <button 
+                              onClick={() => handleCopyCode(coupon.code)} 
+                              className={`px-8 py-3 font-black transition-all active:scale-95 ${copiedCode === coupon.code ? 'bg-green-500 text-gray-950' : 'bg-amber-500 text-gray-950'}`}
+                            >
+                              {copiedCode === coupon.code ? 'COPIED!' : 'COPY'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Sun, Moon, Clock, ChevronRight } from 'lucide-react';
+
+export default function History() {
+  const navigate = useNavigate();
+
+  const [isDark, setIsDark] = useState(false);
+
+  // THE REVERSE GHOST GUARD: Kicks users out if they aren't logged in
+  useEffect(() => {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus !== 'true') {
+      navigate('/', { replace: true });
+    } else {
+      // Fetch real data from backend
+      const fetchHistory = async () => {
+        const email = localStorage.getItem('userEmail');
+        if (!email) return;
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+          setPastSearches(data.history || []);
+        } catch (err) {
+          console.error("Failed to fetch history", err);
+        }
+      };
+      fetchHistory();
+    }
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, [navigate]);
+
+  // Temporary: This mock data will be replaced by a live database fetch later.
+  const [pastSearches, setPastSearches] = useState<any[]>([]);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  return (
+    <div className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
+      
+      {/* Glow Effect */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
+        <div className="flex items-center gap-6">
+
+          {/* Back button */}
+          <button onClick={() => navigate(-1)} className="relative group p-2 transition-all active:scale-90">
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+        </div>
+
+        <button onClick={toggleTheme} className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500">
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-4xl mx-auto w-full p-6 relative z-10 mt-4">
+        
+        <div className="mb-10 text-center md:text-left">
+          <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white mb-2">
+            Your <span className="text-amber-500">History.</span>
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Review your past searches and tracked deals.</p>
+        </div>
+
+        <div className="glass-card rounded-[2.5rem] p-4 sm:p-8 border border-gray-200 dark:border-white/10 shadow-2xl relative group">
+          {/* Glow Effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-rose-500/5 rounded-[2.5rem] opacity-50 pointer-events-none"></div>
+
+          {pastSearches.length > 0 ? (
+            <ul className="flex flex-col gap-4 relative z-10">
+              {pastSearches.map((item) => (
+                <li 
+                  key={item.id} 
+
+                  onClick={() => navigate('/results', { state: { query: item.query } })}
+                  className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group/item hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.1)] transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-400 group-hover/item:text-amber-500 group-hover/item:bg-amber-500/10 transition-colors hidden sm:block">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover/item:text-amber-500 transition-colors line-clamp-1">{item.query}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Searched on {item.date}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto w-full">
+                    <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 py-1.5 px-4 rounded-full text-xs font-black uppercase tracking-widest border border-amber-500/20">
+                      {item.dealsFound} Deals
+                    </span>
+                    <ChevronRight size={20} className="text-gray-400 group-hover/item:text-amber-500 transform group-hover/item:translate-x-1 transition-all" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="p-12 text-center relative z-10">
+              <Clock size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-6" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No history yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">Your past searches will appear here. Start hunting for deals!</p>
+              <button 
+                onClick={() => navigate('/')}
+                className="mt-8 bg-amber-500 text-gray-950 px-8 py-3 rounded-full font-black hover:bg-amber-400 transition-all shadow-lg active:scale-95"
+              >
+                Start Searching
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, Clock, LogOut, Sun, Moon } from 'lucide-react';
+
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  // Theme State
+  const [isDark, setIsDark] = useState(false);
+
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        if (data.history) {
+          setRecentSearches(data.history.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent searches", error);
+      }
+    };
+    fetchRecent();
+  }, [showProfileMenu]);
+
+  useEffect(() => {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus === 'true') setIsLoggedIn(true);
+    
+    // Sync React state with the HTML tag on load
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate('/results', { state: { query: searchQuery } });
+    }
+  };
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDark(true);
+    }
+  };
+
+  return (
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30">
+      
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
+        <div className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer">
+          Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+        </div>
+        
+        <div className="font-medium flex items-center gap-4">
+          
+          {/* Theme Toggle */}
+          <button 
+            onClick={toggleTheme} 
+            className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 mr-2"
+            aria-label="Toggle Dark Mode"
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <span className="text-gray-600 dark:text-gray-300 font-bold tracking-wide hidden sm:block">
+                Hi, {localStorage.getItem('userName') || localStorage.getItem('userEmail')?.split('@')[0] || 'User'}!
+              </span>
+
+              <div className="relative">
+                <button 
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)] relative z-50"
+                >
+                  <User size={24} />
+                </button>
+
+                {showProfileMenu && (
+                  <>
+                    {/* Dropdown exit */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowProfileMenu(false)}
+                    ></div>
+
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                      <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
+                        <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                          {localStorage.getItem('userEmail') || 'Loading...'}
+                        </p>
+                      </div>
+                      
+                      <div className="p-2">
+                        <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
+                        {recentSearches.length > 0 ? (
+                          recentSearches.map((item, index) => (
+                            <button 
+                              key={index} 
+                              onClick={() => {
+                                setShowProfileMenu(false);
+                                navigate('/results', { state: { query: item.product_url || item.query } });
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                            >
+                              <Clock size={14} className="opacity-50 flex-shrink-0" />
+                              <span className="truncate">{item.product_url || item.query}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                            No recent searches yet.
+                          </div>
+                        )}
+                        
+                        {/* View All History Button */}
+                        <button 
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            navigate('/history');
+                          }} 
+                          className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors"
+                        >
+                          View All History
+                        </button>
+                      </div>
+
+                      <div className="p-2 border-t border-gray-200 dark:border-white/10">
+                        <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-3 font-bold">
+                          <LogOut size={16} /> Log Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => navigate('/login')} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_25px_rgba(245,158,11,0.4)] hover:scale-105 active:scale-95 border border-amber-400/50">
+              Log In
+            </button>
+          )}
+        </div>
+      </nav>
+
+      <main className="flex flex-col items-center justify-center mt-32 px-4 text-center relative z-10">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-6 text-gray-900 dark:text-white transition-colors duration-500">
+          Find the <span className="text-amber-500">sweetest</span> deals.
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 text-lg md:text-xl mb-12 max-w-2xl font-medium leading-relaxed transition-colors duration-500 mx-auto">
+          Shop with absolute clarity. Instantly compare live prices, verify availability, and unlock AI-powered product reviews.
+        </p>
+
+        <form onSubmit={handleSearch} className="w-full max-w-3xl relative group">
+          
+          <div className="absolute inset-0 scale-[1.02] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none z-0">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-rose-500 rounded-full blur-xl opacity-40 animate-pulse"></div>
+            
+          </div>
+          
+          <div className="relative glass-card rounded-[2.5rem] p-2 flex items-center border border-gray-200 dark:border-white/10 group-hover:border-amber-500/30 group-focus-within:border-amber-500/50 transition-colors z-10">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Paste link or search product..."
+              className="w-full bg-transparent text-gray-900 dark:text-white text-lg py-4 pl-8 pr-4 focus:outline-none focus:ring-0 placeholder:text-gray-400 font-medium"
+            />
+            <button 
+              type="submit"
+              className="bg-amber-500 hover:bg-amber-400 text-gray-950 font-black px-10 py-4 rounded-[2rem] transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 whitespace-nowrap"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+  );
+}import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, Sun, Moon, X } from 'lucide-react';
+
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isDark, setIsDark] = useState(false);
+
+  const [error, setError] = useState('');
+
+  // Auto-clear error popup
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+  const checkStatus = setTimeout(() => {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus === 'true') {
+      navigate('/', { replace: true });
+    }
+  }, 10);
+
+  setIsDark(document.documentElement.classList.contains('dark'));
+  
+  return () => clearTimeout(checkStatus);
+}, [navigate]);
+
+  // Grab the full state so we don't lose the product or query
+  const returnState = location.state || {};
+  const from = returnState.from || "/";
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(''); // Clear any old errors
+
+    try {
+      // 1. Send the credentials to your Python backend
+      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      // 2. Check if the backend approved the login
+      if (response.ok && data.ok) {
+        // Success! Log them in
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // Save the user's email and name
+        localStorage.setItem('userEmail', email); 
+        
+        // Try to grab the name from the database response, otherwise fallback to email prefix
+        if (data.name) {
+            localStorage.setItem('userName', data.name);
+        } else {
+            localStorage.setItem('userName', email.split('@')[0]);
+        }
+
+        navigate(from, { replace: true, state: returnState }); 
+      } else {
+        // 3. Trigger your Premium Toast with the DB's exact error message
+        setError(data.message || 'Invalid credentials. Please try again.');
+      }
+    } catch (err) {
+      // 4. Fallback if the Python server is offline or crashes
+      setError('Cannot connect to server. Please try again later.');
+    }
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  return (
+    <div key="login-page" className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative">
+      
+      {/* Glow Effect */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
+        <div className="flex items-center gap-6">
+          {/* Back Arrow */}
+          <button 
+            onClick={() => navigate(from)} 
+            className="relative group p-2 transition-all active:scale-90"
+          >
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+        </div>
+
+        <button 
+          onClick={toggleTheme} 
+          className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500"
+        >
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </nav>
+
+      {/* Login Card */}
+      <main className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-md relative group">
+          <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-xl opacity-50 animate-pulse pointer-events-none"></div>
+          
+          <div className="relative glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white mb-2">
+                Join the <span className="text-amber-500">Hive.</span>
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">Log in to save your search history.</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="relative group/input">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/input:text-amber-500 transition-colors">
+                  <Mail size={18} />
+                </div>
+                <input 
+                  type="email" 
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm"
+                />
+              </div>
+
+              <div className="relative group/input">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/input:text-amber-500 transition-colors">
+                  <Lock size={18} />
+                </div>
+                <input 
+                  type="password" 
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm"
+                />
+              </div>
+
+              <div className="relative group/btn pt-2">
+                <div className="absolute inset-0 bg-amber-500/40 rounded-full blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity animate-pulse"></div>
+                <button 
+                  type="submit"
+                  className="relative w-full bg-amber-500 text-gray-950 font-black py-4 rounded-full hover:bg-amber-400 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 text-lg z-10"
+                >
+                  Sign In <ArrowRight size={20} />
+                </button>
+              </div>
+            </form>
+
+            <div className="flex items-center my-8">
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+              <span className="mx-4 text-gray-400 text-xs font-black uppercase tracking-widest">or</span>
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+            </div>
+
+            <button 
+              onClick={() => navigate('/signup')}
+              className="w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95"
+            >
+              Create Account
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="relative glass-card border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-2xl px-6 py-4 flex items-center gap-4 overflow-hidden bg-gray-900/90 backdrop-blur-xl">
+            {/* Red Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+            
+            <p className="font-bold text-red-500 text-sm relative z-10">{error}</p>
+            
+            <button 
+              onClick={() => setError('')} 
+              className="text-red-500/70 hover:text-red-500 transition-colors relative z-10"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { User, Clock, LogOut, Sun, Moon, X, Check, Tag, Copy, Loader2, ChevronRight, Filter, ArrowUpDown } from 'lucide-react';
+
+const SkeletonCard = () => (
+  <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
+    {/* Ghost Comparison Button */}
+    <div className="absolute top-4 right-4 w-10 h-10 bg-gray-200 dark:bg-white/5 rounded-full z-20 shadow-sm"></div>
+
+    {/* Ghost Image Area */}
+    <div className="h-60 bg-gray-200 dark:bg-white/5 rounded-3xl mb-6 shadow-inner"></div>
+    
+    {/* Ghost Title Lines */}
+    <div className="h-6 w-3/4 bg-gray-200 dark:bg-white/5 rounded-full mb-2"></div>
+    <div className="h-6 w-1/2 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
+    
+    {/* Ghost Price */}
+    <div className="h-10 w-1/3 bg-gray-200 dark:bg-white/5 rounded-full mb-8"></div>
+    
+    {/* Ghost Buttons */}
+    <div className="mt-auto space-y-3">
+      <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+      <div className="h-[52px] w-full bg-gray-200 dark:bg-white/5 rounded-full"></div>
+    </div>
+  </div>
+);
+
+// Coupon Modal Component
+const CouponModal = ({ product, onClose }: any) => {
+  const [codes, setCodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchCodes = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/coupons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: product.link, store: product.store, title: product.title }),
+        });
+        const data = await res.json();
+        if (data.error && data.codes?.length === 0) {
+          setError(data.error);
+        } else {
+          setCodes(data.codes || []);
+        }
+      } catch (e) {
+        setError('Failed to fetch codes. Is the server running?');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCodes();
+  }, [product.link, product.store, product.title]);
+
+  const handleCopy = (code: any) => {
+    navigator.clipboard.writeText(code);
+    setCopied(code);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const confidenceConfig = {
+    high:   { color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20', dot: 'bg-emerald-500', label: 'Best Bet' },
+    medium: { color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20',     dot: 'bg-amber-500',   label: 'Worth Trying' },
+    low:    { color: 'text-gray-500 dark:text-gray-400',       bg: 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10',                dot: 'bg-gray-400',    label: 'Unlikely' },
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={onClose} />
+
+      <div className="relative z-10 w-full max-w-lg glass-card rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
+        {/* Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header */}
+        <div className="relative p-7 pb-5 flex items-start justify-between border-b border-gray-100 dark:border-white/10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <img src={product.thumbnail} alt="" className="w-10 h-10 object-contain mix-blend-multiply" />
+            </div>
+            <div>
+              <h2 className="font-black text-lg text-gray-900 dark:text-white leading-tight line-clamp-1">
+                Discount Codes
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium line-clamp-1 mt-0.5">
+                {product.title}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-gray-700 dark:hover:text-white transition-all active:scale-90">
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-7 pt-5 max-h-[60vh] overflow-y-auto space-y-3">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
+                <Tag size={18} className="absolute inset-0 m-auto text-amber-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-900 dark:text-white text-sm">Hunting for codes...</p>
+                <p className="text-xs text-gray-400 mt-1">Scanning coupon sites & AI-ranking results</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center mx-auto mb-3">
+                <X size={24} className="text-red-400" />
+              </div>
+              <p className="font-bold text-gray-700 dark:text-gray-300 text-sm">{error}</p>
+            </div>
+          ) : codes.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="text-5xl mb-4">🍯</div>
+              <p className="font-bold text-gray-700 dark:text-gray-300 text-sm">No codes found right now</p>
+              <p className="text-xs text-gray-400 mt-1">This store may not have active public codes</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                {codes.length} code{codes.length !== 1 ? 's' : ''} found · AI-ranked for this product
+              </p>
+              {codes.map((item, i) => {
+                const conf = confidenceConfig[item.confidence] || confidenceConfig.low;
+                const isCopied = copied === item.code;
+                return (
+                  <div key={i} className={`group relative rounded-2xl border p-4 transition-all duration-200 ${conf.bg} hover:scale-[1.01]`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${conf.dot}`} />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-gray-900 dark:text-white text-base tracking-wide">
+                              {item.code}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${conf.bg} ${conf.color}`}>
+                              {conf.label}
+                            </span>
+                          </div>
+                          {item.reason && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">
+                              {item.reason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleCopy(item.code)}
+                        className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-xs transition-all active:scale-90
+                          ${isCopied
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                            : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-500 dark:hover:bg-amber-500 dark:hover:text-white hover:shadow-lg hover:shadow-amber-500/20'
+                          }`}
+                      >
+                        {isCopied ? <Check size={12} strokeWidth={3} /> : <Copy size={12} />}
+                        {isCopied ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!loading && codes.length > 0 && (
+          <div className="px-7 pb-6 pt-2">
+            <p className="text-[10px] text-gray-400 text-center">
+              Copy a code and paste it at checkout · Codes ranked by AI for this specific product
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default function Results() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const menuRef = useRef(null);
+
+  const initialQuery = location.state?.query || '';
+
+  const [searchInput, setSearchInput] = useState(initialQuery);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  
+  // Filtering & Sorting State
+  const [selectedStore, setSelectedStore] = useState('All');
+  const [sortOrder, setSortOrder] = useState('default');
+  
+  // Comparison Logic States
+  const [selectedForCompare, setSelectedForCompare] = useState<any[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [isComparingLoading, setIsComparingLoading] = useState(false);
+  const [trustScores, setTrustScores] = useState({});
+  const lastFetchedQuery = useRef(null);
+  
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [storeSearchQuery, setStoreSearchQuery] = useState(''); 
+  
+  // NEW: Price Filter State
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+
+  // Coupon Modal State
+  const [couponProduct, setCouponProduct] = useState(null);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        
+        if (data.history) {
+          setRecentSearches(data.history.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent searches", error);
+      }
+    };
+
+    fetchRecent();
+  }, [showProfileMenu]);
+
+  useEffect(() => {
+    if (localStorage.getItem('isLoggedIn') === 'true') setIsLoggedIn(true);
+    setIsDark(document.documentElement.classList.contains('dark'));
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+    navigate('/');
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  const fetchProducts = async (query) => {
+    if (!query) return;
+    
+    // Build dynamic cache key and URL based on current price states
+    let cacheKey = `honeyhive_results_${query}`;
+    let apiUrl = `http://127.0.0.1:8000/api/search?q=${encodeURIComponent(query)}`;
+    
+    const userEmail = localStorage.getItem('userEmail') || '';
+    if (userEmail) apiUrl += `&user_email=${encodeURIComponent(userEmail)}`;
+    
+    if (minPrice) {
+      cacheKey += `_min_${minPrice}`;
+      apiUrl += `&min_price=${minPrice}`;
+    }
+    if (maxPrice) {
+      cacheKey += `_max_${maxPrice}`;
+      apiUrl += `&max_price=${maxPrice}`;
+    }
+
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      setProducts(JSON.parse(cachedData));
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      const resultsArray = data.shopping_results || [];
+      setProducts(resultsArray);
+      sessionStorage.setItem(cacheKey, JSON.stringify(resultsArray));
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCompare = (product) => {
+    const isSelected = selectedForCompare.some(p => p.title === product.title);
+    if (isSelected) {
+      setSelectedForCompare(selectedForCompare.filter(p => p.title !== product.title));
+    } else {
+      if (selectedForCompare.length < 2) {
+        setSelectedForCompare([...selectedForCompare, product]);
+      } else {
+        setSelectedForCompare([selectedForCompare[1], product]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (initialQuery && lastFetchedQuery.current !== initialQuery) {
+      lastFetchedQuery.current = initialQuery; 
+      fetchProducts(initialQuery);             
+    }
+  }, [initialQuery]);
+
+  // Calculate unique stores for the dropdown
+  const uniqueStores = ['All', ...Array.from(new Set(products.map(p => p.store)))];
+
+  // Derived state: Filter first, then Sort
+  const filteredProducts = products
+    .filter(p => selectedStore === 'All' || p.store === selectedStore)
+    .sort((a, b) => {
+      if (sortOrder === 'default') return 0;
+      
+      const priceA = parseFloat(a.price.replace(/[^0-9.]/g, '')) || 0;
+      const priceB = parseFloat(b.price.replace(/[^0-9.]/g, '')) || 0;
+      
+      return sortOrder === 'low-high' ? priceA - priceB : priceB - priceA;
+    });
+
+  return (
+    <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
+
+      {/* Coupon Modal */}
+      {couponProduct && (
+        <CouponModal product={couponProduct} onClose={() => setCouponProduct(null)} />
+      )}
+
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => navigate('/')}
+            className="relative group p-2 transition-all active:scale-90"
+            aria-label="Go Back"
+          >
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+        </div>
+
+        {/* Mini Search Bar */}
+        <div className="flex-1 max-w-xl mx-8 relative group">
+          <div className="absolute inset-0 scale-[1.02] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-rose-500 rounded-full blur-md opacity-20 animate-pulse"></div>
+          </div>
+          <div className="relative glass-card rounded-full p-1.5 flex items-center border border-gray-200 dark:border-white/10 group-hover:border-amber-500/30 transition-all shadow-inner">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  sessionStorage.removeItem(`honeyhive_results_${searchInput}`);
+                  fetchProducts(searchInput);
+                }
+              }}
+              className="w-full bg-transparent py-2 px-6 focus:outline-none font-medium text-sm text-gray-900 dark:text-white"
+            />
+            <button
+              onClick={() => { sessionStorage.removeItem(`honeyhive_results_${searchInput}`); fetchProducts(searchInput); }}
+              className="bg-amber-500 hover:bg-amber-400 text-gray-950 font-black px-6 py-2 rounded-full text-xs transition-all shadow-md active:scale-95"
+            >
+              Update
+            </button>
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="font-medium flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            {/* New Filter Button in Navbar */}
+            {!loading && products.length > 0 && (
+              <button 
+                onClick={() => setShowFilterModal(true)} 
+                className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 relative"
+                aria-label="Filters"
+              >
+                <Filter size={20} />
+                {/* Red dot notification if a filter is active */}
+                {(selectedStore !== 'All' || sortOrder !== 'default' || minPrice || maxPrice) && (
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-gray-950"></span>
+                )}
+              </button>
+            )}
+
+            <button 
+              onClick={toggleTheme} 
+              className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            {isLoggedIn ? (
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="p-3 rounded-full bg-amber-500 text-gray-950 hover:bg-amber-400 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.3)] relative z-50">
+                  <User size={24} />
+                </button>
+                {showProfileMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
+                    <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
+                      <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
+                        <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                          {localStorage.getItem('userEmail') || 'Loading...'}
+                        </p>
+                      </div>
+                      <div className="p-2">
+                        <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
+                        {recentSearches.length > 0 ? (
+                          recentSearches.map((item, index) => (
+                            <button 
+                              key={index} 
+                              onClick={() => {
+                                setShowProfileMenu(false);
+                                const query = item.product_url || item.query;
+                                setSearchInput(query);
+                                sessionStorage.removeItem(`honeyhive_results_${query}`);
+                                fetchProducts(query);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                            >
+                              <Clock size={14} className="opacity-50 flex-shrink-0" />
+                              <span className="truncate">{item.product_url || item.query}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                            No recent searches yet.
+                          </div>
+                        )}
+                        <button onClick={() => { setShowProfileMenu(false); navigate('/history'); }} className="w-full text-center px-3 py-2 mt-2 text-sm text-amber-500 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
+                          View All History
+                        </button>
+                      </div>
+                      <div className="p-2 border-t border-gray-200 dark:border-white/10">
+                        <button onClick={() => { setShowProfileMenu(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-3 font-bold">
+                          <LogOut size={16} /> Log Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button onClick={() => navigate('/login', { state: { from: location.pathname, query: searchInput } })} className="bg-amber-500 text-gray-950 px-8 py-2.5 rounded-full hover:bg-amber-400 transition-all font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-105 active:scale-95 border border-amber-400/50">
+                Log In
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Product Grid */}
+      <main className="max-w-7xl mx-auto px-6 mt-12 relative z-10">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <SkeletonCard /><SkeletonCard /><SkeletonCard />
+            <SkeletonCard /><SkeletonCard /><SkeletonCard />
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProducts.map((product, index) => {
+              // Checks selection status for this card
+              const isSelected = selectedForCompare.some(p => p.title === product.title);
+              return (
+                <div key={index} className={`relative glass-card rounded-[2.5rem] p-5 flex flex-col border transition-all duration-500 group
+                  ${isSelected
+                    ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)] scale-[1.02]'
+                    : 'border-gray-200 dark:border-white/10 hover:border-amber-500/40 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.2)]'}`}>
+
+                  {/* Compare Button */}
+                  <button
+                    onClick={() => toggleCompare(product)}
+                    className={`absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-90
+                      ${isSelected ? 'bg-amber-500 text-gray-950 scale-110' : 'bg-white/80 dark:bg-gray-900/80 text-gray-400 hover:text-amber-500'}`}
+                  >
+                    {isSelected
+                      ? <Check size={20} strokeWidth={3.5} className="animate-in zoom-in duration-200" />
+                      : <span className="text-2xl font-normal leading-none mb-1">+</span>}
+                  </button>
+
+                  <div className="h-60 bg-white rounded-3xl p-6 flex items-center justify-center mb-6 shadow-inner relative overflow-hidden">
+                    <span className="absolute top-4 left-4 bg-gray-950/90 text-amber-500 text-[10px] font-black px-3 py-1 rounded-full uppercase z-10 shadow-md">
+                      {product.store}
+                    </span>
+                    <img src={product.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-700" />
+                  </div>
+
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-2 mb-2 leading-tight px-1">{product.title}</h3>
+                  <div className="text-4xl font-black text-amber-500 mb-6 px-1 tracking-tighter">{product.price}</div>
+
+                  <div className="mt-auto space-y-3">
+                    <button
+                      onClick={() => navigate('/review', { state: { product } })}
+                      className="w-full bg-amber-500 text-gray-950 font-black py-3.5 rounded-full hover:bg-amber-400 transition-all shadow-lg active:scale-95"
+                    >
+                      AI Review & Specs
+                    </button>
+
+                    {/* Find Discount Codes Button */}
+                    <button
+                      onClick={() => setCouponProduct(product)}
+                      className="w-full flex items-center justify-center gap-2 border-2 border-amber-500/30 py-3 rounded-full font-bold text-sm text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-500/5 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all active:scale-95"
+                    >
+                      <Tag size={15} strokeWidth={2.5} />
+                      Find Discount Codes
+                    </button>
+
+                    <a
+                      href={product.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-center border-2 border-gray-200 dark:border-white/10 py-3 rounded-full font-bold text-sm text-gray-600 dark:text-gray-300 hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all active:scale-95 bg-white/5 dark:bg-transparent"
+                    >
+                      View on {product.store}
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center mt-32 glass-card max-w-lg mx-auto p-12 rounded-[3rem]">
+            <p className="text-2xl font-bold text-gray-500">No active deals found for <br /><span className="text-amber-500 font-black">"{searchInput}"</span></p>
+          </div>
+        )}
+      </main>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-24 sm:pt-32 pb-4 px-4 sm:px-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-md" onClick={() => setShowFilterModal(false)}></div>
+          <div className="relative z-10 w-full max-w-md glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
+            
+            {/* Glow Effect inside the Glass */}
+            <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-rose-500/20 dark:bg-rose-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+
+            {/* Header */}
+            <div className="relative z-10 p-6 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500"><Filter size={20} /></div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Filters & Sort</h2>
+              </div>
+              <button onClick={() => setShowFilterModal(false)} className="p-2 rounded-full text-gray-500 hover:text-amber-500 hover:bg-amber-500/10 transition-all active:scale-90">
+                <X size={20} strokeWidth={3} />
+              </button>
+            </div>
+
+            {/* Options Body */}
+            <div className="relative z-10 p-8 space-y-8 overflow-y-auto max-h-[60vh]">
+              
+              {/* Store Options (Scrollable & Searchable) */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Filter by Store</h3>
+                  {selectedStore !== 'All' && (
+                    <button 
+                      onClick={() => setSelectedStore('All')} 
+                      className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                
+                {/* Store Search Input */}
+                <div className="relative mb-3 group/search">
+                  <input 
+                    type="text" 
+                    placeholder="Search stores..." 
+                    value={storeSearchQuery}
+                    onChange={(e) => setStoreSearchQuery(e.target.value)}
+                    className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-4 pr-10 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm text-gray-900 dark:text-white placeholder:text-gray-400 backdrop-blur-md"
+                  />
+                  {storeSearchQuery && (
+                    <button 
+                      onClick={() => setStoreSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Vertical Scroll Box */}
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 pb-2 selection:bg-amber-500/30">
+                  {uniqueStores
+                    .filter(store => store.toLowerCase().includes(storeSearchQuery.toLowerCase()))
+                    .map(store => (
+                    <button
+                      key={store}
+                      onClick={() => setSelectedStore(store)}
+                      className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border backdrop-blur-md
+                        ${selectedStore === store 
+                          ? 'bg-amber-500 border-amber-500 text-gray-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
+                          : 'bg-white/30 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500/50 hover:text-amber-500'}`}
+                    >
+                      {store}
+                    </button>
+                  ))}
+                  
+                  {/* Empty State if search yields no results */}
+                  {uniqueStores.filter(store => store.toLowerCase().includes(storeSearchQuery.toLowerCase())).length === 0 && (
+                    <div className="w-full py-4 text-center text-sm font-medium text-gray-500">
+                      No stores found matching "{storeSearchQuery}"
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price Range Options */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+                  Price Range <span className="bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded text-[8px]">New Search</span>
+                </h3>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-full group/input">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black group-focus-within/input:text-amber-500 transition-colors">£</span>
+                    <input 
+                      type="number" 
+                      placeholder="Min" 
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-8 pr-4 focus:outline-none focus:border-amber-500 transition-all font-bold text-sm text-gray-900 dark:text-white backdrop-blur-md"
+                    />
+                  </div>
+                  <span className="text-gray-400 font-bold">-</span>
+                  <div className="relative w-full group/input">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black group-focus-within/input:text-amber-500 transition-colors">£</span>
+                    <input 
+                      type="number" 
+                      placeholder="Max" 
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      className="w-full bg-white/30 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-8 pr-4 focus:outline-none focus:border-amber-500 transition-all font-bold text-sm text-gray-900 dark:text-white backdrop-blur-md"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">Sort Results</h3>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { id: 'default', label: 'Default Match' },
+                    { id: 'low-high', label: 'Price: Low to High' },
+                    { id: 'high-low', label: 'Price: High to Low' }
+                  ].map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => setSortOrder(option.id)}
+                      className={`w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all border flex items-center justify-between backdrop-blur-md
+                        ${sortOrder === option.id 
+                          ? 'bg-amber-500/10 border-amber-500 text-amber-500 dark:text-amber-400' 
+                          : 'bg-white/40 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500/50 hover:text-amber-500'}`}
+                    >
+                      {option.label}
+                      {sortOrder === option.id && <Check size={18} strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="relative z-10 p-6 bg-white/30 dark:bg-white/5 border-t border-gray-200 dark:border-white/10 backdrop-blur-md">
+              <button 
+                onClick={() => {
+                  setShowFilterModal(false);
+                  fetchProducts(searchInput); 
+                }}
+                className="w-full bg-amber-500 text-gray-950 font-black py-4 rounded-full hover:bg-amber-400 transition-all shadow-lg active:scale-95 text-lg"
+              >
+                Apply & View Results
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Compare Bar */}
+      {selectedForCompare.length > 0 && (
+        <div className="fixed top-28 right-6 lg:right-12 z-[100] animate-in slide-in-from-right-10 fade-in duration-500">
+          <div className="rounded-full p-2.5 border border-amber-500/40 dark:border-amber-500/30 shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-6 px-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-3">
+                {selectedForCompare.map((p, i) => (
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-amber-500/80 dark:border-amber-500 bg-white/80 overflow-hidden shadow-md dark:shadow-xl">
+                    <img src={p.thumbnail} alt="" className="w-full h-full object-contain mix-blend-multiply" />
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white hidden sm:block">
+                {selectedForCompare.length === 1 ? 'Add one more' : 'Ready!'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4 border-l border-gray-300/50 dark:border-white/10 pl-4">
+              <button onClick={() => setSelectedForCompare([])} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">
+                Clear
+              </button>
+              <button
+                disabled={selectedForCompare.length < 2}
+                onClick={async () => {
+                  setShowCompareModal(true);
+                  setIsComparingLoading(true);
+                  try {
+                    const stores = selectedForCompare.map(p => p.store);
+                    const res = await fetch('http://127.0.0.1:8000/api/trust', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ stores })
+                    });
+                    const data = await res.json();
+                    setTrustScores(data.trust_scores || {});
+                  } catch (err) {
+                    console.error("Failed to fetch trust scores", err);
+                  } finally {
+                    setIsComparingLoading(false);
+                  }
+                }}
+                className={`px-6 py-2.5 rounded-full font-black transition-all active:scale-95 shadow-lg text-sm
+                  ${selectedForCompare.length === 2
+                    ? 'bg-amber-500 text-gray-950 hover:bg-amber-400'
+                    : 'bg-white/50 text-gray-400 dark:bg-white/10 dark:text-gray-500 cursor-not-allowed border border-white/40 dark:border-transparent'}`}
+              >
+                Compare
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compare Modal */}
+      {showCompareModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-lg" onClick={() => setShowCompareModal(false)}></div>
+          <div className="relative z-10 w-full max-w-5xl glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
+            <div className="absolute top-[-20%] left-[-10%] w-96 h-96 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-rose-500/20 dark:bg-rose-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+            <div className="relative z-10 p-8 border-b border-white/50 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-md">
+              <div>
+                <h2 className="text-3xl font-black tracking-tighter text-amber-500 drop-shadow-sm">Product Battle</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Side-by-side comparison</p>
+              </div>
+              <button onClick={() => setShowCompareModal(false)} className="p-3 rounded-full text-gray-600 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-500 hover:bg-amber-500/10 transition-all duration-300 active:scale-90">
+                <X size={24} strokeWidth={3} />
+              </button>
+            </div>
+            <div className="relative z-10 flex-1 overflow-y-auto p-8 selection:bg-amber-500/20">
+              <div className="grid grid-cols-2 gap-8 h-full">
+                {selectedForCompare.map((product, idx) => {
+                  const ratingValue = product.rating !== "N/A" ? product.rating : "No Rating";
+                  const reviewCount = product.reviews || 0;
+                  const storeName = product.store || "Unknown";
+                  return (
+                    <div key={idx} className="flex flex-col">
+                      <div className="glass-card rounded-[2rem] p-6 bg-white/30 dark:bg-white/5 border border-white/60 dark:border-white/5 mb-6 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-md">
+                        <div className="h-48 flex items-center justify-center mb-4 bg-white/40 dark:bg-transparent rounded-2xl p-4">
+                          <img src={product.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                        </div>
+                        <h3 className="font-bold text-lg leading-tight mb-2 truncate text-gray-900 dark:text-white px-2">{product.title}</h3>
+                        <div className="text-3xl font-black text-amber-500 tracking-tighter px-2 drop-shadow-sm">{product.price}</div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="glass-card p-4 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/60 dark:border-white/5 backdrop-blur-md flex justify-between items-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-500/50">Store</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-sm">{product.store}</p>
+                        </div>
+                        <div className="glass-card p-4 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/60 dark:border-white/5 backdrop-blur-md flex justify-between items-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-500/50">AI Trust Score</p>
+                          {isComparingLoading ? (
+                            <div className="h-5 w-24 bg-gray-300 dark:bg-white/10 rounded-full animate-pulse"></div>
+                          ) : (() => {
+                            const score = trustScores[storeName] || "Moderate";
+                            if (score === "High") return <p className="font-bold text-green-600 dark:text-green-400 text-sm flex items-center gap-1.5"><Check size={14} /> High Reliability</p>;
+                            if (score === "Low") return <p className="font-bold text-red-600 dark:text-red-400 text-sm">Low Reliability</p>;
+                            return <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">Moderate Reliability</p>;
+                          })()}
+                        </div>
+                        <div className="glass-card p-4 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/60 dark:border-white/5 backdrop-blur-md flex justify-between items-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/80 dark:text-amber-500/50">Avg. Rating</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                              {ratingValue} {ratingValue !== "No Rating" && <span className="text-amber-500">★</span>}
+                            </p>
+                            {reviewCount > 0 && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">({reviewCount})</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="relative z-20 p-8 bg-amber-500 text-gray-950 flex items-center justify-between shadow-[0_-10px_40px_rgba(245,158,11,0.2)]">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gray-950 flex items-center justify-center shadow-lg">
+                  <div className="w-7 h-7 bg-amber-500 rounded-full blur-[2px] animate-pulse"></div>
+                </div>
+                <p className="font-bold text-sm max-w-md">The HoneyHive AI identifies the most competitive value based on your current search criteria.</p>
+              </div>
+              <button
+                onClick={() => {
+                  const price1 = parseFloat(selectedForCompare[0].price.replace(/[^0-9.]/g, ''));
+                  const price2 = parseFloat(selectedForCompare[1].price.replace(/[^0-9.]/g, ''));
+                  const bestDeal = price1 <= price2 ? selectedForCompare[0] : selectedForCompare[1];
+                  window.open(bestDeal.link, '_blank');
+                }}
+                className="bg-gray-950 text-white px-8 py-3 rounded-full font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-xl"
+              >
+                Buy Best Deal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Sun, Moon, X } from 'lucide-react';
+
+export default function Signup() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 1. Grab the state to remember where they came from
+  const returnState = location.state || {};
+  const from = returnState.from || "/";
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreed, setAgreed] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const userStatus = localStorage.getItem('isLoggedIn');
+    if (userStatus === 'true') {
+      navigate('/', { replace: true });
+    }
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, [navigate]);
+
+  // Auto-clears error popup
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // 1. Frontend Validation (Don't bother the database if passwords don't match)
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please try again.');
+      return; 
+    }
+    if (!agreed) return; 
+
+    try {
+      // 2. Send the new user data to your Python backend (Updated to port 8000 and /auth/signup)
+      const response = await fetch('http://127.0.0.1:8000/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      // 3. Check if the backend successfully created the account
+      if (response.ok && data.ok) {
+        // Success! Log them in automatically
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // Save the user's email and name for the UI
+        localStorage.setItem('userEmail', email); 
+        localStorage.setItem('userName', name); // <-- THIS IS THE MAGIC LINE
+
+        navigate(from, { replace: true, state: returnState });
+      } else {
+        // 4. Trigger Toast if the DB rejects it (e.g., "Email already in use")
+        setError(data.message || 'Failed to create account. Please try again.');
+      }
+    } catch (err) {
+      // 5. Fallback if the Python server is offline
+      setError('Cannot connect to server. Please try again later.');
+    }
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  return (
+    <div key="signup-page" className="animate-page min-h-screen flex flex-col text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 relative overflow-hidden">
+      
+      {/* Glow Effect */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      {/* Navbar */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full relative z-50">
+        <div className="flex items-center gap-6">
+          <button onClick={() => navigate('/login', { state: returnState })} className="relative group p-2 transition-all active:scale-90">
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 absolute inset-0 m-auto text-amber-500/60 blur-[3px] animate-pulse transform group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 relative z-10 transform group-hover:-translate-x-1.5 transition-all duration-300 text-gray-600 dark:text-gray-400 group-hover:text-amber-500 dark:group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          
+          <div onClick={() => navigate('/')} className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer hidden sm:block">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+        </div>
+
+        <button onClick={toggleTheme} className="p-2.5 rounded-full glass-card hover:scale-110 active:scale-95 transition-all text-gray-600 dark:text-gray-300 hover:text-amber-500">
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </nav>
+
+      {/* Maon Content Wrapper */}
+      <main className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-md relative group">
+          <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-2xl opacity-50 animate-pulse pointer-events-none"></div>
+          
+          <div className="relative glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white mb-2">
+                Create <span className="text-amber-500">Account.</span>
+              </h2>
+            </div>
+
+            {/* Form Logic */}
+            <form onSubmit={handleSignUp} className="space-y-5">
+              <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm pr-12" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-500 transition-colors">
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:border-amber-500 transition-all font-medium text-sm" required />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  checked={agreed} 
+                  onChange={() => agreed ? setAgreed(false) : setShowModal(true)} 
+                  className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer" 
+                  required 
+                />
+                <label htmlFor="terms" className="text-sm text-gray-500 dark:text-gray-400">
+                  I agree to the <span onClick={() => setShowModal(true)} className="text-amber-500 hover:text-amber-400 cursor-pointer font-bold hover:underline transition-all">Terms and Agreements</span>
+                </label>
+              </div>
+
+              <div className="relative group/btn pt-2">
+                <div className={`absolute inset-0 bg-amber-500/40 rounded-full blur-xl transition-opacity duration-300 ${agreed ? 'opacity-0 group-hover/btn:opacity-100 animate-pulse' : 'opacity-0'}`}></div>
+                <button 
+                  type="submit" 
+                  disabled={!agreed} 
+                  className={`relative w-full font-black py-4 rounded-full transition-all shadow-lg text-lg z-10 ${agreed ? 'bg-amber-500 text-gray-950 hover:bg-amber-400 active:scale-95' : 'bg-gray-200 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed border border-gray-300 dark:border-white/10'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+            </form>
+
+            <div className="flex items-center my-6">
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+              <span className="mx-4 text-gray-400 text-[10px] font-black uppercase tracking-widest">or</span>
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+            </div>
+
+            <button onClick={() => navigate('/login', { state: returnState })} className="w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95">
+              Log In
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-gray-900/40 flex items-center justify-center z-[100] p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowModal(false)}>
+          
+          <div className="glass-card rounded-[2.5rem] border border-gray-200 dark:border-white/10 p-10 max-w-lg w-full shadow-2xl relative overflow-hidden group animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Glow Effect */}
+            <div className="absolute top-[-20%] left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute bottom-[-20%] right-[-20%] w-60 h-60 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <h3 className="text-3xl font-black text-amber-500 mb-6 tracking-tight relative z-10">Terms and Conditions of Use</h3>
+            
+            <div className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed space-y-4 text-sm font-medium relative z-10 h-80 overflow-y-auto pr-4 selection:bg-amber-500/20">
+              <p><strong className="text-gray-900 dark:text-white font-bold">1. Academic Demonstration:</strong> This application is strictly an academic project prototype for demonstration purposes only.</p>
+              <p><strong className="text-gray-900 dark:text-white font-bold">2. Data Storage & Privacy:</strong> Any information submitted through this form will be transmitted to and stored within our active backend databases. For your privacy and security, you are <span className="text-amber-500 font-bold">strictly advised not</span> to use real names, genuine email addresses, active passwords, or any sensitive personal data.</p>
+              <p><strong className="text-gray-900 dark:text-white font-bold">3. Assumption of Risk:</strong> By proceeding, you acknowledge these risks. Any submission of genuine personal information is done entirely of your own volition. The developers assume no liability for any breach, loss, or unauthorized exposure of such data.</p>
+              <div className="h-4"></div>
+            </div>
+
+            <button 
+              onClick={() => {
+                setAgreed(true);
+                setShowModal(false);
+              }} 
+              className="relative w-full bg-white/5 dark:bg-transparent border-2 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-bold py-4 rounded-full hover:border-amber-500 hover:text-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all text-lg active:scale-95 z-10"
+            >
+              I understand and have read the terms
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="relative glass-card border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-2xl px-6 py-4 flex items-center gap-4 overflow-hidden bg-gray-900/90 backdrop-blur-xl">
+            {/* Red Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+            
+            <p className="font-bold text-red-500 text-sm relative z-10">{error}</p>
+            
+            <button 
+              onClick={() => setError('')} 
+              className="text-red-500/70 hover:text-red-500 transition-colors relative z-10"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
