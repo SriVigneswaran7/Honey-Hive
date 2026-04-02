@@ -14,9 +14,10 @@ from .seed import ensure_demo_user
 from .models import User, UserProfile, UserInput, ProductSnapshot
 from .security import hash_password
 
-# AI & Search Imports
+# AI, Search & Extraction Imports
 from .search import parse_input, unified_search, generate_ai_insights, evaluate_trust
 from .extract import run_extraction
+from .coupons import find_and_rank_codes
 
 app = FastAPI(title=config.APP_NAME)
 
@@ -49,12 +50,15 @@ def root():
 async def search(q: str, user_email: str = None, min_price: float = None, max_price: float = None, db: Session = Depends(get_db)):
     print(f"\n[SERVER] Processing search for: {q} | Min: {min_price} | Max: {max_price}")
     
-    # Check for Amazon link or search query
-    if "amazon.co.uk" in q or "amazon.com" in q:
-        results = run_extraction(q)
+    # 1. If it's a URL (Amazon, Currys, Argos, Temu, ANY link)
+    if "http" in q.lower():
+        print("[SERVER] Link detected. Running universal extraction...")
+        results = run_extraction(q, min_price, max_price)
+        
+    # 2. Standard text search (e.g., "Nintendo Switch OLED")
     else:
+        print("[SERVER] Standard text search triggered.")
         optimised_query = parse_input(q)
-        # Pass the new price variables to the search function
         results = unified_search(optimised_query, min_price, max_price)
 
     # Database Logic: Save to history if user is logged in
@@ -153,3 +157,23 @@ def get_history(email: str, db: Session = Depends(get_db)):
             "dealsFound": 1 
         })
     return {"history": history_list[::-1]} 
+
+# Coupons Route
+class CouponRequest(BaseModel):
+    url: str = ""
+    store: str = ""
+    title: str = ""
+
+@app.post("/api/coupons")
+def get_coupons(payload: CouponRequest):
+    print(f"\n[SERVER] Finding coupons — store: {payload.store} | title: {payload.title[:50]}")
+    
+    codes = find_and_rank_codes(
+        url=payload.url,
+        store=payload.store,
+        title=payload.title,
+        skip_google=False,
+        use_browser=True, 
+    )
+    
+    return {"codes": codes}
