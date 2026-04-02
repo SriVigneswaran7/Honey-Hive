@@ -43,7 +43,7 @@ export default function Login() {
 
     try {
       // 1. Send the credentials to your Python backend
-      const response = await fetch('http://127.0.0.1:5000/api/login', {
+      const response = await fetch('http://127.0.0.1:8000/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,17 +54,24 @@ export default function Login() {
       const data = await response.json();
 
       // 2. Check if the backend approved the login
-      if (response.ok) {
+      if (response.ok && data.ok) {
         // Success! Log them in
         localStorage.setItem('isLoggedIn', 'true');
         
-        // (Optional) You can save the user's data from the DB here later:
-        // localStorage.setItem('userEmail', data.email); 
+        // Save the user's email and name
+        localStorage.setItem('userEmail', email); 
+        
+        // Try to grab the name from the database response, otherwise fallback to email prefix
+        if (data.name) {
+            localStorage.setItem('userName', data.name);
+        } else {
+            localStorage.setItem('userName', email.split('@')[0]);
+        }
 
         navigate(from, { replace: true, state: returnState }); 
       } else {
         // 3. Trigger your Premium Toast with the DB's exact error message
-        setError(data.error || 'Invalid credentials. Please try again.');
+        setError(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (err) {
       // 4. Fallback if the Python server is offline or crashes

@@ -48,8 +48,8 @@ export default function Signup() {
     if (!agreed) return; 
 
     try {
-      // 2. Send the new user data to your Python backend
-      const response = await fetch('http://127.0.0.1:5000/api/signup', {
+      // 2. Send the new user data to your Python backend (Updated to port 8000 and /auth/signup)
+      const response = await fetch('http://127.0.0.1:8000/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,13 +60,18 @@ export default function Signup() {
       const data = await response.json();
 
       // 3. Check if the backend successfully created the account
-      if (response.ok) {
+      if (response.ok && data.ok) {
         // Success! Log them in automatically
         localStorage.setItem('isLoggedIn', 'true');
+        
+        // Save the user's email and name for the UI
+        localStorage.setItem('userEmail', email); 
+        localStorage.setItem('userName', name); // <-- THIS IS THE MAGIC LINE
+
         navigate(from, { replace: true, state: returnState });
       } else {
         // 4. Trigger Toast if the DB rejects it (e.g., "Email already in use")
-        setError(data.error || 'Failed to create account. Please try again.');
+        setError(data.message || 'Failed to create account. Please try again.');
       }
     } catch (err) {
       // 5. Fallback if the Python server is offline

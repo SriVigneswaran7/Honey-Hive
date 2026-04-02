@@ -11,11 +11,25 @@ export default function Home() {
   // Theme State
   const [isDark, setIsDark] = useState(false);
 
-  const recentSearches = [
-    { id: 1, query: 'Sony WH-1000XM5' },
-    { id: 2, query: 'Keychron K2 Keyboard' },
-    { id: 3, query: 'LG C3 OLED TV 55"' },
-  ];
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        if (data.history) {
+          setRecentSearches(data.history.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Failed to fetch recent searches", error);
+      }
+    };
+    fetchRecent();
+  }, [showProfileMenu]);
 
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
@@ -72,7 +86,7 @@ export default function Home() {
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
               <span className="text-gray-600 dark:text-gray-300 font-bold tracking-wide hidden sm:block">
-                Hi, HoneyUser!
+                Hi, {localStorage.getItem('userName') || localStorage.getItem('userEmail')?.split('@')[0] || 'User'}!
               </span>
 
               <div className="relative">
@@ -95,17 +109,32 @@ export default function Home() {
                     <div className="absolute right-0 mt-4 w-72 glass-card rounded-3xl shadow-2xl z-50 animate-in fade-in zoom-in duration-200">
                       <div className="p-4 border-b border-gray-200 dark:border-white/10">
                         <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Signed in as</p>
-                        <p className="font-bold text-gray-900 dark:text-white truncate text-sm">user@honeyhive.com</p>
+                        <p className="font-bold text-gray-900 dark:text-white truncate text-sm">
+                          {localStorage.getItem('userEmail') || 'Loading...'}
+                        </p>
                       </div>
                       
                       <div className="p-2">
                         <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</div>
-                        {recentSearches.map((item) => (
-                          <button key={item.id} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3">
-                            <Clock size={14} className="opacity-50" />
-                            <span className="truncate">{item.query}</span>
-                          </button>
-                        ))}
+                        {recentSearches.length > 0 ? (
+                          recentSearches.map((item, index) => (
+                            <button 
+                              key={index} 
+                              onClick={() => {
+                                setShowProfileMenu(false);
+                                navigate('/results', { state: { query: item.product_url || item.query } });
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors flex items-center gap-3"
+                            >
+                              <Clock size={14} className="opacity-50 flex-shrink-0" />
+                              <span className="truncate">{item.product_url || item.query}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-xs text-gray-500 font-medium">
+                            No recent searches yet.
+                          </div>
+                        )}
                         
                         {/* View All History Button */}
                         <button 
