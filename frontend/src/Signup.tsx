@@ -40,7 +40,7 @@ export default function Signup() {
     e.preventDefault();
     setError('');
 
-    // 1. Frontend Validation (Don't bother the database if passwords don't match)
+    // 1. Frontend Validation
     if (password !== confirmPassword) {
       setError('Passwords do not match. Please try again.');
       return; 
@@ -48,7 +48,7 @@ export default function Signup() {
     if (!agreed) return; 
 
     try {
-      // 2. Send the new user data to your Python backend (Updated to port 8000 and /auth/signup)
+      // 2. Send the new user data to Python backend (Updated to port 8000 and /auth/signup)
       const response = await fetch('http://127.0.0.1:8000/auth/signup', {
         method: 'POST',
         headers: {
@@ -66,7 +66,7 @@ export default function Signup() {
         
         // Save the user's email and name for the UI
         localStorage.setItem('userEmail', email); 
-        localStorage.setItem('userName', name); // <-- THIS IS THE MAGIC LINE
+        localStorage.setItem('userName', name);
 
         navigate(from, { replace: true, state: returnState });
       } else {
@@ -122,7 +122,7 @@ export default function Signup() {
         </button>
       </nav>
 
-      {/* Maon Content Wrapper */}
+      {/* Main Content Wrapper */}
       <main className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-md relative group">
           <div className="absolute inset-0 scale-[1.05] bg-gradient-to-r from-amber-500/20 to-rose-500/20 rounded-[2.5rem] blur-2xl opacity-50 animate-pulse pointer-events-none"></div>

@@ -70,7 +70,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         "q": user_input,
         "gl": "uk",
         "api_key": api_key,
-        "num": 30 # Fetching 30 gives us plenty of room to throw away the bad ones
+        "num": 30
     }
     
     # 1. Ask Google to try its best to filter prices
@@ -96,7 +96,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
             except:
                 price_float = 0.0
                 
-            # 3. THE IRONCLAD CHECK: Throw it in the trash if it breaks our rules
+            # 3. Discard if it breaks the rules
             if min_price is not None and price_float < min_price:
                 continue
             if max_price is not None and price_float > max_price:

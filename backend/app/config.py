@@ -5,5 +5,6 @@ def get_env(name: str, default: str) -> str:
 
 APP_NAME = get_env("APP_NAME", "Honey-Hive (DB)")
 ENV = get_env("ENV", "dev")
-# SQLite DB file path (relative to .github/backend when you run uvicorn there)
+
+# SQLite DB file path
 SQLITE_PATH = get_env("SQLITE_PATH", "./honeyhive.db")

@@ -7,7 +7,7 @@ export default function History() {
 
   const [isDark, setIsDark] = useState(false);
 
-  // THE REVERSE GHOST GUARD: Kicks users out if they aren't logged in
+  // Kicks users out if they aren't logged in
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus !== 'true') {
