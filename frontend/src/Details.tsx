@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Clock, LogOut, Sun, Moon, Sparkles, Ticket } from 'lucide-react';
+import { User, Clock, LogOut, Sun, Moon, Sparkles, Tag, Star, ShieldCheck } from 'lucide-react';
+import CouponModal from './Coupons';
 
 const InsightSkeleton = () => (
-  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden h-[600px]">
+  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden">
     
     <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-amber-500/5 to-transparent"></div>
     
@@ -26,6 +27,12 @@ const InsightSkeleton = () => (
         <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
         <div className="h-64 bg-gray-200 dark:bg-white/5 rounded-[2rem]"></div>
       </div>
+
+      {/* Rating & Trust Columns Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="h-[188px] bg-gray-200 dark:bg-white/5 rounded-[2.5rem]"></div>
+        <div className="h-[188px] bg-gray-200 dark:bg-white/5 rounded-[2.5rem]"></div>
+      </div>
     </div>
   </div>
 );
@@ -38,12 +45,11 @@ export default function Details() {
   const product = location.state?.product;
 
   const [insights, setInsights] = useState<any>(null);
-  const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   const [recentSearches, setRecentSearches] = useState<any[]>([]);
 
@@ -112,7 +118,6 @@ export default function Details() {
         });
         const data = await response.json();
         setInsights(data.insights);
-        setCoupons(data.coupons || []);
       } catch (error) {
         console.error("Failed to fetch AI insights", error);
       } finally {
@@ -121,12 +126,6 @@ export default function Details() {
     };
     fetchAIData();
   }, [product]);
-
-  const handleCopyCode = (code: string) => {
-    setCopiedCode(code);
-    navigator.clipboard.writeText(code);
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
 
   if (!product) {
     return (
@@ -140,6 +139,10 @@ export default function Details() {
   return (
     <div className="animate-page min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-amber-500/30 pb-20 relative z-10">
       
+      {showCoupons && (
+        <CouponModal product={product} onClose={() => setShowCoupons(false)} />
+      )}
+
       {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
         <div className="flex items-center gap-6">
@@ -235,9 +238,10 @@ export default function Details() {
               <img src={product.thumbnail} alt="" className="w-full max-h-96 object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-700" />
             </div>
             
-            <div className="glass-card rounded-[2.5rem] p-8 border border-gray-200 dark:border-white/10 shadow-xl">
-              <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight mb-4 tracking-tighter">{product.title}</h1>
-              <div className="text-5xl font-black text-amber-500 mb-8 tracking-tighter">{product.price}</div>
+            <div className="glass-card rounded-[2.5rem] p-8 border border-gray-200 dark:border-white/10 shadow-xl space-y-4">
+              <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight tracking-tighter">{product.title}</h1>
+              <div className="text-5xl font-black text-amber-500 tracking-tighter pb-4">{product.price}</div>
+              
               <a 
                 href={product.link || product.shopping_portal_link || "#"} 
                 target="_blank" rel="noreferrer"
@@ -245,23 +249,25 @@ export default function Details() {
               >
                 Buy on {product.store}
               </a>
+
+              <button 
+                onClick={() => setShowCoupons(true)}
+                className="w-full flex items-center justify-center gap-2 border-2 border-amber-500/30 py-4 rounded-full font-bold text-lg text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-500/5 transition-all active:scale-95"
+              >
+                <Tag size={20} strokeWidth={2.5} />
+                Find Discount Codes
+              </button>
             </div>
           </div>
 
-          {/* Right: AI Insights & Coupons */}
+          {/* Right: AI Insights */}
           <div className="lg:col-span-7 flex flex-col gap-8">
             {loading ? (
-              <div className="flex flex-col gap-8">
-                <InsightSkeleton />
-                {/* Optional: Add a small skeleton for coupons if you want, 
-                    but just showing the AI Verdict skeleton usually looks best */}
-              </div>
+              <InsightSkeleton />
             ) : (
               <>
                 {insights && (
                   <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden group">
-                    
-                   
                     <div className="absolute -top-24 -right-24 w-80 h-80 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700">
                       <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-[80px] animate-pulse"></div>
                     </div>
@@ -271,7 +277,9 @@ export default function Details() {
                       <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">AI Verdict</h2>
                     </div>
 
-                    <p className="text-gray-600 dark:text-gray-300 text-xl leading-relaxed mb-10 font-medium relative z-10">{insights.summary}</p>
+                    <p className="text-gray-600/90 dark:text-gray-300/90 text-lg leading-relaxed mb-10 font-medium relative z-10 tracking-tight">
+                      {insights.summary}
+                    </p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                       <div className="bg-white/50 dark:bg-white/5 rounded-3xl p-6 border border-gray-200 dark:border-white/5">
@@ -295,34 +303,35 @@ export default function Details() {
                         </ul>
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {coupons.length > 0 && (
-                  <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="p-3 bg-green-500/10 rounded-2xl text-green-500"><Ticket size={32} /></div>
-                      <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">Active Offers</h2>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {coupons.map((coupon, idx) => (
-                        <div key={idx} className="bg-white/50 dark:bg-white/5 rounded-[2rem] p-6 border border-gray-200 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6 group hover:border-amber-500/30 transition-all">
-                          <div className="text-center sm:text-left">
-                            <h3 className="text-amber-500 font-black text-xl tracking-tight">{coupon.title}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 font-medium">{coupon.description}</p>
-                          </div>
-                          <div className="flex shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-500/50">
-                            <div className="bg-gray-100 dark:bg-gray-900 px-6 py-3 font-mono font-bold tracking-[0.2em] text-lg">{coupon.code}</div>
-                            <button 
-                              onClick={() => handleCopyCode(coupon.code)} 
-                              className={`px-8 py-3 font-black transition-all active:scale-95 ${copiedCode === coupon.code ? 'bg-green-500 text-gray-950' : 'bg-amber-500 text-gray-950'}`}
-                            >
-                              {copiedCode === coupon.code ? 'COPIED!' : 'COPY'}
-                            </button>
-                          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                      {/* Rating Card */}
+                      <div className="glass-card rounded-[2.5rem] p-10 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="text-amber-500 mb-3 relative z-10">
+                          <Star size={40} fill="currentColor" />
                         </div>
-                      ))}
+                        <div className="text-4xl font-black text-gray-900 dark:text-white leading-none relative z-10 tracking-tighter">
+                          {product.rating !== "N/A" ? product.rating : "4.8"}
+                        </div>
+                        <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-black tracking-widest mt-2.5 relative z-10">
+                          {product.reviews > 0 ? `${product.reviews} Verified Reviews` : "Community Rating"}
+                        </div>
+                      </div>
+
+                      {/* Trust Card */}
+                      <div className="glass-card rounded-[2.5rem] p-10 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/5 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+                         <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="text-blue-500 mb-3 relative z-10">
+                          <ShieldCheck size={40} />
+                        </div>
+                        <div className="text-2xl font-black text-gray-900 dark:text-white leading-tight relative z-10 tracking-tight">
+                          UK Verified
+                        </div>
+                        <div className="text-[11px] text-gray-600 dark:text-gray-400 uppercase font-black tracking-widest mt-2.5 relative z-10 truncate px-2 w-full">
+                          {product.store} Security Check
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

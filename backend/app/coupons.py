@@ -57,10 +57,7 @@ try:
 except ImportError:
     STEALTH_AVAILABLE = False
 
-# ─────────────────────────────────────────────
 #  CONFIG
-# ─────────────────────────────────────────────
-
 TIMEOUT = 12
 MAX_RETRIES = 2
 DELAY = 1.2
@@ -73,7 +70,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0",
 ]
 
-# Strict patterns — only match codes near coupon context words
+# Strict patterns - only match codes near coupon context words
 CODE_PATTERNS = [
     r'(?:use\s+code|enter\s+code|apply\s+code|promo\s+code|coupon\s+code|discount\s+code|voucher\s+code)'
     r'[:\s\-]+[\"\'`]?([A-Za-z0-9\-_]{3,20})[\"\'`]?',
@@ -128,7 +125,7 @@ JUNK_CODES = {
 # Minimum code length to be considered valid (short words like BOX, PER filtered above)
 MIN_CODE_LENGTH = 5
 
-# Coupon aggregator URLs — these render codes via JS so we use Playwright to scrape them
+# Coupon aggregator URLs - these render codes via JS so Playwright has been used to scrape them
 COUPON_SOURCES = [
     ("vouchercodes",    "https://www.vouchercodes.co.uk/{domain}/"),
     ("myvouchercodes",  "https://www.myvouchercodes.co.uk/{domain}/"),
@@ -154,10 +151,7 @@ VALID   = "VALID"
 INVALID = "INVALID"
 UNKNOWN = "UNKNOWN"
 
-# ─────────────────────────────────────────────
 #  UTILITY
-# ─────────────────────────────────────────────
-
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
@@ -278,7 +272,7 @@ def extract_product_info(url, page_text=''):
     return info
 
 
-# Category keyword map — used to detect what type of product this is
+# Category keyword map - used to detect what type of product this is
 CATEGORY_KEYWORDS = {
     'fridge':      ['FRIDGE', 'FREEZER', 'REFRIGERAT', 'COOLING', 'LARDER'],
     'washing':     ['WASH', 'LAUNDRY', 'TUMBLE', 'DRYER', 'DRUM'],
@@ -461,10 +455,7 @@ def extract_codes_from_html(html):
     codes += find_codes_in_text(html)
     return clean_codes(codes)
 
-# ─────────────────────────────────────────────
 #  PLATFORM DETECTION
-# ─────────────────────────────────────────────
-
 def detect_platform(base_url, page_text=''):
     resp = fetch(f"{base_url}/cart.js", timeout=6)
     if resp and resp.status_code == 200:
@@ -486,9 +477,7 @@ def detect_platform(base_url, page_text=''):
         return 'bigcommerce'
     return 'unknown'
 
-# ─────────────────────────────────────────────
 #  SOURCE 1 — Coupon aggregators via Playwright
-# ─────────────────────────────────────────────
 
 # Known store voucher/offers pages — these contain codes without JS rendering
 STORE_OWN_PAGES = {
@@ -707,10 +696,7 @@ def scrape_coupon_sites_requests(domain, brand):
 
     return clean_codes(all_codes)
 
-# ─────────────────────────────────────────────
 #  SOURCE 2 — Google search
-# ─────────────────────────────────────────────
-
 def google_search_codes(domain, brand, product_title=''):
     print(f"\n[2] Google-searching for live codes: {brand}")
     year = time.strftime("%Y")
@@ -753,10 +739,7 @@ def google_search_codes(domain, brand, product_title=''):
     print(f"  -> {', '.join(cleaned) if cleaned else 'none found'}")
     return cleaned
 
-# ─────────────────────────────────────────────
 #  SOURCE 3 — Product page & JS bundles
-# ─────────────────────────────────────────────
-
 def scrape_product_page(url):
     print(f"\n[3] Scanning product page for embedded codes...")
     resp = fetch(url)
@@ -789,10 +772,7 @@ def scrape_product_page(url):
     print(f"  -> {', '.join(found) if found else 'none found'}")
     return found, resp.text if resp else ""
 
-# ─────────────────────────────────────────────
 #  VERIFICATION — Playwright (real browser)
-# ─────────────────────────────────────────────
-
 def rank_codes_with_ai(codes, product_info, domain, product_url=''):
     """
     Use Gemini API to rank codes by relevance to the specific product.
@@ -809,7 +789,7 @@ def rank_codes_with_ai(codes, product_info, domain, product_url=''):
     category      = product_info.get('category', '')
     product_desc  = product_name or f"{product_brand} product from {domain}"
 
-    # Always extract product info from URL slug — most reliable source
+    # Always extract product info from URL slug - most reliable source
     url_slug = product_url.split('/')[-1].replace('-', ' ').replace('_', ' ') if 'product_url' in dir() else ''
     product_context = product_desc
     if not product_context or product_context == domain:

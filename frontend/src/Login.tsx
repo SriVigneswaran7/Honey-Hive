@@ -42,7 +42,7 @@ export default function Login() {
     setError(''); // Clear any old errors
 
     try {
-      // 1. Send the credentials to your Python backend
+      // 1. Send the credentials to Python backend
       const response = await fetch('http://127.0.0.1:8000/auth/login', {
         method: 'POST',
         headers: {
@@ -70,7 +70,7 @@ export default function Login() {
 
         navigate(from, { replace: true, state: returnState }); 
       } else {
-        // 3. Trigger your Premium Toast with the DB's exact error message
+        // 3. Trigger Toast with the DB's exact error message
         setError(data.message || 'Invalid credentials. Please try again.');
       }
     } catch (err) {
