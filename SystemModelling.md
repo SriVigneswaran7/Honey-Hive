@@ -42,6 +42,7 @@ flowchart LR
         Auth["Auth Service"]:::server
         Search["Price Interceptor"]:::server
         AI["AI Insights"]:::server
+        Coup["Coupon Engine"]:::server
     end
     
     subgraph Persistence["Persistence Layer"]
@@ -51,7 +52,7 @@ flowchart LR
     
     subgraph ThirdParty["Third-Party Providers"]
         Serp["SerpApi Engine"]:::external
-        Gemini["Gemini 1.5 Pro"]:::external
+        Gemini["Gemini 2.5 Flash"]:::external
     end
     
     %% -----------------------------------------
@@ -63,6 +64,7 @@ flowchart LR
     API ==> Auth
     API ==> Search
     API ==> AI
+    API ==> Coup
     
     Auth <==> ORM
     ORM <==> DB
@@ -86,10 +88,11 @@ flowchart LR
 ### 2.1 Component Responsibilities
 By mapping our logical components to our physical file tree, we ensure strict traceability between design and implementation.
 
-* **Frontend (`frontend/src/`):** Manages user state, authentication persistence (via `sessionStorage`), and renders the Glassmorphic UI. Components like `Results.tsx` and `ComparisonTable.tsx` are strictly responsible for presentation, containing no business logic.
-* **API Router (`backend/app/main.py`):** Acts as the primary entry point, managed by Uvicorn. It handles middleware, CORS policy, and routes incoming HTTP requests to specialised service modules.
+* **Frontend (`frontend/src/`):** Manages user state, authentication persistence (via `localStorage`), and renders the Glassmorphic UI. Components like `Results.tsx` and `Comparison.tsx` are strictly responsible for presentation, containing no business logic.
+* **API Router (`backend/app/main.py` & `run.py`):** Acts as the primary entry point, managed by Uvicorn. It handles middleware, CORS policy, and routes incoming HTTP requests to specialised service modules.
 * **Search & Interceptor (`backend/app/search.py`):** Handles SerpApi communication. Critically, it contains our custom regex-based **Price Interceptor**, enforcing strict user budget constraints before data is ever returned to the client.
-* **AI Extraction (`backend/app/extract.py`):** Passes normalised market data to Gemini 1.5 Pro to distil unstructured product reviews into structured pros, cons, and vendor trust scores.
+* **AI Extraction (`backend/app/extract.py` & `backend/app/search.py`):** Passes normalised market data to Gemini 2.5 Flash to distil unstructured product reviews into structured pros, cons, and vendor trust scores.
+* **Coupon Engine (`backend/app/coupons.py`):** Dynamically scrapes live promotional codes using Playwright and BeautifulSoup, falling back to Google Search, before ranking them with AI.
 
 ---
 
@@ -124,18 +127,18 @@ sequenceDiagram
     participant API as FastAPI
     participant DB as SQLite
     participant Serp as SerpApi
-    participant Gem as Gemini Pro
+    participant Gem as Gemini Flash
 
     U->>FE: Enters query "Headphones" (Max £100)
     activate FE
     FE->>FE: Mount Skeleton Loaders
     
-    FE->>API: GET /api/search (Bearer Token)
+    FE->>API: GET /api/search (User Email)
     activate API
     
-    API->>DB: Validate JWT Token
+    API->>DB: Query User by Email
     activate DB
-    DB-->>API: User Authorised
+    DB-->>API: User Validated
     deactivate DB
     
     API->>Serp: Fetch Google Shopping Data
@@ -143,7 +146,7 @@ sequenceDiagram
     Serp-->>API: Raw JSON Payload
     deactivate Serp
     
-    %% Clean, glowing system event note (Removed the clunky red rect)
+    %% Clean, glowing system event note
     Note over API: Price Interceptor Logic executes.<br/>Strips all results > £100 constraint.
     
     API->>Gem: Dispatch top 3 candidates
@@ -185,37 +188,43 @@ The system requires persistent storage for user accounts and search history. We 
 }}%%
 erDiagram
     %% Relationship links defined first to optimise Mermaid's automatic spacing
-    USERS ||--o{ SEARCH_HISTORY : "performs"
-    COUPONS |o--|{ SEARCH_HISTORY : "matches"
+    USERS ||--o{ USER_INPUTS : "performs"
+    USER_INPUTS ||--o| PRODUCT_SNAPSHOTS : "captures"
+    USER_INPUTS ||--o| COUPON_RESULTS : "generates"
 
     USERS {
         Integer id PK
         String email UK "Indexed"
-        String hashed_password
-        Boolean is_active
-        DateTime created_at
-    }
-
-    SEARCH_HISTORY {
-        Integer id PK
-        Integer user_id FK
-        String search_query
-        Integer deals_found
+        String password_hash
         DateTime created_utc
     }
 
-    COUPONS {
+    USER_INPUTS {
         Integer id PK
-        String store_name
-        String discount_code
-        Float discount_value
-        Boolean is_active
+        Integer user_id FK "Indexed"
+        String product_url
+        DateTime created_utc
+    }
+
+    PRODUCT_SNAPSHOTS {
+        Integer id PK
+        Integer user_input_id FK "Indexed"
+        String title
+        Float price
+        String site
+    }
+    
+    COUPON_RESULTS {
+        Integer id PK
+        Integer user_input_id FK "Indexed"
+        String matched_domain
+        Text coupons_json
     }
 ```
 
 ### 4.1 Data Architecture Decisions
-* **Referential Integrity:** The `SEARCH_HISTORY` table employs a Foreign Key (`user_id`) bound to the `USERS` table. This guarantees that relational data remains consistent and allows for cascading deletions if a user account is removed.
-* **Security:** Plain text passwords are never stored. The `hashed_password` column stores cryptographically salted hashes using the `bcrypt` algorithm, mitigating the risk of credential exposure in the event of a database compromise.
+* **Referential Integrity:** The `user_inputs` table employs a Foreign Key (`user_id`) bound to the `users` table. This guarantees that relational data remains consistent and allows for cascading deletions (via `cascade="all, delete-orphan"`) if a user account is removed.
+* **Security:** Plain text passwords are never stored. The `password_hash` column stores cryptographically salted hashes using the `pbkdf2_sha256` algorithm, mitigating the risk of credential exposure in the event of a database compromise.
 
 ---
 
@@ -226,7 +235,7 @@ The architectural design of Honey-Hive is strictly aligned with the functional a
 While initial requirements proposed a Flask backend, the system was upgraded to FastAPI. Because Honey-Hive relies heavily on two external APIs (SerpApi and Gemini), a synchronous framework like Flask would block the main thread while waiting for Google to respond. FastAPI’s native `async/await` support allows the server to handle concurrent user requests even while waiting for LLM generation, drastically improving horizontal scalability.
 
 ### 5.2 Fault Tolerance and Boundary Protection
-External services are inherently unreliable. Our architecture encapsulates the SerpApi and Gemini calls within dedicated modules (`search.py` and `extract.py`). We implement rigorous `try/except` blocks and input validation via Pydantic schemas. If Gemini goes down, the system gracefully degrades—returning the product search results with a generic fallback message rather than crashing the entire application.
+External services are inherently unreliable. Our architecture encapsulates the SerpApi and Gemini calls within dedicated modules (`search.py` and `extract.py`). We implement rigorous `try/except` blocks and input validation via Pydantic schemas. If Gemini goes down, the system gracefully degrades—returning the product search results with a generic, professional fallback message rather than crashing the entire application.
 
 ### 5.3 Modularity and Extensibility
 By decoupling the application into a Presentation Layer (React) and an Application Layer (FastAPI), we achieve high extensibility. Should the project require a mobile application in the future, the React Native codebase could plug directly into the existing FastAPI routing layer without requiring a single line of backend code to be rewritten.
