@@ -43,32 +43,26 @@ def startup_event():
 # Basic Root Route
 @app.get("/")
 def root():
-   return {"message": "THIS IS THE REAL FILE"}
+   return {"status": "online", "message": "HoneyHive API is running"}
 
 # Unified Search Route
 @app.get("/api/search")
 async def search(q: str, user_email: str = None, min_price: float = None, max_price: float = None, db: Session = Depends(get_db)):
-    print(f"\n[SERVER] Processing search for: {q} | Min: {min_price} | Max: {max_price}")
+    print(f"[API] Search requested: '{q}' | User: {user_email or 'Guest'}")
     
     # 1. If it's a URL (Amazon, Currys, Argos, Temu, ANY link)
     if "http" in q.lower():
-        print("[SERVER] Link detected. Running universal extraction...")
         results = run_extraction(q, min_price, max_price)
         
-    # 2. Standard text search (e.g., "Nintendo Switch OLED")
+    # 2. Standard text search
     else:
-        print("[SERVER] Standard text search triggered.")
         optimised_query = parse_input(q)
         results = unified_search(optimised_query, min_price, max_price)
 
     # Database Logic: Save to history if user is logged in
     if user_email and results:
-        print(f"[DEBUG] Attempting to save history for: {user_email}")
-        print(f"[DEBUG] Search query: {q}")
-        print(f"[DEBUG] Results found: {len(results)}")
         user = db.query(User).filter(User.email == user_email).first()
         if user:
-            print(f"[DEBUG] User found in DB (ID: {user.id}). Saving...")
             # Create History Entry
             user_input = UserInput(user_id=user.id, product_url=q)
             db.add(user_input)
@@ -90,13 +84,7 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
             )
             db.add(snapshot)
             db.commit()
-            print(f"[DB] Saved search to history for {user_email}")
-        else:
-            print(f"[DEBUG] FAILED: User '{user_email}' not found in the local database.")
-    elif not user_email:
-        print("[DEBUG] SKIP: No user_email provided in request.")
-    elif not results:
-        print("[DEBUG] SKIP: No results found to save.")
+            print(f"[DB] Successfully saved search to history for: {user_email}")
 
     return {"shopping_results": results}
 
@@ -105,7 +93,7 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
 async def review(request: Request):
     data = await request.json()
     product_title = data.get("productTitle")
-    print(f"\n[SERVER] Generating AI review for: {product_title}")
+    print(f"[API] Generating AI review for: {product_title[:30]}...")
     insights = generate_ai_insights(product_title)
     return {"insights": insights, "coupons": insights.get("coupons", [])}
 
@@ -113,7 +101,6 @@ async def review(request: Request):
 async def get_trust(request: Request):
     data = await request.json()
     stores = data.get("stores", [])
-    print(f"\n[SERVER] Evaluating trust for: {stores}")
     trust_scores = evaluate_trust(stores)
     return {"trust_scores": trust_scores}
 
@@ -176,7 +163,7 @@ class CouponRequest(BaseModel):
 
 @app.post("/api/coupons")
 def get_coupons(payload: CouponRequest):
-    print(f"\n[SERVER] Finding coupons — store: {payload.store} | title: {payload.title[:50]}")
+    print(f"[API] Searching coupons for store: {payload.store}")
     
     codes = find_and_rank_codes(
         url=payload.url,

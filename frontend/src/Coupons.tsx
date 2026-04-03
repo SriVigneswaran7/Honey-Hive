@@ -13,7 +13,8 @@ const CouponModal = ({ product, onClose }: any) => {
     const fetchCodes = async () => {
       setLoading(true);
       try {
-        const res = await fetch('https://honey-hive-api.onrender.com/api/coupons', {
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_BASE}/api/coupons`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: product.link, store: product.store, title: product.title }),

@@ -42,8 +42,10 @@ export default function Login() {
     setError(''); // Clear any old errors
 
     try {
-      // 1. Send the credentials to Python backend
-      const response = await fetch('http://localhost:8000/auth/login', {
+      // 1. This looks at the .env locally OR Vercel online
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE}/auth/login`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
