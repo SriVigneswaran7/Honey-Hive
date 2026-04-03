@@ -6,20 +6,22 @@ export default function History() {
   const navigate = useNavigate();
 
   const [isDark, setIsDark] = useState(false);
+  const [pastSearches, setPastSearches] = useState<any[]>([]); 
 
-  // Kicks users out if they aren't logged in
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
     if (userStatus !== 'true') {
       navigate('/', { replace: true });
     } else {
-      // Fetch real data from backend
       const fetchHistory = async () => {
         const email = localStorage.getItem('userEmail');
         if (!email) return;
         try {
           const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(email)}`);
           const data = await response.json();
+        
+          console.log("Live History Data:", data); 
+          
           setPastSearches(data.history || []);
         } catch (err) {
           console.error("Failed to fetch history", err);
@@ -29,9 +31,6 @@ export default function History() {
     }
     setIsDark(document.documentElement.classList.contains('dark'));
   }, [navigate]);
-
-  // Temporary: This mock data will be replaced by a live database fetch later.
-  const [pastSearches, setPastSearches] = useState<any[]>([]);
 
   const toggleTheme = () => {
     const newTheme = !isDark;
