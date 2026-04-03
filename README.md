@@ -1,4 +1,3 @@
-# ELEE1149-Project-Template - Change me
 # 🍯 HoneyHive
 
 Smart price comparison for UK shoppers. Paste a product URL or type a search — HoneyHive finds the best deals across the web, surfaces AI-generated insights, rates seller trust, and hunts for discount codes.
