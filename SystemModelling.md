@@ -136,11 +136,6 @@ sequenceDiagram
     FE->>API: GET /api/search (User Email)
     activate API
     
-    API->>DB: Query User by Email
-    activate DB
-    DB-->>API: User Validated
-    deactivate DB
-    
     API->>Serp: Fetch Google Shopping Data
     activate Serp
     Serp-->>API: Raw JSON Payload
@@ -154,7 +149,7 @@ sequenceDiagram
     Gem-->>API: AI Insights & Trust Score
     deactivate Gem
     
-    API->>DB: Log transaction to History Table
+    API->>DB: Validate User & Log transaction to History Table
     activate DB
     DB-->>API: Commit Successful
     deactivate DB
@@ -190,7 +185,9 @@ erDiagram
     %% Relationship links defined first to optimise Mermaid's automatic spacing
     USERS ||--o{ USER_INPUTS : "performs"
     USER_INPUTS ||--o| PRODUCT_SNAPSHOTS : "captures"
+    USER_INPUTS ||--o| REVIEW_SNAPSHOTS : "captures"
     USER_INPUTS ||--o| COUPON_RESULTS : "generates"
+    USER_INPUTS ||--o| COMPARISON_RESULTS : "generates"
 
     USERS {
         Integer id PK
@@ -208,17 +205,29 @@ erDiagram
 
     PRODUCT_SNAPSHOTS {
         Integer id PK
-        Integer user_input_id FK "Indexed"
+        Integer user_input_id FK
         String title
         Float price
         String site
     }
     
+    REVIEW_SNAPSHOTS {
+        Integer id PK
+        Integer user_input_id FK
+        Float avg_rating
+        Integer reviews
+    }
+    
     COUPON_RESULTS {
         Integer id PK
-        Integer user_input_id FK "Indexed"
+        Integer user_input_id FK
         String matched_domain
-        Text coupons_json
+    }
+    
+    COMPARISON_RESULTS {
+        Integer id PK
+        Integer user_input_id FK
+        Text best_value
     }
 ```
 
@@ -246,3 +255,11 @@ To balance broad market coverage with high-fidelity accuracy, Honey-Hive utilise
 * **Discovery Path (Keyword-based):** For general queries (e.g., "Standard Headphones"), the system prioritises **Market Aggregation**. The primary "Buy" action redirects users to **Google Shopping** results. This architectural choice provides the widest possible range of price comparisons and vendor options without the overhead of maintaining custom scrapers for every individual boutique retailer.
 
 * **Precision Path (Direct Link):** When processing a specific, high-intent URL (facilitated via the `extract.py` module), the system shifts to **Deep Extraction**. In this mode, the scraper bypasses aggregators to interface directly with the vendor's **Document Object Model (DOM)**. This enables the retrieval of granular data—including exact SKU pricing and technical specifications—directing the user straight to the final product checkout page.
+
+### 5.5 Environment Parity and Dual Deployment Architecture
+To ensure a robust development lifecycle and safe production releases, Honey-Hive employs a strict **Environment Parity** model. The React frontend is engineered to dynamically route API requests using build-time environment variables (`VITE_API_URL`). 
+
+* **Local Environment:** During local development, the frontend interfaces with a local Uvicorn instance (`localhost:8000`) and a local SQLite database (`honeyhive.db`), allowing for destructive testing without consequence.
+* **Production Environment:** When deployed, the Vercel-hosted frontend automatically redirects traffic to the live, cloud-hosted Render backend cluster. 
+
+This dual-deployment strategy guarantees complete isolation of user data and search history between testing and live environments, ensuring that experimental local changes cannot corrupt the production database.
