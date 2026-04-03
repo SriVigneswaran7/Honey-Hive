@@ -49,7 +49,7 @@ export default function Signup() {
 
     try {
       // 2. Send the new user data to Python backend (Updated to port 8000 and /auth/signup)
-      const response = await fetch('http://127.0.0.1:8000/auth/signup', {
+      const response = await fetch('https://honey-hive-api.onrender.com/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

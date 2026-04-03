@@ -19,7 +19,7 @@ export default function Home() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));

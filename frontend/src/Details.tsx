@@ -59,7 +59,7 @@ export default function Details() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
         if (data.history) {
@@ -111,7 +111,7 @@ export default function Details() {
     const fetchAIData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/review', {
+        const response = await fetch('https://honey-hive-api.onrender.com/api/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productTitle: product.title })

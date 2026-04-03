@@ -72,7 +72,7 @@ export default function Results() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
         if (data.history) {
@@ -121,7 +121,7 @@ export default function Results() {
     
     // Build dynamic cache key and URL based on current price states
     let cacheKey = `honeyhive_results_${query}`;
-    let apiUrl = `http://127.0.0.1:8000/api/search?q=${encodeURIComponent(query)}`;
+    let apiUrl = `https://honey-hive-api.onrender.com/api/search?q=${encodeURIComponent(query)}`;
     
     const userEmail = localStorage.getItem('userEmail') || '';
     if (userEmail) apiUrl += `&user_email=${encodeURIComponent(userEmail)}`;
@@ -460,7 +460,7 @@ export default function Results() {
                   setIsComparingLoading(true);
                   try {
                     const stores = selectedForCompare.map(p => p.store);
-                    const res = await fetch('http://127.0.0.1:8000/api/trust', {
+                    const res = await fetch('https://honey-hive-api.onrender.com/api/trust', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ stores })
