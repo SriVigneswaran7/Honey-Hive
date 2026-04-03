@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.0.0] - 2026-04-03
 ### Added
-- **Production Deployment:** Configured live deployment pipelines, connecting the frontend directly to the live Render API execution (`run.py`).
+- **Dynamic Deployment Architecture:** Engineered a dual-environment deployment pipeline using `VITE_API_URL`. The frontend now dynamically routes between local development (`localhost`) and the live Render cloud API, achieving total environment parity and database isolation.
 - **Help Modal & UI Polish:** Implemented an interactive bento-grid playbook guide, unified the global glassmorphism theme, and updated skeleton loading cards.
 - **Price Interceptor:** Engineered an ironclad backend interceptor with native SERP API parameters, including comprehensive minimum and maximum price support.
 - **Documentation:** Finalised the System Modelling diagrams, UML sequence models, Requirements Specification, and Traceability Matrix.
