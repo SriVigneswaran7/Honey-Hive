@@ -43,7 +43,7 @@ def startup_event():
 # Basic Root Route
 @app.get("/")
 def root():
-   return {"message": "HoneyHive API running"}
+   return {"message": "THIS IS THE REAL FILE"}
 
 # Unified Search Route
 @app.get("/api/search")
@@ -63,8 +63,12 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
 
     # Database Logic: Save to history if user is logged in
     if user_email and results:
+        print(f"[DEBUG] Attempting to save history for: {user_email}")
+        print(f"[DEBUG] Search query: {q}")
+        print(f"[DEBUG] Results found: {len(results)}")
         user = db.query(User).filter(User.email == user_email).first()
         if user:
+            print(f"[DEBUG] User found in DB (ID: {user.id}). Saving...")
             # Create History Entry
             user_input = UserInput(user_id=user.id, product_url=q)
             db.add(user_input)
@@ -87,6 +91,12 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
             db.add(snapshot)
             db.commit()
             print(f"[DB] Saved search to history for {user_email}")
+        else:
+            print(f"[DEBUG] FAILED: User '{user_email}' not found in the local database.")
+    elif not user_email:
+        print("[DEBUG] SKIP: No user_email provided in request.")
+    elif not results:
+        print("[DEBUG] SKIP: No results found to save.")
 
     return {"shopping_results": results}
 

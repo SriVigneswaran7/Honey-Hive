@@ -114,7 +114,7 @@ export default function History() {
                   
                   <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto w-full">
                     <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 py-1.5 px-4 rounded-full text-xs font-black uppercase tracking-widest border border-amber-500/20">
-                      {item.dealsFound} Deals
+                      {item.dealsFound} {item.dealsFound === 1 ? 'DEAL' : 'DEALS'}
                     </span>
                     <ChevronRight size={20} className="text-gray-400 group-hover/item:text-amber-500 transform group-hover/item:translate-x-1 transition-all" />
                   </div>

@@ -43,7 +43,7 @@ export default function Login() {
 
     try {
       // 1. Send the credentials to Python backend
-      const response = await fetch('https://honey-hive-api.onrender.com/auth/login', {
+      const response = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
