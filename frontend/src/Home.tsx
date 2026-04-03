@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, HelpCircle } from 'lucide-react';
-import Help from './Help';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   
   // Theme State
   const [isDark, setIsDark] = useState(false);
@@ -76,7 +74,7 @@ export default function Home() {
           </div>
           {/* Help Icon Button */}
           <button 
-            onClick={() => setShowHelp(true)}
+            onClick={() => navigate('/guide')}
             className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all active:scale-90"
             aria-label="Help Guide"
           >
@@ -210,9 +208,6 @@ export default function Home() {
           </div>
         </form>
       </main>
-      
-      {/* Help Modal */}
-      {showHelp && <Help onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

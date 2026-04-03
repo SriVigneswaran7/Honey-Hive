@@ -7,6 +7,7 @@ import Results from './Results';
 import Details from './Details';
 import Signup from './Signup';
 import History from './History';
+import Help from './Help';
 
 function App() {
   // Checks local storage on initial load so the theme stays consistent
@@ -35,6 +36,7 @@ function App() {
             <Route path="/review" element={<Details />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/history" element={<History />} />
+            <Route path="/guide" element={<Help />} />
           </Routes>
         </Router>
       </div>
