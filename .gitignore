@@ -5,6 +5,7 @@ frontend/dist/
 __pycache__/
 .DS_Store
 node_modules/
+
 # Python
 *.pyc
 *.pyo
@@ -12,6 +13,10 @@ node_modules/
 .Python
 env/
 venv/
+
 # SQLite
 *.db
 *.sqlite3
+
+# Vercel
+.vercel/
