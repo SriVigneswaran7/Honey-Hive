@@ -19,8 +19,9 @@ Functional requirements define the core behaviour and features the system must p
 | **FR-07** | AI Trust Score | The system should calculate and display a vendor reliability rating to protect users from untrustworthy third-party sellers. | Should | `backend/app/search.py` |
 | **FR-08** | Coupon Engine | The system must dynamically scrape live coupon aggregators and use AI to rank promotional codes for the specific product. | Must | `backend/app/discount_scraper.py`, `frontend/src/Coupons.tsx` |
 | **FR-09** | User Assistance | The system must provide an accessible Help Screen Modal via the global navigation bar to guide users on platform features. | Must | `frontend/src/Home.tsx` |
-| **FR-10** | Password Recovery | The system would allow users to securely reset forgotten passwords via an SMTP email token. | Won't | *Descoped due to time constraints* |
-| **FR-11** | Admin Dashboard | The system would include an RBAC dashboard for tracking user metrics. | Won't | *Descoped due to time constraints* |
+| **FR-10** | Hybrid Routing | The system shall perform Discovery Routing (redirecting to Google Shopping) for keyword searches and Direct Extraction (direct-to-site) for validated product URLs. | Must | backend/app/extract.py, backend/app/search.py |
+| **FR-11** | Password Recovery | The system would allow users to securely reset forgotten passwords via an SMTP email token. | Won't | *Descoped due to time constraints* |
+| **FR-12** | Admin Dashboard | The system would include an RBAC dashboard for tracking user metrics. | Won't | *Descoped due to time constraints* |
 
 ## 3. Non-Functional Requirements (NFR)
 Non-functional requirements dictate the system's quality attributes, performance benchmarks, and architectural constraints.
