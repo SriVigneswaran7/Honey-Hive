@@ -177,7 +177,8 @@ Name 1 – Role
 Name 2 – Role
 Name 3 - Role
 Name 4 - Role
-Name 5 - Role
+Brahemrifi9 - Documentation Lead
+
 ---
 
 ## License
