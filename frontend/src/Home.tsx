@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, HelpCircle } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,7 +21,7 @@ export default function Home() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));
@@ -45,11 +47,12 @@ export default function Home() {
   };
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate('/results', { state: { query: searchQuery } });
-    }
-  };
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    const userEmail = localStorage.getItem('userEmail');
+    navigate('/results', { state: { query: searchQuery, userEmail: userEmail } });
+  }
+};
 
   const toggleTheme = () => {
     if (isDark) {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Clock, ChevronRight } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function History() {
   const navigate = useNavigate();
 
@@ -17,7 +19,7 @@ export default function History() {
         const email = localStorage.getItem('userEmail');
         if (!email) return;
         try {
-          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(email)}`);
+          const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(email)}`);
           const data = await response.json();
         
           console.log("Live History Data:", data); 
@@ -112,7 +114,7 @@ export default function History() {
                   
                   <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto w-full">
                     <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 py-1.5 px-4 rounded-full text-xs font-black uppercase tracking-widest border border-amber-500/20">
-                      {item.dealsFound} Deals
+                      {item.dealsFound} {item.dealsFound === 1 ? 'DEAL' : 'DEALS'}
                     </span>
                     <ChevronRight size={20} className="text-gray-400 group-hover/item:text-amber-500 transform group-hover/item:translate-x-1 transition-all" />
                   </div>

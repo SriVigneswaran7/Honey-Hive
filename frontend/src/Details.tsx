@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, Sparkles, Tag, Star, ShieldCheck } from 'lucide-react';
 import CouponModal from './Coupons';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const InsightSkeleton = () => (
   <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden">
     
@@ -59,7 +61,7 @@ export default function Details() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
         if (data.history) {
@@ -111,7 +113,7 @@ export default function Details() {
     const fetchAIData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('https://honey-hive-api.onrender.com/api/review', {
+        const response = await fetch(`${API_BASE}/api/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productTitle: product.title })
