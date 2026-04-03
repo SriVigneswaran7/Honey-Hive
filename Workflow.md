@@ -3,7 +3,7 @@
 This document outlines the Git workflow, branching strategy, and commit conventions used during the development of Honey-Hive.
 
 ## 1. Commit Conventions
-[cite_start]We utilized the **Conventional Commits (v1.0.0)** standard to maintain a readable and automated history[cite: 174].
+We utilised the **Conventional Commits (v1.0.0)** standard to maintain a readable and automated history.
 * `feat:` - A new feature
 * `fix:` - A bug fix
 * `refactor:` - Code changes that neither fix a bug nor add a feature
