@@ -5,6 +5,8 @@ import CouponModal from './Coupons';
 import FilterModal from './Filters';
 import CompareModal from './Comparison';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
     {/* Ghost Comparison Button */}
@@ -72,7 +74,7 @@ export default function Results() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
         if (data.history) {
@@ -121,9 +123,9 @@ export default function Results() {
     
     // Build dynamic cache key and URL based on current price states
     let cacheKey = `honeyhive_results_${query}`;
-    let apiUrl = `https://honey-hive-api.onrender.com/api/search?q=${encodeURIComponent(query)}`;
-    
-    const userEmail = localStorage.getItem('userEmail') || '';
+    let apiUrl = `${API_BASE}/api/search?q=${encodeURIComponent(query)}`;
+
+    const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
     if (userEmail) apiUrl += `&user_email=${encodeURIComponent(userEmail)}`;
     
     if (minPrice) {
@@ -460,7 +462,7 @@ export default function Results() {
                   setIsComparingLoading(true);
                   try {
                     const stores = selectedForCompare.map(p => p.store);
-                    const res = await fetch('https://honey-hive-api.onrender.com/api/trust', {
+                    const res = await fetch(`${API_BASE}/api/trust`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ stores })
