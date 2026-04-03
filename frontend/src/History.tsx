@@ -18,7 +18,7 @@ export default function History() {
         const email = localStorage.getItem('userEmail');
         if (!email) return;
         try {
-          const response = await fetch(`http://127.0.0.1:8000/auth/history?email=${encodeURIComponent(email)}`);
+          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(email)}`);
           const data = await response.json();
           setPastSearches(data.history || []);
         } catch (err) {
