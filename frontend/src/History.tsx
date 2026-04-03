@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Clock, ChevronRight } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function History() {
   const navigate = useNavigate();
 
@@ -17,7 +19,7 @@ export default function History() {
         const email = localStorage.getItem('userEmail');
         if (!email) return;
         try {
-          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(email)}`);
+          const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(email)}`);
           const data = await response.json();
         
           console.log("Live History Data:", data); 
