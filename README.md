@@ -173,11 +173,11 @@ honeyhive/
 
 ## Contributors
 
-Name 1 – Role
-Name 2 – Role
-Name 3 - Role
-Name 4 - Role
-Brahemrifi9 - Documentation Lead
+- Name 1 – Role
+- Name 2 – Role
+- Name 3 - Role
+- Name 4 - Role
+- Brahemrifi9 - Documentation Lead
 
 ---
 
