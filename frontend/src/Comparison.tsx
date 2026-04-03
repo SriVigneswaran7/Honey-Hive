@@ -15,8 +15,10 @@ export default function CompareModal({
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-lg" onClick={() => setShowCompareModal(false)}></div>
       <div className="relative z-10 w-full max-w-5xl glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
-        <div className="absolute top-[-20%] left-[-10%] w-96 h-96 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-rose-500/20 dark:bg-rose-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+        
+        {/* Centered Glow - Replicating logic that works */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-32 bg-amber-500/20 rounded-full blur-[80px] pointer-events-none z-0" />
+
         <div className="relative z-10 p-8 border-b border-white/50 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-md">
           <div>
             <h2 className="text-3xl font-black tracking-tighter text-amber-500 drop-shadow-sm">Product Battle</h2>

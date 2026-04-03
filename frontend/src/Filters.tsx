@@ -22,9 +22,8 @@ export default function FilterModal({
       <div className="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/60 backdrop-blur-md" onClick={onClose}></div>
       <div className="relative z-10 w-full max-w-md glass-card rounded-[3rem] border border-white/60 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-2xl">
         
-        {/* Glow Effect inside the Glass */}
-        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-amber-500/20 dark:bg-amber-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-rose-500/20 dark:bg-rose-500/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+        {/* Centered Glow - Replicating logic that works */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-32 bg-amber-500/20 rounded-full blur-[80px] pointer-events-none z-0" />
 
         {/* Header */}
         <div className="relative z-10 p-6 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-md">

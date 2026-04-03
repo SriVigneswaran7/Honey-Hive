@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Clock, LogOut, Sun, Moon } from 'lucide-react';
+import { User, Clock, LogOut, Sun, Moon, HelpCircle } from 'lucide-react';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,8 +68,18 @@ export default function Home() {
       
       {/* Navbar */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto relative z-50">
-        <div className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer">
-          Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-black tracking-tighter text-amber-500 cursor-pointer">
+            Honey<span className="text-gray-900 dark:text-white transition-colors duration-500">Hive</span>
+          </div>
+          {/* Help Icon Button */}
+          <button 
+            onClick={() => navigate('/guide')}
+            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-500/10 transition-all active:scale-90"
+            aria-label="Help Guide"
+          >
+            <HelpCircle size={20} strokeWidth={2.5} />
+          </button>
         </div>
         
         <div className="font-medium flex items-center gap-4">
