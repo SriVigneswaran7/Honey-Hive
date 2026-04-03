@@ -239,3 +239,9 @@ External services are inherently unreliable. Our architecture encapsulates the S
 
 ### 5.3 Modularity and Extensibility
 By decoupling the application into a Presentation Layer (React) and an Application Layer (FastAPI), we achieve high extensibility. Should the project require a mobile application in the future, the React Native codebase could plug directly into the existing FastAPI routing layer without requiring a single line of backend code to be rewritten.
+
+### 5.4 Hybrid Extraction & Redirection Logic
+To balance broad market coverage with high-fidelity accuracy, Honey-Hive utilizes a dual-path logic for product redirection and data sourcing:
+
+* **Discovery Path (Keyword-based):** For general queries (e.g., "Standard Headphones"), the system prioritizes **Market Aggregation**. The primary "Buy" action redirects users to **Google Shopping** results. This architectural choice provides the widest possible range of price comparisons and vendor options without the overhead of maintaining custom scrapers for every individual boutique retailer.
+* **Precision Path (Direct Link):** When processing a specific, high-intent URL (facilitated via the `extract.py` module), the system shifts to **Deep Extraction**. In this mode, the scraper bypasses aggregators to interface directly with the vendor's **Document Object Model (DOM)**. This enables the retrieval of granular data—including exact SKU pricing and technical specifications—directing the user straight to the final product checkout page.
