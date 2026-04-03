@@ -121,11 +121,12 @@ export default function Results() {
   const fetchProducts = async (query: any) => {
     if (!query) return;
     
+    const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
+    
     // Build dynamic cache key and URL based on current price states
-    let cacheKey = `honeyhive_results_${query}`;
+    let cacheKey = `honeyhive_results_${query}_${userEmail}`;
     let apiUrl = `${API_BASE}/api/search?q=${encodeURIComponent(query)}`;
 
-    const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
     if (userEmail) apiUrl += `&user_email=${encodeURIComponent(userEmail)}`;
     
     if (minPrice) {
