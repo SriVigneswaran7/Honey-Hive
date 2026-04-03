@@ -13,7 +13,7 @@ We utilised the **Conventional Commits (v1.0.0)** standard to maintain a readabl
 *Expand the section below to view the complete Git log of our team's active development phase, demonstrating parallel feature branching, structured merges, and consistent integration into the `main` branch.*
 
 <details>
-<summary><b>Click to expand full 160-commit history graph</b></summary>
+<summary><b>Click to expand the complete commit history graph</b></summary>
 
 ```text
 *   45e38ff | 2026-04-03 22:55:12 | Merge pull request #56 from UniOfGreenwich/fix/history-persistence-refactor  (HEAD -> main, origin/main, origin/HEAD)
@@ -286,5 +286,4 @@ We utilised the **Conventional Commits (v1.0.0)** standard to maintain a readabl
 * 6b6c156 | 2026-01-27 13:07:05 | Add HIVE full stack starter 
 * 8c109bd | 2026-01-13 11:29:03 | Setting up GitHub Classroom Feedback 
 * 21c6c5a | 2026-01-13 11:29:03 | GitHub Classroom Feedback  (origin/feedback)
-* d01a048 | 2025-12-18 10:50:29 | Initial commit 
-</details>
+* d01a048 | 2025-12-18 10:50:29 | Initial commit
