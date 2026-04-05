@@ -5,7 +5,7 @@
 [![Live Demo](https://img.shields.io/badge/Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://honey-hive-frontend.vercel.app/)
 [![API Status](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render)](https://honey-hive-api.onrender.com)
 
-> **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Frontend (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
+> **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Live Demo (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30 seconds to "spin up" the server.
 
@@ -176,13 +176,13 @@ A detailed critical reflection, including representative prompts, evaluation of 
 
 ## Contributors
 
-| Contributor | Contribution |
-| :--- | :--- |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
+| Contributor | Student ID | Contribution |
+| :--- | :--- | :--- |
+| **Sri Vigneswaran7** | 001419849 | Built the complete React frontend and integrated the SQLite persistence layer. Developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI. Managed dual-environment routing for deployment  and authored the SDLC Documentation. |
+| **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the interactive Coupon UI. Led the QA process, authored the Testing Strategy, and resolved application vulnerabilities. |
+| **[Teammate 3 Name]** | | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
+| **[Teammate 4 Name]** | | Contributed to initial UI prototyping for History and Auth flows. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding. |
+| **[Teammate 5 Name]** | | Assisted with initial drafts of System Modelling and context generation for the project README. |
 
 ## License
 
