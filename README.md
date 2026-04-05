@@ -5,7 +5,7 @@
 [![Live Demo](https://img.shields.io/badge/Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://honey-hive-frontend.vercel.app/)
 [![API Status](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render)](https://honey-hive-api.onrender.com)
 
-> **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Frontend (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
+> **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Live Demo (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30 seconds to "spin up" the server.
 
@@ -136,10 +136,10 @@ npm run dev
 | Home Screen | Playbook | Results Screen |
 | :---: | :---: | :---: |
 | ![Search Interface](assets/Home.png) | ![Comparison View](assets/Help.png) | ![Coupon Scraper](assets/Results.png) |
-| **Details Screen** | **Login Screen** | **Sign-up Screen** |
-| ![Price Interceptor](assets/Details.png) | ![Gemini Verdict](assets/Login.png) | ![Saved Deals](assets/Signup.png) |
-| **Battle Mode** | **History Screen** | **Filters Modal** |
-| ![Mobile View](assets/Comparison.png) | ![UI Theme](assets/History.png) | ![Safe States](assets/Filters.png) |
+| **Details Screen** | **Login and Sign-Up** | **History Screen** |
+| ![Price Interceptor](assets/Details.png) | ![Gemini Verdict](assets/Auth.png) | ![Saved Deals](assets/History.png) |
+| **Battle Mode** | **Coupons Modal** | **Filters Modal** |
+| ![Mobile View](assets/Comparison.png) | ![UI Theme](assets/Coupons.png) | ![Safe States](assets/Filters.png) |
 
 ### Project Structure
 
@@ -176,14 +176,14 @@ A detailed critical reflection, including representative prompts, evaluation of 
 
 ## Contributors
 
-| Contributor | Contribution |
-| :--- | :--- |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
-| **[Name]** | Contributions |
+| Contributor | Student ID | Contribution |
+| :--- | :--- | :--- |
+| **SriVigneswaran7** | 001419849 | Built the complete React frontend and integrated the SQLite persistence layer. Developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI. Managed dual-environment routing for deployment  and authored the complete end-to-end SDLC documentation. |
+| **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy, and resolved application vulnerabilities. |
+| **[Teammate 3 Name]** | | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
+| **vez767** | 001416539 | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
+| **[Teammate 5 Name]** | | Assisted with initial drafts of System Modelling and context generation for the project README. |
 
 ## License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Distributed under the **MIT License**. See [`LICENSE`](./LICENSE) for more information.
