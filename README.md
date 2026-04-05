@@ -186,4 +186,4 @@ A detailed critical reflection, including representative prompts, evaluation of 
 
 ## License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Distributed under the **MIT License**. See [`LICENSE`](./LICENSE) for more information.
