@@ -1,109 +1,173 @@
-# ELEE1149-Project-Template - Change me
-*A short, descriptive title for your project.*
+# HoneyHive
+*A decoupled full-stack architecture leveraging Large Language Models (LLMs) and automated browser orchestration for real-time market data synthesis and multi-retailer price optimisation.*
 
-Have a look at other READMEs “in the wild” (open-source projects on GitHub are great examples) and see what they include. Your README is the first impression of your project, so make it clear, professional, and helpful. Below is a good starting point, and you can customize it for your coursework.
-### Extra Tips:
+## Live Deployment
+[![Live Demo](https://img.shields.io/badge/Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://honey-hive-frontend.vercel.app/)
+[![API Status](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render)](https://honey-hive-api.onrender.com)
 
-- Use **clear headings** and a logical structure.
-- Add **badges** (e.g., build status, license, version) for a professional look.
-- Include a **link to a live demo** if available.
-- Add **screenshots or GIFs** to showcase your UI or features.
-- Keep instructions simple and accurate for installation and usage.
-- Maintain a **CHANGELOG.md** for version history.
-- Use semantic commit messages (e.g., feat: add login page).
-- Make sure your README answers:
-   - What is this project?
-   - How do I run it?
-   - Who built it?
+> **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Frontend (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
+> 
+> The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30 seconds to "spin up" the server.
+
+### HoneyHive Tech Stack
+
+**Frontend**
+![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript_5.2-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite_5.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
+**Backend**
+![Python](https://img.shields.io/badge/Python_3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite_3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+
+**Data & AI Intelligence**
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![SerpApi](https://img.shields.io/badge/SerpApi-556AEC?style=for-the-badge&logo=google&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
 ## Table of Contents
 
 - [About the Project](#about-the-project)
-- Features
-- Tech Stack
-- Getting Started
-  - Prerequisites
-  - Installation
-- Usage
-- Screenshots
-- Project Structure
-- Contributors
-- License
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Screenshots](#screenshots)
+- [Project Structure](#project-structure)
+- [Contributors](#contributors)
+- [License](#license)
 
 ## About the Project
 
-Briefly explain:
+**What the project does?**
+HoneyHive is a full-stack web application designed to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budgets, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
 
-- What the project does?
-- Why it exists (problem it solves)?
-- Who it’s for?
+**Why it exists (problem it solves)?**
+Modern comparison sites are often bloated with fake or expired coupons, unverified reviews, and sponsored listings that ignore your actual budget. Honey-Hive bypasses these limitations by using generative AI to provide instant, unbiased pros and cons, while a custom headless-browser engine hunts for active voucher codes hidden behind modern Client-Side Rendering (CSR) layers.
+
+**Who it’s for?**
+Deal hunters, budget-conscious consumers, and tech-savvy shoppers who want absolute clarity and the best possible value without manually checking dozens of retail websites.
 
 ## Features
-List the main features:
 
-- Feature 1
-- Feature 2
-- Feature 3
+- **Live Search & Deal Aggregation:** Queries Google Shopping data in real-time to normalise market prices across UK retailers.
+- **Intelligent Price Interceptor:** A custom server-side engine that strictly enforces user budget parameters (minimum and maximum limits) before data reaches the client.
+- **AI-Powered Product Analysis:** Integrates the Google Gemini 2.5 Flash LLM to generate instant, structured technical verdicts, pros, cons, and vendor trust scores.
+- **Battle Mode:** A side-by-side comparison interface allowing users to evaluate technical specifications, prices, and AI trust scores to find the absolute best deal.
+- **Persistent User Vault:** Secure authentication system using FastAPI and SQLite that saves search history and tracked deals across sessions.
 
 ## Tech Stack
-*These are examples only, your team needs list technologies you used*
-- Frontend: React / Angular / Vue
-- Backend: Node.js / Django / Flask
-- Database: MySQL / MongoDB
-- Version Control: Git & GitHub
+
+- **Frontend:** React 19 / Vite / TypeScript / Tailwind CSS
+- **Backend:** Python 3.9+ / FastAPI / SQLAlchemy / Uvicorn
+- **Database:** SQLite (Local Development)
+- **Version Control:** Git & GitHub
+- **APIs & Tools:** Google Gemini API, SerpApi, Playwright, BeautifulSoup4
 
 ## Getting Started
-*What does a user need on there system to run this software?*
 
 ### Prerequisites
 
-- Node.js vXX
-- Python vXX
-- Any other tools
+- Node.js v18 or higher
+- Python v3.9 or higher
+- Git
 
 ### Installation
-*How does a user install/build from source or precomplied binaries?*
 
-```
+```bash
 # Clone the repository
-git clone https://github.com/your-org/project-name.git
+git clone [https://github.com/your-org/elee1149-courswork-2025-hive.git](https://github.com/your-org/elee1149-courswork-2025-hive.git)
 
 # Navigate to the project folder
-cd project-name
+cd elee1149-courswork-2025-hive
 
-# Install dependencies
+# 1. Backend Setup
+cd backend
+python -m venv venv
 
+# Activate the virtual environment
+# On Windows: venv\Scripts\activate
+# On Mac/Linux: source venv/bin/activate
+
+# Install Python dependencies and Playwright browsers
+pip install -r requirements.txt
+playwright install chromium
+
+# Set up Backend Environment Variables
+cp app/.env.example app/.env
+# Open app/.env and insert your SERPAPI_KEY and GEMINI_API_KEY
+
+# 2. Frontend Setup
+cd ../frontend
+npm install --legacy-peer-deps
+
+# Set up Frontend Environment Variables
+cp .env.example .env
 ```
 
 ### Usage
-*How do we run/start the software?*
 
+To run the application locally, you will need two separate terminal windows.
+
+**Terminal 1 (Backend Server):**
+```bash
+# Ensure you are in the backend directory with your venv activated
+cd backend
+python run.py
 ```
-npm start
-...
-cargo run
+*(The FastAPI server will start on http://localhost:8000)*
+
+**Terminal 2 (Frontend Server):**
+```bash
+# Ensure you are in the frontend directory
+cd frontend
+npm run dev
 ```
-*Or any other commands*
+*(The React application will be available at http://localhost:5173)*
 
 ## Screenshots
-*Add screenshots or GIFs to showcase the UI or functionality.*
 
+*(Add screenshots or GIFs to showcase the UI or functionality here)*
 
 ### Project Structure
-*Example format below*
-```
-project-name/
+
+```text
+elee1149-courswork-2025-hive/
 │
-├── src/            # Source code
-├── docs/           # Documentation
-├── tests/          # Unit tests
-└── README.md       # Project README
+├── backend/                # Python/FastAPI Application
+│   ├── app/                # API routes, database models, and scraper logic
+│   ├── honeyhive.db        # SQLite Database
+│   ├── requirements.txt    # Backend dependencies
+│   └── run.py              # Backend entry point
+│
+├── frontend/               # React/Vite Application
+│   ├── src/                # UI Components, Views, and Styling
+│   ├── index.html          # HTML entry point
+│   ├── package.json        # Frontend dependencies
+│   └── tailwind.config.js  # UI Theme configuration
+│
+├── CHANGELOG.md            # Version history and semantic commits
+├── Requirements.md         # Requirements Specification
+├── SystemModelling.md      # UML diagrams & Architectural decisions
+├── Workflow.md             # Development workflow and SDLC lifecycle
+└── README.md               # Project README
 ```
 
 ## Contributors
 
-Name 1 – Role
-Name 2 – Role
+| Contributor | Contribution |
+| :--- | :--- |
+| **[Name]** | Contributions |
+| **[Name]** | Contributions |
+| **[Name]** | Contributions |
+| **[Name]** | Contributions |
+| **[Name]** | Contributions |
 
 ## License
-Specify the license (e.g., MIT, Apache 2.0).
+
+This project is licensed under the **Apache License 2.0**. 
