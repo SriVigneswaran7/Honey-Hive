@@ -93,3 +93,53 @@ During functional testing, we encountered architectural decisions that required 
 2. **Local Storage for Session Management:**
    * *Observation (FCT-03):* We rely on `localStorage.getItem('isLoggedIn')` to manage frontend routing guards.
    * *Trade-off:* While this is highly performant and stateless, it is technically susceptible to simple manipulation (a user manually setting the key in DevTools). Since our backend endpoints (like `/auth/history`) still validate the actual user email before returning sensitive data, we accepted this frontend limitation to keep the architecture streamlined and avoid the overhead of implementing HTTP-only refresh cookies for this coursework prototype.
+   # Security Testing & Vulnerability Assessment
+
+**Document Authors & Contributors:** {% contributors %}
+
+---
+
+## 1. Overview
+The Security Testing phase validates the application's resilience against common web vulnerabilities (referencing **OWASP standards**). Because HoneyHive handles user credentials, search histories, and integrates with external AI APIs, securing data payloads and database queries is paramount. 
+
+This testing evaluates:
+* **Authentication mechanisms**
+* **Injection prevention**
+* **API boundary configurations**
+* **Third-party dependency vulnerabilities** (Software Supply Chain)
+
+---
+
+## 2. Structured Test Cases
+
+| Test ID | Scenario | Input / Action | Expected Result | Actual Result & Resolution | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ST-01** | SQL Injection (SQLi) Prevention | Enter `' OR 1=1 --` into the Login email field and `DROP TABLE users;` in the password field. | The backend should reject the inputs as invalid strings and not execute SQL commands. | **Pass.** SQLAlchemy's ORM successfully parameterized the query, treating input strictly as string data. | ✅ Pass |
+| **ST-02** | Secure Password Storage | Register a user with password `MySecret123!`. Query the local `honeyhive.db` file. | The database must not store the password in plain text. | **Pass.** The database stored an 87-character `pbkdf2_sha256` hash. | ✅ Pass |
+| **ST-03** | Insecure Direct Object Reference (IDOR) | Send a `GET` request to `https://honey-hive-api.onrender.com/auth/history?email="emailid"` | The backend should reject the request with a `401 Unauthorized` if the email doesn't match the token owner. | **Fail.** Despite JWT tokens being present in the architecture, the backend fails to validate the `email` parameter against the token subject, allowing cross-user data access. | ❌ Fail |
+| **ST-04** | API Key Exposure Prevention | Inspect compiled frontend React build and network payloads. | `GEMINI_API_KEY` and `SERPAPI_KEY` must not be visible to the client. | **Pass.** All external API calls are safely proxied through the Python backend. | ✅ Pass |
+| **ST-05** | Dependency Vulnerability Scanning | Run `npm audit` on the React frontend repository. | The dependency tree should return 0 known vulnerabilities. | **Initial Fail:** Detected High-Severity ReDoS in `picomatch`. **Resolution:** Executed `npm audit fix` to patch. | ✅ Pass (Fixed) |
+| **ST-06** | Sub-Dependency Version Conflicts | Resolve `esbuild <=0.24.2` vulnerability without breaking Vite 6 pipeline. | Secure the app while preserving Vite stability. | **Initial Fail:** `audit fix` bypassed this due to breaking change risk. **Resolution:** Implemented `overrides` in `package.json`. | ✅ Pass (Fixed) |
+
+---
+
+## 3. Engineering Judgement & Trade-offs
+A critical aspect of software security is balancing robust protection against development scope and system complexity.
+
+### Object-Relational Mapping (ORM) over Raw SQL
+* **Judgement (Test ST-01):** By strictly using the **SQLAlchemy ORM** (`db.py`) rather than raw `db.execute()` queries, we inherently protected the system from first-order SQL injection attacks. This abstraction allows us to trust user inputs safely without writing manual sanitization regex.
+
+### The IDOR Vulnerability Trade-off
+* **Critical Reflection (Test ST-03):** During security testing, we identified a critical IDOR vulnerability at the endpoint: `https://honey-hive-api.onrender.com/auth/history?email="emailid"`. 
+* **The JWT Issue:** While the system utilizes **JWT tokens**, the current implementation proved unresolvable for this specific IDOR flaw within the current sprint. The backend successfully issues tokens, but the logic at the `/auth/history` route fails to cross-reference the `sub` (subject) claim in the JWT with the `email` query parameter.
+* **Trade-off:** Fully resolving this requires refactoring the backend middleware to enforce strict ownership checks on every authenticated request. Due to the prototype's timeline, we have documented this as a known high-priority risk. In a production environment, session-to-resource mapping must be enforced server-side.
+
+### Cross-Origin Resource Sharing (CORS)
+* **Limitation:** In `main.py`, our `CORSMiddleware` is configured with `allow_origins=["*"]`.
+* **Trade-off:** This allows any domain to ping our API, presenting a **Cross-Site Request Forgery (CSRF)** risk. This was a deliberate configuration choice to ensure seamless integration between the frontend and the local backend during the development phase.
+
+### Cryptographic Algorithm Choice
+* **Judgement (Test ST-02):** We utilized `passlib` with the `pbkdf2_sha256` algorithm in `security.py`. PBKDF2 includes key stretching and automatic salt generation, effectively mitigating pre-computed **rainbow table attacks** against our local SQLite database.
+
+### Dependency Management & Supply Chain Security
+* **Judgement (Tests ST-05 & ST-06):** We successfully patched `picomatch` using standard audit fixes. However, patching `esbuild` required a major version bump to our build tool. Recognizing the architectural risk of introducing a breaking change to the build pipeline late in the SDLC, we utilized **npm overrides** to force a secure version of the sub-dependency. This demonstrates a mature, balanced approach to securing the software supply chain without jeopardizing system integrity.
