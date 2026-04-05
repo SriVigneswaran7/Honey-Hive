@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Clock, ChevronRight } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function History() {
   const navigate = useNavigate();
 
@@ -21,8 +23,8 @@ export default function History() {
         }
 
         try {
-          // Look! No more ?email= in the URL!
-          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history`, {
+          // Combined dynamic API_BASE with secure token headers
+          const response = await fetch(`${API_BASE}/auth/history`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`, // Send the token securely
@@ -33,6 +35,8 @@ export default function History() {
           if (!response.ok) throw new Error("Unauthorized");
           
           const data = await response.json();
+          console.log("Live History Data:", data); 
+          
           setPastSearches(data.history || []);
         } catch (err) {
           console.error("Failed to fetch history", err);
@@ -109,7 +113,6 @@ export default function History() {
               {pastSearches.map((item) => (
                 <li 
                   key={item.id} 
-
                   onClick={() => navigate('/results', { state: { query: item.query } })}
                   className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group/item hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.1)] transition-all cursor-pointer active:scale-[0.98]"
                 >
@@ -125,7 +128,7 @@ export default function History() {
                   
                   <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto w-full">
                     <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 py-1.5 px-4 rounded-full text-xs font-black uppercase tracking-widest border border-amber-500/20">
-                      {item.dealsFound} Deals
+                      {item.dealsFound} {item.dealsFound === 1 ? 'DEAL' : 'DEALS'}
                     </span>
                     <ChevronRight size={20} className="text-gray-400 group-hover/item:text-amber-500 transform group-hover/item:translate-x-1 transition-all" />
                   </div>

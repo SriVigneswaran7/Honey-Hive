@@ -1,10 +1,12 @@
 import os
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def get_env(name: str, default: str) -> str:
    return os.getenv(name, default)
 
 APP_NAME = get_env("APP_NAME", "Honey-Hive (DB)")
 ENV = get_env("ENV", "dev")
 
-# SQLite DB file path
-SQLITE_PATH = get_env("SQLITE_PATH", "./honeyhive.db")
+# This ensures the DB is always in the 'backend' folder
+SQLITE_PATH = os.path.join(BASE_DIR, "honeyhive.db")

@@ -48,8 +48,10 @@ export default function Signup() {
     if (!agreed) return; 
 
     try {
-      // 2. Send the new user data to Python backend (Updated to port 8000 and /auth/signup)
-      const response = await fetch('https://honey-hive-api.onrender.com/auth/signup', {
+      // 2. This looks at the .env locally OR Vercel online
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/auth/signup`, {
+          
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

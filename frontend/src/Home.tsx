@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, HelpCircle } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,8 +21,8 @@ export default function Home() {
       if (!token || !showProfileMenu) return; // Wait until menu is opened
 
       try {
-        // Secure fetch without the email in the URL
-        const response = await fetch(`https://honey-hive-api.onrender.com/auth/history`, {
+        // Combined dynamic API_BASE with secure token headers
+        const response = await fetch(`${API_BASE}/auth/history`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`, // Pass the token here
@@ -63,7 +65,8 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate('/results', { state: { query: searchQuery } });
+      const userEmail = localStorage.getItem('userEmail');
+      navigate('/results', { state: { query: searchQuery, userEmail: userEmail } });
     }
   };
 
