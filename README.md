@@ -179,9 +179,9 @@ A detailed critical reflection, including representative prompts, evaluation of 
 | Contributor | Student ID | Contribution |
 | :--- | :--- | :--- |
 | **Sri Vigneswaran7** | 001419849 | Built the complete React frontend and integrated the SQLite persistence layer. Developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI. Managed dual-environment routing for deployment  and authored the SDLC Documentation. |
-| **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the interactive Coupon UI. Led the QA process, authored the Testing Strategy, and resolved application vulnerabilities. |
+| **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy, and resolved application vulnerabilities. |
 | **[Teammate 3 Name]** | | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
-| **[Teammate 4 Name]** | | Contributed to initial UI prototyping for History and Auth flows. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding. |
+| **[Teammate 4 Name]** | | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
 | **[Teammate 5 Name]** | | Assisted with initial drafts of System Modelling and context generation for the project README. |
 
 ## License
