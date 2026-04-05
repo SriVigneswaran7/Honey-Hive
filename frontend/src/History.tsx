@@ -14,17 +14,30 @@ export default function History() {
       navigate('/', { replace: true });
     } else {
       const fetchHistory = async () => {
-        const email = localStorage.getItem('userEmail');
-        if (!email) return;
+        const token = localStorage.getItem('authToken'); // Get the token
+        if (!token) {
+          navigate('/', { replace: true });
+          return;
+        }
+
         try {
-          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history?email=${encodeURIComponent(email)}`);
-          const data = await response.json();
-        
-          console.log("Live History Data:", data); 
+          // Look! No more ?email= in the URL!
+          const response = await fetch(`https://honey-hive-api.onrender.com/auth/history`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`, // Send the token securely
+              'Content-Type': 'application/json'
+            }
+          });
           
+          if (!response.ok) throw new Error("Unauthorized");
+          
+          const data = await response.json();
           setPastSearches(data.history || []);
         } catch (err) {
           console.error("Failed to fetch history", err);
+          localStorage.removeItem('isLoggedIn'); // Force logout if token is bad
+          navigate('/login');
         }
       };
       fetchHistory();
