@@ -170,4 +170,4 @@ elee1149-courswork-2025-hive/
 
 ## License
 
-This project is licensed under the **Apache License 2.0**. 
+Distributed under the **MIT License**. See `LICENSE` for more information.
