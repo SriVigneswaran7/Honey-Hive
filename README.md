@@ -81,7 +81,7 @@ Deal hunters, budget-conscious consumers, and tech-savvy shoppers who want absol
 
 ```bash
 # Clone the repository
-git clone [https://github.com/your-org/elee1149-courswork-2025-hive.git](https://github.com/your-org/elee1149-courswork-2025-hive.git)
+git clone https://github.com/your-org/elee1149-courswork-2025-hive.git
 
 # Navigate to the project folder
 cd elee1149-courswork-2025-hive
