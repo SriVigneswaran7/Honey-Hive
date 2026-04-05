@@ -136,10 +136,10 @@ npm run dev
 | Home Screen | Playbook | Results Screen |
 | :---: | :---: | :---: |
 | ![Search Interface](assets/Home.png) | ![Comparison View](assets/Help.png) | ![Coupon Scraper](assets/Results.png) |
-| **Details Screen** | **Login Screen** | **Sign-up Screen** |
-| ![Price Interceptor](assets/Details.png) | ![Gemini Verdict](assets/Login.png) | ![Saved Deals](assets/Signup.png) |
-| **Battle Mode** | **History Screen** | **Filters Modal** |
-| ![Mobile View](assets/Comparison.png) | ![UI Theme](assets/History.png) | ![Safe States](assets/Filters.png) |
+| **Details Screen** | **Login and Sign-Up** | **History Screen** |
+| ![Price Interceptor](assets/Details.png) | ![Gemini Verdict](assets/Auth.png) | ![Saved Deals](assets/History.png) |
+| **Battle Mode** | **Coupons Modal** | **Filters Modal** |
+| ![Mobile View](assets/Comparison.png) | ![UI Theme](assets/Coupons.png) | ![Safe States](assets/Filters.png) |
 
 ### Project Structure
 
