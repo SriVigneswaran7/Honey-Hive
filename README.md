@@ -39,6 +39,7 @@
 - [Usage](#usage)
 - [Screenshots](#screenshots)
 - [Project Structure](#project-structure)
+- [AI Usage & Reflection](#ai-usage--reflection)
 - [Contributors](#contributors)
 - [License](#license)
 
@@ -155,8 +156,17 @@ elee1149-courswork-2025-hive/
 ├── Requirements.md         # Requirements Specification
 ├── SystemModelling.md      # UML diagrams & Architectural decisions
 ├── Workflow.md             # Development workflow and SDLC lifecycle
+├── GenAIReflection.md      # Detailed AI usage reflection and prompt log
 └── README.md               # Project README
 ```
+
+## AI Usage & Reflection
+
+Some parts of this project were developed with the help of AI tools (e.g., Google Gemini). [cite_start]All AI-generated content was reviewed, modified where necessary, and has been appropriately cited.
+
+A detailed critical reflection, including representative prompts, evaluation of AI suggestions, encountered limitations, and the influence on our software engineering decision-making, can be found in the dedicated documentation file:
+
+**[View GenAI Reflection](./GenAIReflection.md)**
 
 ## Contributors
 
