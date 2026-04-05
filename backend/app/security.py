@@ -1,7 +1,9 @@
 import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-SECRET_KEY = "gwtHz5Xu7OdjF-5gDZ5sZDz4dEc1qgL2rvedPgD5V9s"
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 pwd_context = CryptContext(
    schemes=["pbkdf2_sha256"],
