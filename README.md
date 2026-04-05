@@ -182,7 +182,7 @@ A detailed critical reflection, including representative prompts, evaluation of 
 | **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy, and resolved application vulnerabilities. |
 | **[Teammate 3 Name]** | | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
 | **vez767** | 001416539 | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
-| **[Teammate 5 Name]** | | Assisted with initial drafts of System Modelling and context generation for the project README. |
+| **[brahemrifi9]** | 001390181 | Assisted with initial drafts of System Modelling and context generation for the project README. |
 
 ## License
 
