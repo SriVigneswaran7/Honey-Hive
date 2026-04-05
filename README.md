@@ -11,19 +11,19 @@
 
 ### HoneyHive Tech Stack
 
-**Frontend**
+**![Frontend](https://img.shields.io/badge/Frontend-Client-blue?style=for-the-badge&logo=window-maximize&logoColor=white)**
 ![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript_5.2-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite_5.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-**Backend**
+**![Backend](https://img.shields.io/badge/Backend-Server-red?style=for-the-badge&logo=server&logoColor=white)**
 ![Python](https://img.shields.io/badge/Python_3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite_3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 
-**Data & AI Intelligence**
+**![Data & AI](https://img.shields.io/badge/Data_&_AI-Intelligence-purple?style=for-the-badge&logo=google-cloud&logoColor=white)**
 ![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)
 ![SerpApi](https://img.shields.io/badge/SerpApi-556AEC?style=for-the-badge&logo=google&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
