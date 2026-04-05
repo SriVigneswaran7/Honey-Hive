@@ -162,7 +162,7 @@ elee1149-courswork-2025-hive/
 
 ## AI Usage & Reflection
 
-Some parts of this project were developed with the help of AI tools (e.g., Google Gemini). [cite_start]All AI-generated content was reviewed, modified where necessary, and has been appropriately cited.
+Some parts of this project were developed with the help of AI tools (e.g., Google Gemini). All AI-generated content was reviewed, modified where necessary, and has been appropriately cited.
 
 A detailed critical reflection, including representative prompts, evaluation of AI suggestions, encountered limitations, and the influence on our software engineering decision-making, can be found in the dedicated documentation file:
 
