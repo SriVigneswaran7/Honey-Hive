@@ -61,15 +61,14 @@ export default function Details() {
       if (!token || !showProfileMenu) return;
 
       try {
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${API_BASE}/auth/history`, {
-          method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        
-        if (!response.ok) throw new Error("Unauthorized");
+        const data = await response.json();
         
         const data = await response.json();
         if (data.history) {

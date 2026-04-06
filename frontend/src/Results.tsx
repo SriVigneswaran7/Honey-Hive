@@ -74,15 +74,14 @@ export default function Results() {
       if (!token || !showProfileMenu) return;
 
       try {
+        const token = localStorage.getItem('authToken');
         const response = await fetch(`${API_BASE}/auth/history`, {
-          method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        
-        if (!response.ok) throw new Error("Unauthorized");
+        const data = await response.json();
         
         const data = await response.json();
         if (data.history) {
@@ -135,8 +134,9 @@ export default function Results() {
     if (!query) return;
     
     const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
+    const token = localStorage.getItem('authToken'); // 1. Get the token
     
-    // Build dynamic cache key and URL based on current price states
+    // Build dynamic cache key and URL
     let cacheKey = `honeyhive_results_${query}_${userEmail}`;
     let apiUrl = `${API_BASE}/api/search?q=${encodeURIComponent(query)}`;
 
@@ -159,7 +159,13 @@ export default function Results() {
     
     setLoading(true);
     try {
-      const response = await fetch(apiUrl);
+      // 2. Add the Authorization header here!
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
       const resultsArray = data.shopping_results || [];
       setProducts(resultsArray);
