@@ -1186,6 +1186,31 @@ Return ONLY a JSON array of the top 5, no markdown, no extra text:
 
 
 def aggregate_and_rank(all_code_lists, product_info=None):
+    """
+    Aggregates discount codes from multiple sources, tallies their frequencies, and ranks them.
+
+    This function flattens the lists of codes provided by different scraping sources 
+    and calculates how many times each unique code was found. It then ranks the 
+    codes using one of two strategies:
+    1. Contextual Ranking: If product metadata (name or brand) is available, it 
+       uses `filter_codes_by_product()` to group codes into relevant, neutral, 
+       and irrelevant tiers.
+    2. Fallback Scoring: If no product context exists, it sorts the codes descending 
+       based on a combined weight of their frequency (frequency * 2) and their 
+       baseline heuristic score from `score_code()`.
+
+    Args:
+        all_code_lists (list of list of str): A list containing lists of discount 
+            codes extracted from various sources.
+        product_info (dict, optional): Extracted product metadata used for contextual 
+            ranking. Defaults to None.
+
+    Returns:
+        tuple: A 2-tuple containing:
+            - ranked (list of str): The aggregated, deduplicated codes sorted by relevance.
+            - freq (dict): A dictionary mapping each code (str) to the number of 
+              sources (int) that found it.
+    """
     freq = {}
     for codes in all_code_lists:
         for code in codes:
