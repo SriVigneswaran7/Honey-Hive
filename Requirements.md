@@ -37,7 +37,7 @@ Non-functional requirements dictate the system's quality attributes, performance
 | **NFR-05** | Maintainability | The backend codebase must follow a modular, decoupled architecture (separating routing, database models, and external API extraction) to allow for scalable future development. | Medium | `backend/app/models.py`, `backend/app/db.py`, `backend/app/extract.py` |
 | **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md` |
 | **NFR-07** | Environment Parity | The system must maintain 100% functional parity between local development (`localhost`) and live deployment (`Render/Vercel`) via dynamic environment variable routing. | High | `backend/run.py`, `frontend/src/Results.tsx` |
-| **NFR-08** | Self-Documentation | To ensure long-term maintainability, the codebase must utilize **TSDoc** for React components and **Python Docstrings** for backend modules. | Medium | All `.tsx` and `.py` files |
+| **NFR-08** | Self-Documentation | To ensure long-term maintainability, the codebase must utilise **TSDoc** for React components and **Python Docstrings** for backend modules. | Medium | All `.tsx` and `.py` files |
 
 ## 4. User Requirements (UR)
 These represent the system capabilities from the end-user's perspective, guiding our frontend design choices.
@@ -54,7 +54,7 @@ To ensure comprehensive testing and to validate that our engineering decisions d
 
 | User Req | Functional Req | Architectural Component | Verification Method (Testing Strategy) |
 | :--- | :--- | :--- | :--- |
-| **UR-01** | **FR-01, FR-03** | `search.py` Router & `extract.py` Gemini Parser | Integration test simulating a search query; verify JSON normalization. |
+| **UR-01** | **FR-01, FR-03** | `search.py` Router & `extract.py` Gemini Parser | Integration test simulating a search query; verify JSON normalisation. |
 | **UR-02** | **FR-02** | Python Regex **Price Interceptor** | Unit test feeding the interceptor products that exceed `max_price` limits. |
 | **UR-03** | **FR-04** | React Context/State (`Results.tsx`) | E2E UI test verifying selected items persist in "Battle Mode" queue. |
 | **UR-04** | **FR-06** | SQLAlchemy DB & **Email Params** | Verification that history entries match the `user_email` query parameter. |
