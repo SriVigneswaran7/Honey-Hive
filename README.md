@@ -150,25 +150,28 @@ npm run dev
 
 ```text
 elee1149-courswork-2025-hive/
-│
+├── .github/                # GitHub metadata and keep files
+├── assets/                 # SVGs and Screenshots for documentation
 ├── backend/                # Python/FastAPI Application
-│   ├── app/                # API routes, database models, and scraper logic
+│   ├── app/                # API routes, models, and scraper logic
 │   ├── honeyhive.db        # SQLite Database
 │   ├── requirements.txt    # Backend dependencies
 │   └── run.py              # Backend entry point
-│
 ├── frontend/               # React/Vite Application
-│   ├── src/                # UI Components, Views, and Styling
+│   ├── src/                # UI Components and Logic
+│   ├── .npmrc              # Dependency resolution config
 │   ├── index.html          # HTML entry point
 │   ├── package.json        # Frontend dependencies
 │   └── tailwind.config.js  # UI Theme configuration
-│
+├── .gitignore              # Version control ignore rules
 ├── CHANGELOG.md            # Version history and semantic commits
+├── GenAIReflection.md      # Detailed AI usage reflection and prompt log
+├── LICENSE                 # Project License
+├── README.md               # Project README
 ├── Requirements.md         # Requirements Specification
 ├── SystemModelling.md      # UML diagrams & Architectural decisions
-├── Workflow.md             # Development workflow and SDLC lifecycle
-├── GenAIReflection.md      # Detailed AI usage reflection and prompt log
-└── README.md               # Project README
+├── Testing.md              # Test plans and validation results
+└── Workflow.md             # Development workflow and commit strategy
 ```
 
 ## AI Usage & Reflection
