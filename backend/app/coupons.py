@@ -26,8 +26,19 @@ import os
 from collections import OrderedDict
 from pathlib import Path
 
-# Load .env file manually (no python-dotenv needed)
 def _load_env():
+    """
+    Manually loads environment variables from a .env file.
+
+    Searches for a '.env' file in two locations: the current working directory 
+    and the directory containing this script. Once the first valid '.env' file 
+    is found, it parses it line by line. It ignores empty lines and comments 
+    (lines starting with '#'), strips whitespace and quotes from the values, 
+    and securely populates the system's environment variables (`os.environ`).
+
+    This provides a lightweight alternative to external libraries like `python-dotenv` 
+    for simple configuration needs.
+    """
     for env_path in [Path('.env'), Path(__file__).parent / '.env']:
         if env_path.exists():
             for line in env_path.read_text().splitlines():
