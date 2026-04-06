@@ -66,12 +66,16 @@ export default function Signup() {
         // Success! Log them in automatically
         localStorage.setItem('isLoggedIn', 'true');
         
-        // Save the user's email and name for the UI
+        // Save the user's email, name, AND TOKEN for the UI
         localStorage.setItem('userEmail', email); 
         localStorage.setItem('userName', name);
+        
+        // THE FIX: Save the token we just added to main.py
+        localStorage.setItem('authToken', data.token); 
 
         navigate(from, { replace: true, state: returnState });
       } else {
+        
         // 4. Trigger Toast if the DB rejects it (e.g., "Email already in use")
         setError(data.message || 'Failed to create account. Please try again.');
       }

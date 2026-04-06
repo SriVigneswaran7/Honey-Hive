@@ -131,6 +131,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     # 3. If it succeeded, generate the secure token and return it!
     token = create_access_token(email=payload.email)
     return {"ok": True, "message": "Login successful", "token": token}
+
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db: Session = Depends(get_db)):
    existing = db.query(User).filter(User.email == payload.email).first()
@@ -145,7 +146,10 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
    profile = UserProfile(user_id=user.id, display_name=payload.name)
    db.add(profile)
    db.commit()
-   return {"ok": True, "message": "Signup successful"}
+   
+   # Generate the token
+   token = create_access_token(email=payload.email)
+   return {"ok": True, "message": "Signup successful", "token": token}
 
 # History Route
 @app.get("/auth/history")
