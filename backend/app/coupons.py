@@ -567,6 +567,24 @@ def find_codes_in_text(text):
     return codes
 
 def score_code(code):
+    """
+    Calculates a baseline heuristic score for a standalone discount code.
+
+    This function evaluates a code based on common promotional patterns to 
+    determine its likelihood of being a genuine, usable discount code. It 
+    awards points based on the following criteria:
+    - +3 points for each promotional keyword found (e.g., 'SAVE', 'FREE', 'VIP').
+    - +2 points if the code contains at least one numeric digit.
+    - +1 point if the code's length is within the typical "sweet spot" for 
+      coupons (between 4 and 15 characters).
+
+    Args:
+        code (str): The discount code string to evaluate.
+
+    Returns:
+        int: The total calculated heuristic score for the code. Higher scores 
+            indicate a higher probability of the string being a real promo code.
+    """
     score = 0
     keywords = ['SAVE', 'OFF', 'FREE', 'DEAL', 'PROMO', 'CODE', 'COUPON',
                 'DISCOUNT', 'FIRST', 'WELCOME', 'NEW', 'VIP', 'EXTRA', 'FLASH']
