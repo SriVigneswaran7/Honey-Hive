@@ -731,7 +731,25 @@ STORE_OWN_PAGES = {
 }
 
 def scrape_store_own_pages(domain, brand):
-    """Scrape the store's own voucher/offers pages — most reliable source."""
+    """
+    Scrapes a store's official voucher or offers pages for first-party discount codes.
+
+    This function acts as the most reliable source of working codes. It looks up the 
+    provided brand in a predefined mapping (`STORE_OWN_PAGES`) of known official 
+    promotional URLs (e.g., 'argos.co.uk/events/voucher-discount-codes'). It then 
+    fetches the HTML for each page and passes it through both DOM-targeted extraction 
+    and raw regex sweeps to capture any advertised codes.
+
+    Args:
+        domain (str): The target e-commerce domain (provided for API consistency, 
+            though primarily the `brand` is used here).
+        brand (str): The brand name used to look up specific offer URLs.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid discount codes found 
+            directly on the retailer's official pages. Returns an empty list if 
+            the brand is not in the predefined mapping.
+    """
     pages = STORE_OWN_PAGES.get(brand, [])
     if not pages:
         return []
