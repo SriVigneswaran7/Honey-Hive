@@ -598,7 +598,29 @@ def score_code(code):
     return score
 
 def extract_codes_from_html(html):
-    """Extract codes from rendered HTML using both selectors and patterns."""
+    """
+    Extracts potential discount codes from rendered HTML using targeted CSS selectors and regex.
+
+    This function employs a two-pronged approach to find codes within a webpage:
+    1. DOM Element Targeting: It uses BeautifulSoup to hunt for specific HTML attributes 
+       (e.g., 'data-clipboard-text', 'data-coupon') and class/tag combinations (e.g., 
+       'input[readonly]', '.promo-code') commonly used by e-commerce platforms to store 
+       and display discount codes.
+    2. Broad Regex Sweep: It parses the combined text and attributes of those targeted 
+       elements, as well as the entire raw HTML document, using `find_codes_in_text()` 
+       to catch any inline codes that don't sit inside neatly predictable containers.
+
+    All extracted candidates are finally passed through `clean_codes()` for strict 
+    validation and deduplication.
+
+    Args:
+        html (str): The raw or rendered HTML string to parse. Null bytes and 
+            problematic characters are automatically stripped before parsing.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid discount codes extracted 
+            from the HTML structure.
+    """
     if not html or not isinstance(html, str):
         return []
     # Strip null bytes and other problematic chars
