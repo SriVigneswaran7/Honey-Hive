@@ -9,24 +9,24 @@
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
-### Honey-Hive Tech Stack
+## Honey-Hive Tech Stack
 
-**![Frontend](https://img.shields.io/badge/Frontend-Client-blue?style=for-the-badge&logo=window-maximize&logoColor=white)**
-![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript_5.2-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite_5.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+### *Frontend*
+![React](https://img.shields.io/badge/UI-REACT-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/CODE-TS-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/BUILD-VITE-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind](https://img.shields.io/badge/CSS-TAILWIND-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-**![Backend](https://img.shields.io/badge/Backend-Server-red?style=for-the-badge&logo=server&logoColor=white)**
-![Python](https://img.shields.io/badge/Python_3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite_3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+### *Backend*
+![Python](https://img.shields.io/badge/LANG-PYTHON-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FASTAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/ORM-SQLALCHEMY-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
+![SQLite](https://img.shields.io/badge/DB-SQLITE-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 
-**![Data & AI](https://img.shields.io/badge/Data_&_AI-Intelligence-purple?style=for-the-badge&logo=google-cloud&logoColor=white)**
-![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)
-![SerpApi](https://img.shields.io/badge/SerpApi-556AEC?style=for-the-badge&logo=google&logoColor=white)
-![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+### *Data & AI*
+![Gemini](https://img.shields.io/badge/LLM-GEMINI-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![SerpApi](https://img.shields.io/badge/DATA-SERPAPI-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![Playwright](https://img.shields.io/badge/BOT-PLAYWRIGHT-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
 ## Table of Contents
 
@@ -50,22 +50,31 @@
 
 ## About the Project
 
-**What the project does?**
-Honey-Hive is a full-stack web application designed to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budgets, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
+**The Vision:** Honey-Hive is a full-stack web application engineered to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budget constraints, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
 
-**Why it exists (problem it solves)?**
-Modern comparison sites are often bloated with fake or expired coupons, unverified reviews, and sponsored listings that ignore your actual budget. Honey-Hive bypasses these limitations by using generative AI to provide instant, unbiased pros and cons, while a custom headless-browser engine hunts for active voucher codes hidden behind modern Client-Side Rendering (CSR) layers.
+**The Problem it Solves:** Modern comparison platforms are frequently bloated with fake or expired coupons, unverified reviews, and sponsored listings that bypass actual user budgets. Honey-Hive circumvents these limitations by leveraging Generative AI to provide instant, unbiased product analysis. Simultaneously, a custom headless-browser engine autonomously hunts for active promotional codes hidden behind modern Client-Side Rendering (CSR) and cookie-consent layers.
 
-**Who it’s for?**
-Deal hunters, budget-conscious consumers, and tech-savvy shoppers who want absolute clarity and the best possible value without manually checking dozens of retail websites.
+**Target Audience:** Designed for deal hunters, budget-conscious consumers, and tech-savvy shoppers who demand absolute market clarity and maximum value without the friction of manually auditing dozens of retail domains.
 
 ## Features
 
-- **Live Search & Deal Aggregation:** Queries Google Shopping data in real-time to normalise market prices across UK retailers.
-- **Intelligent Price Interceptor:** A custom server-side engine that strictly enforces user budget parameters (minimum and maximum limits) before data reaches the client.
-- **AI-Powered Product Analysis:** Integrates the Google Gemini 2.5 Flash LLM to generate instant, structured technical verdicts, pros, cons, and vendor trust scores.
-- **Battle Mode:** A side-by-side comparison interface allowing users to evaluate technical specifications, prices, and AI trust scores to find the absolute best deal.
-- **Persistent User Vault:** Secure authentication system using FastAPI and SQLite that saves search history and tracked deals across sessions.
+### Core Platform Capabilities
+* **Live Search & Deal Aggregation:** Queries Google Shopping data in real time to normalise market pricing across leading UK retailers.
+* **AI-Powered Product Analysis:** Integrates the Google Gemini 2.5 Flash LLM to generate instant, structured technical verdicts, alongside pros, cons, and vendor reliability scores.
+* **Battle Mode:** A side-by-side comparison matrix enabling users to evaluate technical specifications, live pricing, and AI-derived trust scores to secure the absolute best deal.
+* **Live Coupon Scraper:** An automated headless browser engine (Playwright) that dynamically navigates cookie consent banners to scrape, extract, and AI-rank live promotional codes.
+
+### User Experience & Security
+* **Persistent User Vault:** A robust authentication architecture utilising FastAPI and SQLite (with `pbkdf2_sha256` cryptographic hashing) to securely persist search history across sessions.
+* **Seamless Authentication:** Context-aware routing captures the user's exact origin state prior to authentication, seamlessly redirecting them back to their active search upon success.
+* **High-Fidelity UI:** A fully responsive Glassmorphic design system featuring manual Dark/Light mode toggling, ambient background illumination, and fluid CSS-driven page transitions.
+* **Visual Stability:** Deploys structured Skeleton Loading states to entirely eliminate Cumulative Layout Shift (CLS) during heavy asynchronous API fetches.
+
+### Under the Hood (Engineering Architecture)
+* **Intelligent Price Interceptor:** A custom server-side regex interception engine that strictly enforces user budget parameters before the data payload ever reaches the client.
+* **Hybrid URL Extraction:** Bypasses standard keyword searches when a direct URL is supplied, natively extracting OpenGraph metadata or parsing Amazon ASINs for pinpoint extraction accuracy.
+* **Graceful Degradation:** Fault-tolerant LLM fallback policies ensure that if external APIs encounter rate limits, the system safely degrades to standard URL metadata rather than triggering a critical failure.
+* **Environment Parity:** Strict architectural separation of local development environments and live production cloud clusters via dynamic environment variable routing (`VITE_API_URL`).
 
 ## Tech Stack
 
@@ -224,7 +233,7 @@ A meticulous record of all structural changes, feature merges, and bug fixes is 
 
 | Contributor | Student ID | Contribution |
 | :--- | :--- | :--- |
-| **SriVigneswaran7** | 001419849 | Built the complete React frontend and integrated the SQLite persistence layer. Developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI. Managed dual-environment routing for deployment  and directed the end-to-end SDLC documentation-finalising all requirements, system models, Git workflows, and release changelogs. |
+| **SriVigneswaran7** | 001419849 | Built the complete React frontend and integrated the SQLite persistence layer. Developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI alongside a custom server-side Price Interceptor. Managed dual-environment routing for deployment  and directed the end-to-end SDLC documentation, finalising all requirements, system models, Git workflows, release changelogs and project README. |
 | **[Teammate 2 Name]** | | Developed the backend extraction logic and Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy, and resolved application vulnerabilities. |
 | **Hachem512** | 001352446 | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
 | **vez767** | 001416539 | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
