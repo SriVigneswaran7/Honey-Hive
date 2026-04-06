@@ -1031,6 +1031,23 @@ def google_search_codes(domain, brand, product_title=''):
 
 #  SOURCE 3 — Product page & JS bundles
 def scrape_product_page(url):
+    """
+    Scans the target product page and its linked JavaScript bundles for embedded codes.
+
+    Retailers sometimes embed active promo codes directly into the page's HTML or 
+    within their frontend JavaScript bundles (e.g., for pop-ups or dynamic banners). 
+    This function fetches the main page text and the first few internal JS files 
+    to sweep for hidden codes.
+
+    Args:
+        url (str): The exact URL of the product page being scraped.
+
+    Returns:
+        tuple: A 2-tuple containing:
+            - list of str: Cleaned discount codes found on the page or in JS bundles.
+            - str: The raw HTML text of the main product page (useful for downstream 
+              platform detection).
+    """
     print(f"\n[3] Scanning product page for embedded codes...")
     resp = fetch(url)
     if not resp:
