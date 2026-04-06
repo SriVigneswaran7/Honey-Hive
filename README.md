@@ -1,4 +1,4 @@
-# HoneyHive
+# Honey-Hive
 *A decoupled full-stack architecture leveraging Large Language Models (LLMs) and automated browser orchestration for real-time market data synthesis and multi-retailer price optimisation.*
 
 ## Live Deployment
@@ -9,7 +9,7 @@
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
-### HoneyHive Tech Stack
+### Honey-Hive Tech Stack
 
 **![Frontend](https://img.shields.io/badge/Frontend-Client-blue?style=for-the-badge&logo=window-maximize&logoColor=white)**
 ![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -51,7 +51,7 @@
 ## About the Project
 
 **What the project does?**
-HoneyHive is a full-stack web application designed to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budgets, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
+Honey-Hive is a full-stack web application designed to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budgets, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
 
 **Why it exists (problem it solves)?**
 Modern comparison sites are often bloated with fake or expired coupons, unverified reviews, and sponsored listings that ignore your actual budget. Honey-Hive bypasses these limitations by using generative AI to provide instant, unbiased pros and cons, while a custom headless-browser engine hunts for active voucher codes hidden behind modern Client-Side Rendering (CSR) layers.
@@ -181,7 +181,7 @@ A detailed critical reflection, including representative prompts, evaluation of 
 
 ## System Requirements & Specifications
 
-This project adheres to strict functional and non-functional requirements to ensure a robust and scalable architecture. The documentation outlines the core user stories, use cases, and the hybrid extraction and redirection logic powering the HoneyHive platform.
+This project adheres to strict functional and non-functional requirements to ensure a robust and scalable architecture. The documentation outlines the core user stories, use cases, and the hybrid extraction and redirection logic powering the Honey-Hive platform.
 
 **[View Requirements Specification](./Requirements.md)**
 
@@ -205,7 +205,7 @@ Maintaining a clean and traceable codebase is critical for effective team collab
 
 ## Testing Strategy & Quality Assurance
 
-Ensuring the security and reliability of the HoneyHive platform is a primary objective. This document outlines our QA protocols, automated testing frameworks, and the specific mitigation strategies implemented to resolve critical application vulnerabilities discovered during the development lifecycle.
+Ensuring the security and reliability of the Honey-Hive platform is a primary objective. This document outlines our QA protocols, automated testing frameworks, and the specific mitigation strategies implemented to resolve critical application vulnerabilities discovered during the development lifecycle.
 
 **[View Testing Strategy](./Testing.md)**
 
