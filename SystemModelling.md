@@ -14,76 +14,7 @@ The system employs a strict **Client–Server Architecture**, divided into four 
 
 The following UML Component Diagram illustrates how these layers interact. We utilise a Left-to-Right (`LR`) flow with heavily weighted data-paths to accurately represent the typical lifecycle of a web request.
 
-```mermaid
-flowchart LR
-    %% -----------------------------------------
-    %% INDUSTRIAL MODERN THEME DEFINITIONS
-    %% -----------------------------------------
-    classDef default fill:#1e293b,stroke:#475569,stroke-width:2px,color:#f8fafc,rx:6,ry:6,font-family:sans-serif;
-    
-    %% Accent Nodes (Dark backgrounds, thick neon borders)
-    classDef client fill:#0f172a,stroke:#3b82f6,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
-    classDef server fill:#0f172a,stroke:#f59e0b,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
-    classDef data fill:#0f172a,stroke:#10b981,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
-    classDef external fill:#0f172a,stroke:#8b5cf6,stroke-width:3px,color:#f8fafc,rx:8,ry:8;
-    classDef userNode fill:#334155,stroke:#cbd5e1,stroke-width:3px,color:#f8fafc,rx:50,ry:50;
-    
-    %% -----------------------------------------
-    %% SYSTEM ARCHITECTURE
-    %% -----------------------------------------
-    U((User)):::userNode
-    
-    subgraph Presentation["Presentation Layer"]
-        FE["React UI / Vite"]:::client
-    end
-    
-    subgraph Application["Application Server Layer"]
-        API["FastAPI Router"]:::server
-        Auth["Auth Service"]:::server
-        Search["Price Interceptor"]:::server
-        AI["AI Insights"]:::server
-        Coup["Coupon Engine"]:::server
-    end
-    
-    subgraph Persistence["Persistence Layer"]
-        ORM["SQLAlchemy ORM"]:::data
-        DB[("SQLite Database")]:::data
-    end
-    
-    subgraph ThirdParty["Third-Party Providers"]
-        Serp["SerpApi Engine"]:::external
-        Gemini["Gemini 2.5 Flash"]:::external
-    end
-    
-    %% -----------------------------------------
-    %% DATA FLOW (THICK ARROWS)
-    %% -----------------------------------------
-    U ==>|Browser Interaction| FE
-    FE ==>|REST API JSON| API
-    
-    API ==> Auth
-    API ==> Search
-    API ==> AI
-    API ==> Coup
-    
-    Auth <==> ORM
-    ORM <==> DB
-    
-    Search ==> Serp
-    AI ==> Gemini
-    
-    %% -----------------------------------------
-    %% HEAVY ROUTING AND CONTAINER STYLES
-    %% -----------------------------------------
-    %% Forces all connecting lines to be thick, industrial slate-grey
-    linkStyle default stroke:#64748b,stroke-width:4px,fill:none;
-    
-    %% Styles the background containers to look like technical blueprints
-    style Presentation fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
-    style Application fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
-    style Persistence fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
-    style ThirdParty fill:#020617,stroke:#334155,stroke-width:2px,stroke-dasharray:5,5
-```
+![System Architecture](./assets/System.svg)
 
 ### 2.1 Component Responsibilities
 By mapping our logical components to our physical file tree, we ensure strict traceability between design and implementation.
@@ -99,68 +30,7 @@ By mapping our logical components to our physical file tree, we ensure strict tr
 ## 3. Dynamic System Behaviour (Sequence Model)
 To understand the system's runtime behaviour, we map the flow of data through the architecture. This diagram uses lifeline activations (the solid vertical blocks on the transaction lines) to explicitly demonstrate processing states and system bottlenecks during an authenticated search.
 
-```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'fontFamily': 'sans-serif',
-    'background': 'transparent',
-    'actorBkg': '#0f172a',
-    'actorBorder': '#3b82f6',
-    'actorTextColor': '#f8fafc',
-    'actorLineColor': '#475569',
-    'signalColor': '#94a3b8',
-    'signalTextColor': '#f8fafc',
-    'noteBkgColor': '#0f172a',
-    'noteBorderColor': '#f59e0b',
-    'noteTextColor': '#f59e0b',
-    'activationBorderColor': '#f59e0b',
-    'activationBkgColor': '#0f172a',
-    'sequenceNumberColor': '#0f172a'
-  }
-}}%%
-sequenceDiagram
-    autonumber
-    
-    participant U as User
-    participant FE as React (UI)
-    participant API as FastAPI
-    participant DB as SQLite
-    participant Serp as SerpApi
-    participant Gem as Gemini Flash
-
-    U->>FE: Enters query "Headphones" (Max £100)
-    activate FE
-    FE->>FE: Mount Skeleton Loaders
-    
-    FE->>API: GET /api/search (User Email)
-    activate API
-    
-    API->>Serp: Fetch Google Shopping Data
-    activate Serp
-    Serp-->>API: Raw JSON Payload
-    deactivate Serp
-    
-    %% Clean, glowing system event note
-    Note over API: Price Interceptor Logic executes.<br/>Strips all results > £100 constraint.
-    
-    API->>Gem: Dispatch top 3 candidates
-    activate Gem
-    Gem-->>API: AI Insights & Trust Score
-    deactivate Gem
-    
-    API->>DB: Validate User & Log transaction to History Table
-    activate DB
-    DB-->>API: Commit Successful
-    deactivate DB
-    
-    API-->>FE: Return Cleaned JSON Array
-    deactivate API
-    
-    FE->>FE: Unmount Skeletons, Render Data
-    FE-->>U: Display Formatted Results
-    deactivate FE
-```
+![Sequence Model](./assets/Dynamic.svg)
 
 ### 3.1 Behavioural Justification
 This sequence highlights two critical engineering decisions:
@@ -172,64 +42,7 @@ This sequence highlights two critical engineering decisions:
 ## 4. Data Modelling (Entity-Relationship Model)
 The system requires persistent storage for user accounts and search history. We utilise a relational model managed by **SQLAlchemy** (`backend/app/models.py`) to map Python objects to our **SQLite** database (`backend/honeyhive.db`).
 
-```mermaid
-%%{init: {
-  'theme': 'dark',
-  'themeVariables': {
-    'fontFamily': 'sans-serif',
-    'background': 'transparent',
-    'lineColor': '#f59e0b'
-  }
-}}%%
-erDiagram
-    %% Relationship links defined first to optimise Mermaid's automatic spacing
-    USERS ||--o{ USER_INPUTS : "performs"
-    USER_INPUTS ||--o| PRODUCT_SNAPSHOTS : "captures"
-    USER_INPUTS ||--o| REVIEW_SNAPSHOTS : "captures"
-    USER_INPUTS ||--o| COUPON_RESULTS : "generates"
-    USER_INPUTS ||--o| COMPARISON_RESULTS : "generates"
-
-    USERS {
-        Integer id PK
-        String email UK "Indexed"
-        String password_hash
-        DateTime created_utc
-    }
-
-    USER_INPUTS {
-        Integer id PK
-        Integer user_id FK "Indexed"
-        String product_url
-        DateTime created_utc
-    }
-
-    PRODUCT_SNAPSHOTS {
-        Integer id PK
-        Integer user_input_id FK
-        String title
-        Float price
-        String site
-    }
-    
-    REVIEW_SNAPSHOTS {
-        Integer id PK
-        Integer user_input_id FK
-        Float avg_rating
-        Integer reviews
-    }
-    
-    COUPON_RESULTS {
-        Integer id PK
-        Integer user_input_id FK
-        String matched_domain
-    }
-    
-    COMPARISON_RESULTS {
-        Integer id PK
-        Integer user_input_id FK
-        Text best_value
-    }
-```
+![ER Diagram](./assets/Data.svg)
 
 ### 4.1 Data Architecture Decisions
 * **Referential Integrity:** The `user_inputs` table employs a Foreign Key (`user_id`) bound to the `users` table. This guarantees that relational data remains consistent and allows for cascading deletions (via `cascade="all, delete-orphan"`) if a user account is removed.
@@ -263,3 +76,15 @@ To ensure a robust development lifecycle and safe production releases, Honey-Hiv
 * **Production Environment:** When deployed, the Vercel-hosted frontend automatically redirects traffic to the live, cloud-hosted Render backend cluster. 
 
 This dual-deployment strategy guarantees complete isolation of user data and search history between testing and live environments, ensuring that experimental local changes cannot corrupt the production database.
+
+### 5.6 Volatile State Management (Battle Mode)
+The "Battle Mode" comparison engine utilises **React Component State** rather than database persistence. This architectural choice ensures that product comparisons are high-speed and consume zero server overhead. The comparison queue is ephemeral, clearing on a full page reload to maintain a lightweight browser memory footprint.
+
+### 5.7 Resilience & Graceful Degradation
+To handle the inherent unreliability of external LLM providers, the system implements a **Graceful Degradation Policy**. If the Gemini API reaches rate limits or becomes unresponsive, the `generate_ai_insights` controller automatically triggers a fallback mechanism. This ensures the user is presented with standardised technical metadata derived from the product URL rather than encountering a system-wide failure.
+
+### 5.8 Standardised Documentation Strategy (KDocs/TSDocs)
+To satisfy the requirements for high maintainability, the codebase adheres to strict documentation standards:
+* **Frontend:** Components utilise **TSDoc** to define interface props and state logic.
+* **Backend:** Python modules utilise **Docstrings** and **Type Hinting** to document API route expectations and scraper return types.
+This ensures that the Honey-Hive platform is transparent and accessible for future engineering handovers.
