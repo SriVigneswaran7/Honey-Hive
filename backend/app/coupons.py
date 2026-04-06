@@ -295,8 +295,26 @@ def extract_brand_name(domain):
 
 def extract_product_info(url, page_text=''):
     """
-    Extract product name, brand and category from ANY store page.
-    Uses JSON-LD structured data, Open Graph tags, page title and URL as fallbacks.
+    Extracts product metadata (name, brand, category, and model) from an e-commerce page.
+
+    This function utilizes a robust cascade of fallback methods to parse the page, 
+    ensuring maximum compatibility across different store platforms:
+    1. JSON-LD structured data (most reliable, standard for modern e-commerce).
+    2. Open Graph (`og:title`) and Twitter card meta tags.
+    3. Standard HTML `<title>` tags.
+    4. Common CSS selectors for product headings (e.g., 'h1', '.product-title').
+    5. Brand inference (assumes the first word of the product name is the brand).
+    6. Model number extraction via regex against the URL and product name.
+
+    Args:
+        url (str): The full URL of the product page.
+        page_text (str, optional): Pre-fetched raw HTML of the page. If omitted, 
+            the function will attempt to fetch the HTML automatically.
+
+    Returns:
+        dict: A dictionary containing the extracted data with keys:
+            'product_name', 'product_brand', 'category', and 'model'. Missing 
+            values will be represented as empty strings.
     """
     info = {'product_name': '', 'product_brand': '', 'category': '', 'model': ''}
 
@@ -392,8 +410,26 @@ CATEGORY_KEYWORDS = {
 
 def filter_codes_by_product(codes, product_info):
     """
-    Score every code by relevance to the specific product.
-    Returns (relevant, neutral, irrelevant) lists.
+    Evaluates and categorizes discount codes based on their relevance to a specific product.
+
+    This function calculates a relevance score for each code using a heuristic point system:
+    - Strong Positive (+5): Code contains the brand name or its abbreviation (e.g., 'SAM' for Samsung).
+    - Positive (+3): Code contains a keyword matching the product's detected category.
+    - Negative (-3): Code contains a keyword belonging to a clearly different category.
+    - Neutral Boost (+1): Code contains generic discount terminology with numbers (e.g., 'SAVE20', '10OFF').
+
+    Based on the final score, codes are segregated into three distinct buckets.
+
+    Args:
+        codes (list of str): A list of raw discount codes to be evaluated.
+        product_info (dict): A dictionary containing metadata about the target product. 
+            Expected keys include 'product_name', 'product_brand', and 'category'.
+
+    Returns:
+        tuple: A 3-tuple containing lists of strings:
+            - relevant (list of str): Codes with a score > 0, sorted descending by score.
+            - neutral (list of str): Codes with a score of exactly 0.
+            - irrelevant (list of str): Codes with a score < 0.
     """
     product_name = product_info.get('product_name', '').upper()
     product_brand = product_info.get('product_brand', '').upper()
