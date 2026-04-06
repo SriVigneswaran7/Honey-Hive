@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 SECRET_KEY = os.getenv("SECRET_KEY")
+print(f"🕵️ DEBUG SECRET KEY: {SECRET_KEY}", flush=True) # Let's prove it loads!
 ALGORITHM = "HS256"
 pwd_context = CryptContext(
    schemes=["pbkdf2_sha256"],
