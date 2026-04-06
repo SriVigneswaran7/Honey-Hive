@@ -7,7 +7,7 @@
 
 > **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Live Demo (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
 > 
-> The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30 seconds to "spin up" the server.
+> The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
 ### HoneyHive Tech Stack
 
@@ -40,6 +40,11 @@
 - [Screenshots](#screenshots)
 - [Project Structure](#project-structure)
 - [AI Usage & Reflection](#ai-usage--reflection)
+- [System Requirements & Specifications](#system-requirements--specifications)
+- [Architecture & System Modelling](#architecture--system-modelling)
+- [Git Workflow & Version Control](#git-workflow--version-control)
+- [Testing Strategy & Quality Assurance](#testing-strategy--quality-assurance)
+- [Release Changelog](#release-changelog)
 - [Contributors](#contributors)
 - [License](#license)
 
@@ -173,6 +178,44 @@ Some parts of this project were developed with the help of AI tools (e.g., Googl
 A detailed critical reflection, including representative prompts, evaluation of AI suggestions, encountered limitations, and the influence on our software engineering decision-making, can be found in the dedicated documentation file:
 
 **[View GenAI Reflection](./GenAIReflection.md)**
+
+## System Requirements & Specifications
+
+This project adheres to strict functional and non-functional requirements to ensure a robust and scalable architecture. The documentation outlines the core user stories, use cases, and the hybrid extraction and redirection logic powering the HoneyHive platform.
+
+**[View Requirements Specification](./Requirements.md)**
+
+---
+
+## Architecture & System Modelling
+
+To bridge the gap between concept and implementation, comprehensive system modelling was conducted prior to development. This document details the architectural design, system context mapping, and database schema models that dictate the decoupled data flow between the React frontend and FastAPI backend.
+
+**[View System Modelling](./SystemModelling.md)**
+
+---
+
+## Git Workflow & Version Control
+
+Maintaining a clean and traceable codebase is critical for effective team collaboration. Our version control strategy documents the strict branching protocols, pull request review requirements, and continuous integration standards utilised to prevent deployment conflicts.
+
+**[View Git Workflow](./Workflow.md)**
+
+---
+
+## Testing Strategy & Quality Assurance
+
+Ensuring the security and reliability of the HoneyHive platform is a primary objective. This document outlines our QA protocols, automated testing frameworks, and the specific mitigation strategies implemented to resolve critical application vulnerabilities discovered during the development lifecycle.
+
+**[View Testing Strategy](./Testing.md)**
+
+---
+
+## Release Changelog
+
+A meticulous record of all structural changes, feature merges, and bug fixes is maintained to provide full traceability of the software's evolution from initial scaffolding to final production deployment.
+
+**[View Release Changelog](./CHANGELOG.md)**
 
 ## Contributors
 
