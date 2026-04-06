@@ -188,6 +188,28 @@ def get_headers():
 
 def fetch(url, timeout=None, retries=MAX_RETRIES, method='GET',
           data=None, json_data=None, headers_extra=None, session=None):
+    """
+    Executes an HTTP request with built-in retries, custom headers, and backoff delays.
+
+    This function attempts to fetch a given URL using either a provided session or 
+    the standard requests library. It automatically injects browser-like headers 
+    using `get_headers()`. If a request fails, it implements an escalating delay 
+    (linear backoff) before retrying, up to the maximum number of retries.
+
+    Args:
+        url (str): The target URL to fetch.
+        timeout (int, optional): Request timeout in seconds. Defaults to the global TIMEOUT.
+        retries (int, optional): Number of retry attempts upon failure. Defaults to MAX_RETRIES.
+        method (str, optional): The HTTP method to use ('GET' or 'POST'). Defaults to 'GET'.
+        data (dict, optional): Form data to send in the body of a POST request.
+        json_data (dict, optional): JSON data to send in the body of a POST request.
+        headers_extra (dict, optional): Additional HTTP headers to merge with the default ones.
+        session (requests.Session, optional): An existing requests session to use for connection pooling/cookies.
+
+    Returns:
+        requests.Response | None: The response object if successful, or None if all 
+            retries are exhausted or a fatal exception occurs.
+    """
     t = timeout or TIMEOUT
     requester = session if session else requests
     for attempt in range(retries + 1):
@@ -209,6 +231,20 @@ def fetch(url, timeout=None, retries=MAX_RETRIES, method='GET',
                 return None
 
 def extract_domain(url):
+    """
+    Extracts and cleans the root domain from a given URL.
+
+    Parses the provided URL to isolate the network location (netloc), converts 
+    it to lowercase for consistency, and removes any leading 'www.' prefix. This 
+    ensures that URLs like 'https://www.example.com/page' and 'http://example.com' 
+    both resolve to the same standardized base domain ('example.com').
+
+    Args:
+        url (str): The full URL string to process.
+
+    Returns:
+        str: The cleaned, lowercase domain name without the 'www.' prefix.
+    """
     parsed = urllib.parse.urlparse(url)
     domain = parsed.netloc.lower()
     return re.sub(r'^www\.', '', domain)
