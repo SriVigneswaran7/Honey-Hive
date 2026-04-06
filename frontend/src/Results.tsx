@@ -70,18 +70,31 @@ export default function Results() {
 
   useEffect(() => {
     const fetchRecent = async () => {
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail || !showProfileMenu) return;
+      const token = localStorage.getItem('authToken');
+      if (!token || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
-        const data = await response.json();
+        const response = await fetch(`${API_BASE}/auth/history`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         
+        if (!response.ok) throw new Error("Unauthorized");
+        
+        const data = await response.json();
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));
         }
       } catch (error) {
         console.error("Failed to fetch recent searches", error);
+        if (error instanceof Error && error.message === "Unauthorized") {
+           localStorage.removeItem('isLoggedIn');
+           localStorage.removeItem('authToken');
+           navigate('/login');
+        }
       }
     };
 
