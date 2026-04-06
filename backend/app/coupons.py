@@ -1228,6 +1228,29 @@ def aggregate_and_rank(all_code_lists, product_info=None):
 
 
 def print_results(ranked, freq, url, ai_ranked=None, output_file=None, product_info=None):
+    """
+    Formats and outputs the final discount code results to the console or a file.
+
+    This function generates a clean, readable summary report of the scraping session. 
+    It dynamically adjusts its display format based on the available data:
+    - If AI ranking was successful, it displays the top codes using confidence 
+      indicators (🟢 High, 🟡 Medium, 🔴 Low) along with the AI's reasoning.
+    - If AI ranking failed or was skipped, it falls back to a basic ranking display, 
+      using a star system (★ to ★★★) based on how many sources found the code.
+    
+    It also handles writing this formatted report to disk if an output file is specified.
+
+    Args:
+        ranked (list of str): The fallback list of codes, ranked by baseline heuristics.
+        freq (dict): A dictionary mapping each code to the number of sources that found it.
+        url (str): The target product URL scraped.
+        ai_ranked (list of dict, optional): The AI-generated ranking data containing 
+            'code', 'confidence', and 'reason'. Defaults to None.
+        output_file (str, optional): A valid file path to save the text report. 
+            Defaults to None.
+        product_info (dict, optional): Extracted product metadata ('product_name', 
+            'product_brand') to include in the report header. Defaults to None.
+    """
     sep = "=" * 60
     product_name  = (product_info or {}).get('product_name', '')
     product_brand = (product_info or {}).get('product_brand', '')
