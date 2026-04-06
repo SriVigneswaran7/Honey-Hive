@@ -971,6 +971,23 @@ def scrape_coupon_sites_requests(domain, brand):
 
 #  SOURCE 2 — Google search
 def google_search_codes(domain, brand, product_title=''):
+    """
+    Searches Google for live, current-year discount codes for the specific brand/product.
+
+    Constructs targeted search queries using the brand, current year, and optionally 
+    the product category (extracted from the title). It fetches the Google search 
+    results page and scrapes both the visible snippet cards and the raw HTML for 
+    potential codes.
+
+    Args:
+        domain (str): The store domain.
+        brand (str): The store brand name.
+        product_title (str, optional): The name of the product. Used to extract 
+            category keywords to make the Google search more specific.
+
+    Returns:
+        list of str: A cleaned list of codes found in Google search snippets.
+    """
     print(f"\n[2] Google-searching for live codes: {brand}")
     year = time.strftime("%Y")
 
