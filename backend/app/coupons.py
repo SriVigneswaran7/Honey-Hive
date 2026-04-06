@@ -250,6 +250,21 @@ def extract_domain(url):
     return re.sub(r'^www\.', '', domain)
 
 def extract_base(url):
+    """
+    Extracts the base URL (scheme and domain) from a full URL string.
+
+    Parses the provided URL to isolate the scheme (e.g., 'http' or 'https') 
+    and the network location (e.g., 'www.example.com'). This is particularly 
+    useful for reconstructing absolute URLs when scraping pages that use 
+    relative links for internal resources or API endpoints.
+
+    Args:
+        url (str): The full URL to parse.
+
+    Returns:
+        str: The base URL in the format "scheme://netloc" (e.g., 
+            "https://www.example.com").
+    """
     p = urllib.parse.urlparse(url)
     return f"{p.scheme}://{p.netloc}"
 
