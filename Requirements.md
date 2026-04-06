@@ -5,7 +5,7 @@ Honey-Hive is an AI-assisted product comparison platform designed to streamline 
 
 Given the prompt-driven nature of this coursework, an iterative approach was essential. It allowed us to build the core backend architecture first (FastAPI and SerpApi integration), test the outputs, and then progressively layer on complex features like the custom Price Interceptor and the React-based Glassmorphic frontend. This ensured our engineering decisions remained flexible and aligned with our evolving technical constraints. 
 
-A critical pivot occurred during the implementation phase: while we initially explored a JWT-based authentication system, we determined that a **Simplified Email-Persistence Model** offered superior stability and faster search-to-history commits for a prototype of this scale. This decision allowed us to prioritise **Functional Reliability** over architectural complexity, ensuring a seamless 'Two-Universe' deployment logic.
+A critical pivot occurred during the implementation phase: while we initially explored a JWT-based authentication system, we determined that a **Simplified Email-Persistence Model** offered superior stability and faster search-to-history commits for a prototype of this scale. This decision allowed us to prioritise **Functional Reliability** over architectural complexity, ensuring a seamless dual deployment logic.
 
 ## 2. Functional Requirements (FR)
 Functional requirements define the core behaviour and features the system must provide. To demonstrate sound engineering judgement, these requirements have been categorised using the **MoSCoW** prioritisation technique (Must have, Should have, Could have, Won't have).
