@@ -505,6 +505,28 @@ def filter_codes_by_product(codes, product_info):
 
 
 def clean_codes(codes):
+    """
+    Sanitizes, filters, and deduplicates a raw list of scraped discount codes.
+
+    This function processes a list of strings through a strict set of rules to 
+    weed out false positives (like common English words, pure numbers, or analytics tags). 
+    It ensures uniqueness while preserving the original discovery order by using an `OrderedDict`.
+
+    Filtering criteria for a valid code:
+    - Must be between MIN_CODE_LENGTH and 20 characters long.
+    - Cannot be a Google Tag Manager ID (e.g., 'GTM-XXXX').
+    - Cannot be in the predefined `JUNK_CODES` blacklist.
+    - Cannot consist entirely of numbers.
+    - Must contain at least one alphabetical letter.
+    - Must either contain at least one digit OR be at least 6 characters long 
+      (to filter out short, capitalized English words that slip past the blacklist).
+
+    Args:
+        codes (list of str): The raw list of strings extracted from web elements or regex.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid, uppercase discount codes.
+    """
     seen = OrderedDict()
     for c in codes:
         c = c.strip().upper()
