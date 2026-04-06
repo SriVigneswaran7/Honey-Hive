@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.1.0] - 2026-04-06
+### Added
+- **SVG Modelling Assets:** Replaced code-based Mermaid diagrams with high-fidelity SVG assets for **System Architecture**, **Sequence Flows**, and **ER Data Modelling** to ensure visual stability.
+- **AI Usage Reflection:** Authored a comprehensive **GenAI Reflection** document, critically evaluating LLM implementation and documenting the "Human in the Loop" decision-making process.
+- **Formalised Testing Suite:** Documented rigorous **Feature** and **Functional** test cases, including resilience analysis for anti-bot blocks and UI state persistence.
+- **Self-Documentation Strategy:** Initiated a full-stack documentation effort utilising **TSDoc** and Python **Docstrings** to fulfill high-maintainability requirements (NFR-08).
+
+### Changed
+- **Architectural Auth Pivot:** Executed a critical refactor of the persistence model, replacing the unstable JWT-based system with a **Simplified Email-Persistence Model** to achieve 100% functional reliability for history tracking.
+- **Streamlined History Logic:** Re-engineered the backend `/auth/history` routes and frontend fetch logic to use unique email query parameters, eliminating hydration mismatches during dual deployments.
+- **Repository Structure:** Refactored the core project structure and file references in `Requirements.md` for improved readability and alignment with the finalised file tree.
+
+### Fixed
+- **Dependency Security:** Patched a high-severity **esbuild** vulnerability in the frontend pipeline using npm overrides to secure the software supply chain without breaking the Vite build.
+- **Environment Sanitisation:** Successfully removed sensitive `SECRET_KEY` dependencies from the `.env` templates and the Render production environment.
+- **Redundant API Processing:** Resolved a "double-parsing" bug in the `Details` and `Results` components where duplicate `response.json()` calls were causing promise collisions.
+
 ## [1.0.0] - 2026-04-03
 ### Added
 - **Dynamic Deployment Architecture:** Engineered a dual-environment deployment pipeline using `VITE_API_URL`. The frontend now dynamically routes between local development (`localhost`) and the live Render cloud API, achieving total environment parity and database isolation.
