@@ -778,7 +778,24 @@ def scrape_store_own_pages(domain, brand):
 
 
 def scrape_coupon_sites_playwright(domain, brand):
-    """Use a real browser to scrape coupon sites — handles JS-rendered codes."""
+    """
+    Scrapes coupon aggregator sites using a headless Playwright browser.
+
+    This function is designed to handle modern, JavaScript-rendered websites 
+    where discount codes are hidden behind interactive elements. It programmatically 
+    navigates to known coupon sources, attempts to dismiss cookie consent banners, 
+    and simulates clicks on "Reveal Code" or "Show Voucher" buttons to force the 
+    DOM to render the codes. It then extracts these codes from the fully rendered 
+    HTML, specifically targeting hidden clipboard attributes and read-only inputs.
+
+    Args:
+        domain (str): The target e-commerce domain (e.g., 'asos.com').
+        brand (str): The extracted brand name used to construct the search URLs.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of scraped discount codes. Returns 
+            an empty list if no codes are found or if the scraping process fails.
+    """
     print(f"\n[1] Scraping coupon sites with browser (JS-rendered): {domain}")
     all_codes = []
 
@@ -918,7 +935,21 @@ def scrape_coupon_sites_playwright(domain, brand):
     return clean_codes(all_codes)
 
 def scrape_coupon_sites_requests(domain, brand):
-    """Fallback: scrape coupon sites with plain requests (less effective)."""
+    """
+    Scrapes coupon aggregator sites using standard HTTP requests (Fallback Method).
+
+    This acts as a lightweight alternative to `scrape_coupon_sites_playwright()` 
+    when a headless browser is unavailable. It is generally less effective because 
+    it cannot execute JavaScript or bypass interactive cookie consent banners, 
+    but it will still catch hardcoded or server-side rendered codes.
+
+    Args:
+        domain (str): The target e-commerce domain.
+        brand (str): The extracted brand name for URL formatting.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of scraped discount codes.
+    """
     print(f"\n[1] Scraping coupon sites (requests fallback): {domain}")
     all_codes = []
 
