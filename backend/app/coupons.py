@@ -1082,9 +1082,27 @@ def scrape_product_page(url):
 #  VERIFICATION — Playwright (real browser)
 def rank_codes_with_ai(codes, product_info, domain, product_url=''):
     """
-    Use Gemini API to rank codes by relevance to the specific product.
-    Reads GEMINI_API_KEY from .env file or environment variable.
-    Returns list of dicts: [{code, reason, confidence}]
+    Leverages the Gemini AI API to semantically rank discount codes by product relevance.
+
+    This function constructs a strict prompt using the extracted product context 
+    (name, brand, category, and URL slug). It asks the LLM to evaluate the scraped 
+    codes against specific rules (e.g., brand name matches, category abbreviations) 
+    and categorize the top 5 into 'high', 'medium', or 'low' confidence tiers. 
+    It also includes safety logic to salvage and parse truncated JSON arrays if 
+    the API response cuts off unexpectedly.
+
+    Args:
+        codes (list of str): The aggregated list of cleaned discount codes.
+        product_info (dict): Extracted product metadata (name, brand, category).
+        domain (str): The target e-commerce store domain.
+        product_url (str, optional): The full URL of the product, used as a reliable 
+            fallback to extract context from the URL slug.
+
+    Returns:
+        list of dict | None: A parsed JSON array of dictionaries, where each dict 
+            contains 'code', 'confidence', and a short 'reason' for the ranking. 
+            Returns None if the API key is missing, the request fails, or the JSON 
+            cannot be parsed.
     """
     api_key = os.environ.get('GEMINI_API_KEY', '')
     if not api_key:
