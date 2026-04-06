@@ -65,8 +65,7 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      const userEmail = localStorage.getItem('userEmail');
-      navigate('/results', { state: { query: searchQuery, userEmail: userEmail } });
+      navigate('/results', { state: { query: searchQuery } }); // Just pass the query
     }
   };
 

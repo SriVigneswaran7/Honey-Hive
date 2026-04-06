@@ -132,10 +132,10 @@ export default function Results() {
   const fetchProducts = async (query: any) => {
     if (!query) return;
     
-    const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
-    const token = localStorage.getItem('authToken'); // 1. Get the token
+    // Always get fresh credentials right when the search happens
+    const userEmail = localStorage.getItem('userEmail') || '';
+    const token = localStorage.getItem('authToken'); 
     
-    // Build dynamic cache key and URL
     let cacheKey = `honeyhive_results_${query}_${userEmail}`;
     let apiUrl = `${API_BASE}/api/search?q=${encodeURIComponent(query)}`;
 
@@ -158,13 +158,19 @@ export default function Results() {
     
     setLoading(true);
     try {
-      // 2. Add the Authorization header here!
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Only attach the header if we actually have a token
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(apiUrl, { headers });
+      
+      // If backend throws an error (like 401), we need to catch it
+      if (!response.ok) {
+         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       const resultsArray = data.shopping_results || [];
       setProducts(resultsArray);
