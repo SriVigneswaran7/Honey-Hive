@@ -15,7 +15,22 @@ load_dotenv(find_dotenv())
 print("[SYSTEM] extract.py module loaded successfully.", flush=True)
 
 def get_domain_name(url):
-    """Turns 'https://www.currys.co.uk/...' into 'Currys'"""
+    """
+    Extracts and capitalizes the primary brand name from a URL.
+
+    This function strips common prefixes (like 'www.') and TLDs (like '.co.uk' 
+    or '.com') to isolate the main site identifier. It is primarily used for 
+    logging and user-facing display titles.
+
+    Args:
+        url (str): The full web address (e.g., 'https://www.nike.com/t-shirts').
+
+    Returns:
+        str: The capitalized brand name (e.g., 'Nike'). 
+             Returns "Store" as a fallback if the URL is malformed or 
+             cannot be parsed.
+
+    """
     try:
         domain = urlparse(url).netloc.replace("www.", "")
         extracted = domain.split('.')[0].capitalize()
