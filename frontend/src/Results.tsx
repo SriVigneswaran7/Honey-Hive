@@ -70,8 +70,8 @@ export default function Results() {
 
   useEffect(() => {
     const fetchRecent = async () => {
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail || !showProfileMenu) return;
+      const token = localStorage.getItem('authToken');
+      if (!token || !showProfileMenu) return;
 
       try {
         const token = localStorage.getItem('authToken');
@@ -83,11 +83,17 @@ export default function Results() {
         });
         const data = await response.json();
         
+        const data = await response.json();
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));
         }
       } catch (error) {
         console.error("Failed to fetch recent searches", error);
+        if (error instanceof Error && error.message === "Unauthorized") {
+           localStorage.removeItem('isLoggedIn');
+           localStorage.removeItem('authToken');
+           navigate('/login');
+        }
       }
     };
 

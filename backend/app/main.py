@@ -86,10 +86,13 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
             )
             db.add(snapshot)
             db.commit()
-            print(f"[DB] Successfully saved search to history for: {user_email}")
+            print(f"✅ [DB] Successfully saved search to history for: {user_email}", flush=True)
+        else:
+            print(f"🚨 [DB ERROR] Searched with email '{user_email}', but it DOES NOT EXIST in the database!", flush=True)
+    else:
+        print(f"⚠️ [DB SKIP] user_email present? {bool(user_email)} | results found? {bool(results)}", flush=True)
 
     return {"shopping_results": results}
-
 # AI Review and Trust Routes
 @app.post("/api/review")
 async def review(request: Request):
