@@ -139,7 +139,31 @@ def serpapi_search_fallback(query, engine="google"):
         return None
 
 def universal_scrape(url):
-    """Safely scrapes product info. Does NOT raise exceptions on 403/500 blocks."""
+    """
+    Safely scrapes product metadata from a given URL without raising exceptions on HTTP errors.
+
+    This function attempts a direct HTTP GET request to the provided URL using standard 
+    browser headers to avoid basic bot detection. It parses the HTML using BeautifulSoup 
+    to extract key product information (title, price, image), prioritizing Open Graph 
+    (og:) tags for accuracy, with fallbacks to standard HTML tags and regular expressions. 
+    If the site blocks the request (e.g., 403 Forbidden) or a timeout occurs, it 
+    gracefully catches the error and returns None instead of crashing.
+
+    Args:
+        url (str): The full URL of the product page to scrape.
+
+    Returns:
+        dict | None: A dictionary containing the scraped product details if successful, 
+        or None if the request is blocked, times out, or fails. 
+        The dictionary contains the following default keys:
+            - 'store' (str): The extracted brand/domain name.
+            - 'title' (str): The product title (defaults to "Product" if not found).
+            - 'price' (str): The product price, or "Check Site" as a fallback.
+            - 'thumbnail' (str): URL to the product's main image.
+            - 'link' (str): The original URL requested.
+            - 'rating' (str): Placeholder for product rating (currently defaults to "N/A").
+            - 'reviews' (int): Placeholder for review count (currently defaults to 0).
+    """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept-Language': 'en-GB,en;q=0.9'
