@@ -61,7 +61,13 @@ export default function Details() {
       if (!userEmail || !showProfileMenu) return;
 
       try {
-        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/auth/history`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         const data = await response.json();
         
         if (data.history) {
