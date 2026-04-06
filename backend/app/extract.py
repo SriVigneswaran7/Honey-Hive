@@ -41,8 +41,30 @@ def get_domain_name(url):
 
 def serpapi_search_fallback(query, engine="google"):
     """
-    Uses SerpAPI to find product details when direct scraping is blocked.
-    Can use 'google' (organic indexing) or 'amazon' (direct store search).
+    Fetches product details via SerpAPI when direct scraping fails or is blocked.
+
+    This function acts as a safety net, utilizing third-party search APIs to 
+    extract product metadata (title, price, thumbnail). It supports routing 
+    queries through standard Google organic search or directly through Amazon's 
+    internal search engine.
+
+    Note:
+        Requires the `SERPAPI_KEY` environment variable to be set.
+
+    Args:
+        query (str): The search term, product name, or product URL.
+        engine (str, optional): The search engine to query. Valid options are 
+            'google' (for organic indexing) or 'amazon' (for direct store search). 
+            Defaults to "google".
+
+    Returns:
+        dict | None: A dictionary containing the extracted product details if successful, 
+        or None if the request fails, no key is found, or no results are returned.
+        The dictionary guarantees the following keys:
+            - 'title' (str): The name of the product.
+            - 'price' (str): The price of the product, or "Check Site" as a fallback.
+            - 'thumbnail' (str): URL to the product image (mostly populated for Amazon).
+            - 'link' (str): The direct URL to the product.
     """
     api_key = os.getenv("SERPAPI_KEY")
     if not api_key:
