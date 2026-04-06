@@ -1383,6 +1383,48 @@ def find_and_rank_codes(url='', store='', title='', skip_google=False, use_brows
 
 
 def main():
+    """
+    Main entry point for discovering, aggregating, and ranking discount codes for a specific store or product.
+
+    This function orchestrates a multi-source search strategy (store pages, coupon aggregators, 
+    search engines, and JS bundles) to find promotional codes. It then cleans, 
+    deduplicates, and uses AI to rank them based on their likelihood of success 
+    for the provided product context.
+
+    Args:
+        url (str, optional): The URL of the product or store page. If a Google redirect 
+            URL or empty string is provided, the function attempts to construct a 
+            URL using the `store` parameter. Defaults to ''.
+        store (str, optional): The name of the store (e.g., 'Nike' or 'ASOS'). Used 
+            as a fallback to generate a URL if the `url` parameter is missing or 
+            invalid. Defaults to ''.
+        title (str, optional): The specific product title. Used to provide context 
+            for AI ranking and to refine search queries. Defaults to ''.
+        skip_google (bool, optional): If True, bypasses the Google Search API/scraping 
+            source to reduce latency or avoid rate limits. Defaults to False.
+        use_browser (bool, optional): If True and Playwright is available, uses 
+            a headless browser for scraping dynamic coupon sites. If False, 
+            falls back to standard HTTP requests. Defaults to True.
+
+    Returns:
+        list[dict]: A list of ranked results. Each dictionary contains:
+            - 'code' (str): The discount/promo code found.
+            - 'confidence' (str): AI-determined confidence level (e.g., 'high', 'medium').
+            - 'reason' (str): A brief explanation of why the code was ranked this way.
+            Returns an empty list if no codes are discovered.
+
+    Example (CLI Usage):
+        In a CLI environment, this function is typically called after parsing arguments 
+        like `--skip-google` or `--no-browser`:
+        
+        >>> results = find_and_rank_codes(
+        ...     url="https://www.example.com/product",
+        ...     skip_google=args.skip_google,
+        ...     use_browser=not args.no_browser
+        ... )
+
+    
+    """
     global TIMEOUT
 
     parser = argparse.ArgumentParser(
