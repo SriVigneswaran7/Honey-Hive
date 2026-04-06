@@ -155,7 +155,7 @@ npm run dev
 | **Battle Mode** | **Coupons Modal** | **Filters Modal** |
 | ![Mobile View](assets/Comparison.png) | ![UI Theme](assets/Coupons.png) | ![Safe States](assets/Filters.png) |
 
-### Project Structure
+## Project Structure
 
 ```text
 elee1149-courswork-2025-hive/
@@ -197,15 +197,11 @@ This project adheres to strict functional and non-functional requirements to ens
 
 **[View Requirements Specification](./Requirements.md)**
 
----
-
 ## Architecture & System Modelling
 
 To bridge the gap between concept and implementation, comprehensive system modelling was conducted prior to development. This document details the architectural design, system context mapping, and database schema models that dictate the decoupled data flow between the React frontend and FastAPI backend.
 
 **[View System Modelling](./SystemModelling.md)**
-
----
 
 ## Git Workflow & Version Control
 
@@ -213,15 +209,11 @@ Maintaining a clean and traceable codebase is critical for effective team collab
 
 **[View Git Workflow](./Workflow.md)**
 
----
-
 ## Testing Strategy & Quality Assurance
 
 Ensuring the security and reliability of the Honey-Hive platform is a primary objective. This document outlines our QA protocols, automated testing frameworks, and the specific mitigation strategies implemented to resolve critical application vulnerabilities discovered during the development lifecycle.
 
 **[View Testing Strategy](./Testing.md)**
-
----
 
 ## Release Changelog
 
