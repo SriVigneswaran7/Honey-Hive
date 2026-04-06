@@ -1,5 +1,3 @@
-from fastapi import Header, HTTPException
-from .security import create_access_token, verify_access_token
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -86,13 +84,10 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
             )
             db.add(snapshot)
             db.commit()
-            print(f"✅ [DB] Successfully saved search to history for: {user_email}", flush=True)
-        else:
-            print(f"🚨 [DB ERROR] Searched with email '{user_email}', but it DOES NOT EXIST in the database!", flush=True)
-    else:
-        print(f"⚠️ [DB SKIP] user_email present? {bool(user_email)} | results found? {bool(results)}", flush=True)
+            print(f"[DB] Successfully saved search to history for: {user_email}")
 
     return {"shopping_results": results}
+
 # AI Review and Trust Routes
 @app.post("/api/review")
 async def review(request: Request):
@@ -121,16 +116,10 @@ class SignupRequest(BaseModel):
 
 @app.post("/auth/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    # 1. Check the user's credentials
-    auth_result = authenticate(db, payload.email, payload.password)
-    
-    # 2. If it failed, stop here and return the error
-    if not auth_result.ok:
-        return {"ok": False, "message": auth_result.reason}
-        
-    # 3. If it succeeded, generate the secure token and return it!
-    token = create_access_token(email=payload.email)
-    return {"ok": True, "message": "Login successful", "token": token}
+   result = authenticate(db, payload.email, payload.password)
+   if not result.ok:
+       return {"ok": False, "message": result.reason}
+   return {"ok": True, "message": "Login successful", "email": payload.email}
 
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db: Session = Depends(get_db)):
@@ -146,33 +135,15 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
    profile = UserProfile(user_id=user.id, display_name=payload.name)
    db.add(profile)
    db.commit()
-   
-   # Generate the token
-   token = create_access_token(email=payload.email)
-   return {"ok": True, "message": "Signup successful", "token": token}
+   return {"ok": True, "message": "Signup successful"}
 
 # History Route
 @app.get("/auth/history")
-def get_history(authorization: str = Header(None), db: Session = Depends(get_db)):
-    # 1. If the header is missing, reject immediately
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access Denied: Log in required")
-    
-    # 2. Extract and verify the token
-    token = authorization.split(" ")[1]
-    email_from_token = verify_access_token(token)
-    
-    # 3. If token is invalid or expired, reject!
-    if not email_from_token:
-        raise HTTPException(status_code=401, detail="Invalid session")
-
-    # 4. Fetch the user ONLY by the email hidden in the token
-    user = db.query(User).filter(User.email == email_from_token).first()
-    
+def get_history(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         return {"history": []}
     
-    # Return results...
     history_list = []
     for item in user.inputs:
         display_query = item.product_snapshot.title if item.product_snapshot else item.product_url
@@ -182,7 +153,8 @@ def get_history(authorization: str = Header(None), db: Session = Depends(get_db)
             "date": item.created_utc.strftime("%Y-%m-%d"),
             "dealsFound": 1 
         })
-    return {"history": history_list[::-1]}
+    return {"history": history_list[::-1]} 
+
 # Coupons Route
 class CouponRequest(BaseModel):
     url: str = ""

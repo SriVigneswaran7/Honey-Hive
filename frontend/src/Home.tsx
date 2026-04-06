@@ -17,37 +17,21 @@ export default function Home() {
 
   useEffect(() => {
     const fetchRecent = async () => {
-      const token = localStorage.getItem('authToken'); // Get the secure token
-      if (!token || !showProfileMenu) return; // Wait until menu is opened
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
 
       try {
-        // Combined dynamic API_BASE with secure token headers
-        const response = await fetch(`${API_BASE}/auth/history`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`, // Pass the token here
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) throw new Error("Unauthorized");
-        
+        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));
         }
       } catch (error) {
         console.error("Failed to fetch recent searches", error);
-        // Optional: If token is bad, log them out
-        if (error instanceof Error && error.message === "Unauthorized") {
-           localStorage.removeItem('isLoggedIn');
-           localStorage.removeItem('authToken');
-           navigate('/login');
-        }
       }
     };
     fetchRecent();
-  }, [showProfileMenu, navigate]);
+  }, [showProfileMenu]);
 
   useEffect(() => {
     const userStatus = localStorage.getItem('isLoggedIn');
@@ -63,11 +47,12 @@ export default function Home() {
   };
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate('/results', { state: { query: searchQuery } }); // Just pass the query
-    }
-  };
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    const userEmail = localStorage.getItem('userEmail');
+    navigate('/results', { state: { query: searchQuery, userEmail: userEmail } });
+  }
+};
 
   const toggleTheme = () => {
     if (isDark) {

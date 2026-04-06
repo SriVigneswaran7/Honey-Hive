@@ -70,29 +70,18 @@ export default function Results() {
 
   useEffect(() => {
     const fetchRecent = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token || !showProfileMenu) return;
+      const userEmail = localStorage.getItem('userEmail');
+      if (!userEmail || !showProfileMenu) return;
 
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE}/auth/history`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
+        const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
+        
         if (data.history) {
           setRecentSearches(data.history.slice(0, 3));
         }
       } catch (error) {
         console.error("Failed to fetch recent searches", error);
-        if (error instanceof Error && error.message === "Unauthorized") {
-           localStorage.removeItem('isLoggedIn');
-           localStorage.removeItem('authToken');
-           navigate('/login');
-        }
       }
     };
 
@@ -132,10 +121,9 @@ export default function Results() {
   const fetchProducts = async (query: any) => {
     if (!query) return;
     
-    // Always get fresh credentials right when the search happens
-    const userEmail = localStorage.getItem('userEmail') || '';
-    const token = localStorage.getItem('authToken'); 
+    const userEmail = location.state?.userEmail || localStorage.getItem('userEmail') || '';
     
+    // Build dynamic cache key and URL based on current price states
     let cacheKey = `honeyhive_results_${query}_${userEmail}`;
     let apiUrl = `${API_BASE}/api/search?q=${encodeURIComponent(query)}`;
 
@@ -158,19 +146,7 @@ export default function Results() {
     
     setLoading(true);
     try {
-      // Only attach the header if we actually have a token
-      const headers: any = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(apiUrl, { headers });
-      
-      // If backend throws an error (like 401), we need to catch it
-      if (!response.ok) {
-         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      const response = await fetch(apiUrl);
       const data = await response.json();
       const resultsArray = data.shopping_results || [];
       setProducts(resultsArray);
