@@ -227,6 +227,41 @@ def universal_scrape(url):
         return None
 
 def run_extraction(link, min_price=None, max_price=None):
+    """
+    Orchestrates the complete product identification and price comparison flow.
+
+    This function attempts to reliably identify a product from a given URL using a 
+    robust, multi-layered fallback strategy. Once the original product is identified 
+    (or approximated), it searches for competitor prices and returns a deduplicated 
+    list of results.
+
+    The extraction follows this hierarchy:
+        1. Amazon ASIN extraction + SerpAPI 'amazon_product' engine.
+        2. SerpAPI 'amazon' fallback search (if Amazon link but ASIN fails).
+        3. Direct HTML scraping via `universal_scrape`.
+        4. SerpAPI 'google' organic search fallback.
+        5. Last resort: Heuristic URL slug parsing to generate a placeholder.
+
+    Args:
+        link (str): The URL of the target product page.
+        min_price (float | int | str, optional): The minimum price threshold for 
+            competitor results. Defaults to None.
+        max_price (float | int | str, optional): The maximum price threshold for 
+            competitor results. Defaults to None.
+
+    Returns:
+        list[dict]: A list of up to 6 product dictionaries. The first element (index 0) 
+        is ALWAYS the extracted original product. Subsequent elements are deduplicated 
+        competitor listings. Each dictionary contains:
+            - 'store' (str): Store or brand name.
+            - 'title' (str): Product name.
+            - 'price' (str): Formatted price string.
+            - 'thumbnail' (str): URL to the product image.
+            - 'link' (str): Direct link to the product.
+            - 'rating' (str): Rating string (e.g., "4.5 out of 5" or "N/A").
+            - 'reviews' (int): Number of reviews.
+        Returns an empty list `[]` if a fatal error occurs during execution.
+    """
     try:
         api_key = os.getenv("SERPAPI_KEY")
         print(f"\n{'='*60}", flush=True)
