@@ -663,6 +663,24 @@ def extract_codes_from_html(html):
 
 #  PLATFORM DETECTION
 def detect_platform(base_url, page_text=''):
+    """
+    Attempts to identify the underlying e-commerce platform of a store.
+
+    This function uses a two-step fingerprinting approach. First, it actively probes 
+    for Shopify by requesting the standard `/cart.js` endpoint. If that fails or 
+    returns unexpected data, it falls back to passively scanning the provided HTML 
+    source text for common platform-specific signatures (like 'wc-ajax' for 
+    WooCommerce or 'mage/' for Magento).
+
+    Args:
+        base_url (str): The root URL of the store (e.g., 'https://www.example.com').
+        page_text (str, optional): The raw HTML string of the store's page to scan 
+            for keywords. Defaults to an empty string.
+
+    Returns:
+        str: The name of the detected platform ('shopify', 'woocommerce', 'magento', 
+            'bigcommerce'). Returns 'unknown' if no recognizable signatures are found.
+    """
     resp = fetch(f"{base_url}/cart.js", timeout=6)
     if resp and resp.status_code == 200:
         try:
