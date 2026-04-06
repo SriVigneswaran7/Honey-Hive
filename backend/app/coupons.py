@@ -544,6 +544,22 @@ def clean_codes(codes):
     return list(seen.keys())
 
 def find_codes_in_text(text):
+    """
+    Extracts potential discount codes from a block of plain text using regular expressions.
+
+    This function iterates through a globally defined list of strict regex patterns 
+    (`CODE_PATTERNS`). These patterns are designed to look for context clues—such as 
+    "use code", "coupon:", or "save 20% with"—to accurately capture the actual discount 
+    code nearby while ignoring random strings. The search is case-insensitive.
+
+    Args:
+        text (str): The string content to parse. This could be raw HTML text, a JSON 
+            snippet, or a paragraph from a webpage.
+
+    Returns:
+        list of str: A raw list of matched code strings. Note that this list may 
+            contain duplicates or junk codes until it is passed through `clean_codes()`.
+    """
     codes = []
     for pattern in CODE_PATTERNS:
         matches = re.findall(pattern, text, re.IGNORECASE)
