@@ -81,7 +81,6 @@ export default function Results() {
             'Content-Type': 'application/json'
           }
         });
-        const data = await response.json();
         
         const data = await response.json();
         if (data.history) {
