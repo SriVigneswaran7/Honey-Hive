@@ -269,6 +269,23 @@ def extract_base(url):
     return f"{p.scheme}://{p.netloc}"
 
 def extract_brand_name(domain):
+    """
+    Attempts to extract the core brand name from a domain string.
+
+    This function uses a heuristic approach by splitting the domain into its 
+    constituent parts (separated by dots). It iterates through these parts and 
+    skips common generic subdomains and Top-Level Domains (TLDs) like 'www', 
+    'shop', 'co', and 'uk'. The first remaining part that is longer than two 
+    characters is returned as the brand name.
+
+    Args:
+        domain (str): The domain string to parse (e.g., 'shop.nike.co.uk').
+
+    Returns:
+        str: The extracted brand name (e.g., 'nike'). If no suitable part is 
+            found, it falls back to returning the first part of the domain, 
+            or the raw domain string itself.
+    """
     parts = domain.split('.')
     skip = {'shop', 'store', 'www', 'us', 'uk', 'en', 'buy', 'get', 'co'}
     for p in parts:
