@@ -164,6 +164,19 @@ UNKNOWN = "UNKNOWN"
 
 #  UTILITY
 def get_headers():
+    """
+    Generates a set of realistic HTTP headers to mimic a standard web browser.
+
+    To help bypass basic anti-bot protections during scraping, this function 
+    randomly selects a 'User-Agent' from a predefined list of common browser 
+    agents (`USER_AGENTS`). It also includes standard 'Accept', 'Accept-Encoding', 
+    and 'Connection' headers, as well as a 'DNT' (Do Not Track) flag to further 
+    simulate human traffic.
+
+    Returns:
+        dict: A dictionary of HTTP headers ready to be passed into a requests 
+            or session call.
+    """
     return {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
