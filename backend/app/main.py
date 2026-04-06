@@ -1,3 +1,5 @@
+from fastapi import Header, HTTPException
+from .security import create_access_token, verify_access_token
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -116,11 +118,16 @@ class SignupRequest(BaseModel):
 
 @app.post("/auth/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-   result = authenticate(db, payload.email, payload.password)
-   if not result.ok:
-       return {"ok": False, "message": result.reason}
-   return {"ok": True, "message": "Login successful", "email": payload.email}
-
+    # 1. Check the user's credentials
+    auth_result = authenticate(db, payload.email, payload.password)
+    
+    # 2. If it failed, stop here and return the error
+    if not auth_result.ok:
+        return {"ok": False, "message": auth_result.reason}
+        
+    # 3. If it succeeded, generate the secure token and return it!
+    token = create_access_token(email=payload.email)
+    return {"ok": True, "message": "Login successful", "token": token}
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db: Session = Depends(get_db)):
    existing = db.query(User).filter(User.email == payload.email).first()
@@ -139,11 +146,26 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
 
 # History Route
 @app.get("/auth/history")
-def get_history(email: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == email).first()
+def get_history(authorization: str = Header(None), db: Session = Depends(get_db)):
+    # 1. If the header is missing, reject immediately
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access Denied: Log in required")
+    
+    # 2. Extract and verify the token
+    token = authorization.split(" ")[1]
+    email_from_token = verify_access_token(token)
+    
+    # 3. If token is invalid or expired, reject!
+    if not email_from_token:
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    # 4. Fetch the user ONLY by the email hidden in the token
+    user = db.query(User).filter(User.email == email_from_token).first()
+    
     if not user:
         return {"history": []}
     
+    # Return results...
     history_list = []
     for item in user.inputs:
         display_query = item.product_snapshot.title if item.product_snapshot else item.product_url
@@ -153,8 +175,7 @@ def get_history(email: str, db: Session = Depends(get_db)):
             "date": item.created_utc.strftime("%Y-%m-%d"),
             "dealsFound": 1 
         })
-    return {"history": history_list[::-1]} 
-
+    return {"history": history_list[::-1]}
 # Coupons Route
 class CouponRequest(BaseModel):
     url: str = ""

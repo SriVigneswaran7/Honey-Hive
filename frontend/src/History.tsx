@@ -16,17 +16,32 @@ export default function History() {
       navigate('/', { replace: true });
     } else {
       const fetchHistory = async () => {
-        const email = localStorage.getItem('userEmail');
-        if (!email) return;
+        const token = localStorage.getItem('authToken'); // Get the token
+        if (!token) {
+          navigate('/', { replace: true });
+          return;
+        }
+
         try {
-          const response = await fetch(`${API_BASE}/auth/history?email=${encodeURIComponent(email)}`);
+          // Combined dynamic API_BASE with secure token headers
+          const response = await fetch(`${API_BASE}/auth/history`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`, // Send the token securely
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) throw new Error("Unauthorized");
+          
           const data = await response.json();
-        
           console.log("Live History Data:", data); 
           
           setPastSearches(data.history || []);
         } catch (err) {
           console.error("Failed to fetch history", err);
+          localStorage.removeItem('isLoggedIn'); // Force logout if token is bad
+          navigate('/login');
         }
       };
       fetchHistory();
@@ -98,7 +113,6 @@ export default function History() {
               {pastSearches.map((item) => (
                 <li 
                   key={item.id} 
-
                   onClick={() => navigate('/results', { state: { query: item.query } })}
                   className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group/item hover:border-amber-500/30 hover:shadow-[0_0_20px_rgba(245,158,11,0.1)] transition-all cursor-pointer active:scale-[0.98]"
                 >
