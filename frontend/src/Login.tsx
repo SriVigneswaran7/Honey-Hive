@@ -62,7 +62,8 @@ export default function Login() {
         
         // Save the user's email and name
         localStorage.setItem('userEmail', email); 
-        
+        localStorage.setItem('authToken', data.token);
+        navigate(from, { replace: true });
         // Try to grab the name from the database response, otherwise fallback to email prefix
         if (data.name) {
             localStorage.setItem('userName', data.name);
