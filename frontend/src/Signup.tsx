@@ -2,13 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Sun, Moon, X } from 'lucide-react';
 
+/**
+ * The Signup page component.
+ * Facilitates new user registration, handles frontend validation (password matching),
+ * and manages an academic disclaimer modal.
+ * * @component
+ * @description
+ * This component implements a strict flow where the "Sign Up" button remains disabled 
+ * until the user interacts with and accepts the Terms and Conditions modal. 
+ * Upon successful registration, the user is automatically logged in and redirected 
+ * back to their previous location (via router state).
+ * * @returns {JSX.Element} The rendered signup interface, including the T&C modal and error toast.
+ */
 export default function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
   
   // 1. Grab the state to remember where they came from
+  /** @type {Object} State passed from the previous route to maintain navigation context */
   const returnState = location.state || {};
   const from = returnState.from || "/";
+
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,7 +49,12 @@ export default function Signup() {
       return () => clearTimeout(timer);
     }
   }, [error]);
-
+  /**
+   * Handles the account creation process.
+   * Performs frontend password validation before communicating with the `/auth/signup` endpoint.
+   * * @param {React.FormEvent} e - The form submission event.
+   * @async
+   */
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
