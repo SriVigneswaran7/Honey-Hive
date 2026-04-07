@@ -186,6 +186,7 @@ export default function Results() {
    * If two products are already selected, adding a third replaces the oldest selection.
    * @param {Object} product - The product object to toggle.
    */
+  //[AI Assist: Ref 15] - See docs/GenAI-Reflection.md for prompt and architectural review.
   const toggleCompare = (product: any) => {
     const isSelected = selectedForCompare.some(p => p.title === product.title);
     if (isSelected) {
