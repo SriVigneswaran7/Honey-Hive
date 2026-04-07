@@ -68,7 +68,7 @@ export default function Details() {
   const [showCoupons, setShowCoupons] = useState(false);
 
   const [recentSearches, setRecentSearches] = useState<any[]>([]);
-
+//[AI Assist: Ref 18] - See docs/GenAI-Reflection.md for prompt and architectural review.
   useEffect(() => {
     const fetchRecent = async () => {
       const token = localStorage.getItem('authToken');

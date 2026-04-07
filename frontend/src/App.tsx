@@ -18,6 +18,7 @@ import Help from './Help';
 function App() {
   // Checks local storage on initial load so the theme stays consistent
   useEffect(() => {
+    //[AI Assist: Ref 20] - See docs/GenAI-Reflection.md for prompt and architectural review.
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     } else {

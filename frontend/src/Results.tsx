@@ -142,6 +142,7 @@ export default function Results() {
    * * @param {string} query - The search term or URL to scan.
    * @async
    */
+  //[AI Assist: Ref 17] - See docs/GenAI-Reflection.md for prompt and architectural review.
   const fetchProducts = async (query: any) => {
     if (!query) return;
     
@@ -186,6 +187,7 @@ export default function Results() {
    * If two products are already selected, adding a third replaces the oldest selection.
    * @param {Object} product - The product object to toggle.
    */
+  //[AI Assist: Ref 15] - See docs/GenAI-Reflection.md for prompt and architectural review.
   const toggleCompare = (product: any) => {
     const isSelected = selectedForCompare.some(p => p.title === product.title);
     if (isSelected) {
@@ -219,6 +221,7 @@ export default function Results() {
    * store filters and price sorting to the base `products` state.
    * @type {Array<Object>}
    */
+  //[AI Assist: Ref 16] - See docs/GenAI-Reflection.md for prompt and architectural review.
   const filteredProducts = products
     .filter(p => selectedStore === 'All' || p.store === selectedStore)
     .sort((a, b) => {

@@ -137,7 +137,7 @@ def serpapi_search_fallback(query, engine="google"):
     except Exception as e:
         print(f"[SERPAPI FALLBACK ERROR] {e}", flush=True)
         return None
-
+# [AI Assist: Ref 6] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def universal_scrape(url):
     """
     Safely scrapes product metadata from a given URL without raising exceptions on HTTP errors.
@@ -225,7 +225,7 @@ def universal_scrape(url):
     except Exception as e:
         print(f"[SCRAPER ERROR] {e}", flush=True)
         return None
-
+# [AI Assist: Ref 1] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def run_extraction(link, min_price=None, max_price=None):
     """
     Orchestrates the complete product identification and price comparison flow.
@@ -274,6 +274,7 @@ def run_extraction(link, min_price=None, max_price=None):
         original_product = None
         
         # 1. Amazon Specific Logic
+        # [AI Assist: Ref 5] - See docs/GenAI-Reflection.md for prompt and architectural review.
         if "amazon" in link.lower():
             print("[LOG] Amazon link detected. Prioritizing Amazon Product API.", flush=True)
             asin_match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', link, re.IGNORECASE)

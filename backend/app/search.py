@@ -103,7 +103,7 @@ def parse_input(input_list):
         print(f"AI Optimisation failed: {e}") 
         return context_text
         
-
+# [AI Assist: Ref 1] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def unified_search(user_input: str, min_price: float = None, max_price: float = None):
     """
     Searches Google Shopping for product listings and competitors, applying strict price filters.
@@ -156,6 +156,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         data = response.json()
         
         results = []
+        # [AI Assist: Ref 2] - See docs/GenAI-Reflection.md for prompt and architectural review.
         for item in data.get("shopping_results", []):
             raw_price = str(item.get("price", "0"))
             
@@ -251,7 +252,7 @@ def evaluate_trust(stores: list):
         for store in stores_for_ai: results[store] = "Moderate"
             
     return results
-
+# [AI Assist: Ref 3] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def generate_ai_insights(product_title: str):
     """
     Generates an AI-driven technical summary, pros, and cons for a specific product.
@@ -326,7 +327,7 @@ def generate_ai_insights(product_title: str):
             "pros": parsed_data.get("pros", [])[:3],
             "cons": parsed_data.get("cons", [])[:3]
         }
-
+    # [AI Assist: Ref 4] - See docs/GenAI-Reflection.md for prompt and architectural review.
     except Exception as e:
         print(f"AI insight failed: {e}")
         summary_fallback = organic_snippet.replace("I ", "Users ").replace("my ", "the ").strip()
