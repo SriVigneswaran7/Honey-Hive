@@ -225,7 +225,7 @@ def universal_scrape(url):
     except Exception as e:
         print(f"[SCRAPER ERROR] {e}", flush=True)
         return None
-
+# [AI Assist: Ref 1] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def run_extraction(link, min_price=None, max_price=None):
     """
     Orchestrates the complete product identification and price comparison flow.
