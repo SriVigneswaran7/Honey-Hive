@@ -137,7 +137,7 @@ def serpapi_search_fallback(query, engine="google"):
     except Exception as e:
         print(f"[SERPAPI FALLBACK ERROR] {e}", flush=True)
         return None
-
+# [AI Assist: Ref 6] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def universal_scrape(url):
     """
     Safely scrapes product metadata from a given URL without raising exceptions on HTTP errors.
