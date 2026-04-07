@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Sun, Moon, X } from 'lucide-react';
 
+/**
+ * The Login page component.
+ * Handles user authentication, session persistence via localStorage, 
+ * and theme synchronization.
+ * * @component
+ * @description
+ * Supports a "return-to" flow. If a user was redirected here from a specific 
+ * protected page (like Results or Details), they are sent back to that 
+ * specific state upon successful login.
+ * * @returns {JSX.Element} The rendered login interface with error toast notifications.
+ */
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +44,9 @@ export default function Login() {
   return () => clearTimeout(checkStatus);
 }, [navigate]);
 
+/** * Captured navigation state to redirect users back to where they started.
+   * @type {Object} 
+   */
   // Grab the full state so we don't lose the product or query
   const returnState = location.state || {};
   const from = returnState.from || "/";
