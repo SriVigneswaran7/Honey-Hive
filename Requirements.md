@@ -25,6 +25,7 @@ Functional requirements define the core behaviour and features the system must p
 | **FR-11** | Password Recovery | The system would allow users to securely reset forgotten passwords via an SMTP email token. | Won't | *Descoped due to time constraints* |
 | **FR-12** | Admin Dashboard | The system would include an RBAC dashboard for tracking user metrics. | Won't | *Descoped due to time constraints* |
 
+
 ## 3. Non-Functional Requirements (NFR)
 Non-functional requirements dictate the system's quality attributes, performance benchmarks, and architectural constraints.
 
@@ -38,7 +39,9 @@ Non-functional requirements dictate the system's quality attributes, performance
 | **NFR-06** | AI Transparency | In strict compliance with university academic regulations, all code developed with Generative AI assistance must be explicitly cited in the source files and the repository documentation. | High | `README.md` |
 | **NFR-07** | Environment Parity | The system must maintain 100% functional parity between local development (`localhost`) and live deployment (`Render/Vercel`) via dynamic environment variable routing. | High | `backend/run.py`, `frontend/src/Results.tsx` |
 | **NFR-08** | Self-Documentation | To ensure long-term maintainability, the codebase must utilise **TSDoc** for React components and **Python Docstrings** for backend modules. | Medium | All `.tsx` and `.py` files |
-
+| **NFR-09** | Security | **[Descoped]** The system would implement JWT-based authorization to verify user identity for history/profile routes. *(Omitted due to time constraints and Vercel serverless complexities)*. | Won't | `backend/app/main.py` |
+| **NFR-10** | Security | **[Descoped]** The system would restrict the number of login/API requests per IP to prevent brute-force attacks. *(Omitted due to strict project time constraints)*. | Won't | `backend/app/main.py` |
+| **NFR-11** | Security | **[Descoped]** The backend extraction engine would validate and restrict outbound requests strictly to authorized UK retail domains to prevent SSRF. *(Omitted due to time constraints)*. | Won't | `backend/app/extract.py` |
 ## 4. User Requirements (UR)
 These represent the system capabilities from the end-user's perspective, guiding our frontend design choices.
 
