@@ -105,6 +105,34 @@ def parse_input(input_list):
         
 
 def unified_search(user_input: str, min_price: float = None, max_price: float = None):
+    """
+    Searches Google Shopping for product listings and competitors, applying strict price filters.
+
+    This function uses SerpAPI to fetch up to 30 initial shopping results based on the 
+    provided search query. It employs a two-pass price filtering system: first, it 
+    instructs Google's API to filter by price using the 'tbs' parameter. Then, it 
+    manually extracts and verifies the numeric price from the returned string to discard 
+    any items that slipped past Google's filters, ensuring strict adherence to the 
+    provided boundaries. 
+
+    Args:
+        user_input (str): The search query, ideally an AI-optimized product name.
+        min_price (float, optional): The minimum acceptable price. Items cheaper 
+            than this will be discarded. Defaults to None.
+        max_price (float, optional): The maximum acceptable price. Items more 
+            expensive than this will be discarded. Defaults to None.
+
+    Returns:
+        list[dict]: A list of up to 6 validated product dictionaries. Each dictionary contains:
+            - 'store' (str): The merchant or store name (defaults to "Unknown").
+            - 'title' (str): The product listing title.
+            - 'price' (str): The formatted price string (e.g., "£45.99").
+            - 'thumbnail' (str): URL to the product image.
+            - 'link' (str): The destination URL to buy the product.
+            - 'rating' (str): The product rating (defaults to "N/A").
+            - 'reviews' (int): The number of reviews (defaults to 0).
+        Returns an empty list `[]` if the API request fails or an error occurs.
+    """
     api_key = os.getenv("SERPAPI_KEY")
     params = {
         "engine": "google_shopping",
