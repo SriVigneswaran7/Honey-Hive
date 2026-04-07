@@ -193,6 +193,27 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         return []
     
 def evaluate_trust(stores: list):
+     """
+    Evaluates the trustworthiness of a list of retail stores using a hybrid approach.
+
+    This function first checks the provided store names against a hardcoded list 
+    of major, highly trusted brands (e.g., Apple, Amazon, Currys) to immediately 
+    assign a "High" trust rating. For any stores not in this trusted list, it batches 
+    them and queries the Gemini API to act as a UK retail expert, returning a 
+    dynamically generated score ('High', 'Moderate', or 'Low'). 
+
+    If the AI request fails, times out, or the API key is missing, the function 
+    safely falls back to assigning a "Moderate" rating to unknown stores.
+
+    Args:
+        stores (list[str]): A list of store or merchant names to evaluate 
+            (e.g., ['Amazon', 'TechGadgetsUK', 'John Lewis']).
+
+    Returns:
+        dict: A dictionary mapping the original store names to their respective 
+              trust ratings. 
+              Example: {'Amazon': 'High', 'TechGadgetsUK': 'Moderate', 'John Lewis': 'High'}
+    """
     gemini_key = os.getenv("GEMINI_API_KEY")
     results = {}
     big_brands = ['apple', 'amazon', 'currys', 'argos', 'john lewis', 'tesco', 'samsung', 'nike', 'adidas']
