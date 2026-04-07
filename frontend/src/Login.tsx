@@ -50,7 +50,7 @@ export default function Login() {
   // Grab the full state so we don't lose the product or query
   const returnState = location.state || {};
   const from = returnState.from || "/";
-//[AI Assist: Ref 21] - See docs/GenAI-Reflection.md for prompt and architectural review.
+//[AI Assist: Ref 21] - See GenAIReflection.md for prompt and architectural review.
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(''); // Clear any old errors

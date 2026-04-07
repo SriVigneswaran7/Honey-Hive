@@ -3,7 +3,7 @@ pwd_context = CryptContext(
    schemes=["pbkdf2_sha256"],
    deprecated="auto",
 )
-# [AI Assist: Ref 14] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 14] - See GenAIReflection.md for prompt and architectural review.
 def hash_password(plain_password: str) -> str:
    """
     Securely hashes a plaintext password for safe storage.

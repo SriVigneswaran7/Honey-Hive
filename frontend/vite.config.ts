@@ -1,4 +1,4 @@
-//[AI Assist: Ref 22] - See docs/GenAI-Reflection.md for prompt and architectural review.
+//[AI Assist: Ref 22] - See GenAIReflection.md for prompt and architectural review.
 import { defineConfig } from 'vite'
 
 export default defineConfig({

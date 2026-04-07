@@ -25,7 +25,7 @@ class User(Base):
    profile: Mapped["UserProfile"] = relationship(
        "UserProfile", back_populates="user", cascade="all, delete-orphan", uselist=False
    )
-# [AI Assist: Ref 13] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 13] - See GenAIReflection.md for prompt and architectural review.
 class UserProfile(Base):
    __tablename__ = "user_profiles"
    __table_args__ = (UniqueConstraint("user_id", name="uq_user_profiles_user_id"),)

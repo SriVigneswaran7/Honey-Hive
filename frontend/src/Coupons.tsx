@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Tag, Copy } from 'lucide-react';
-//[AI Assist: Ref 19] - See docs/GenAI-Reflection.md for prompt and architectural review.
+//[AI Assist: Ref 19] - See GenAIReflection.md for prompt and architectural review.
 /**
  * A modal component that fetches and displays discount codes for a specific product.
  * Uses a React Portal to render at the document body level to avoid CSS clipping issues.
