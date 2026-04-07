@@ -253,6 +253,36 @@ def evaluate_trust(stores: list):
     return results
 
 def generate_ai_insights(product_title: str):
+    """
+    Generates an AI-driven technical summary, pros, and cons for a specific product.
+
+    This function performs a deep-dive analysis by first querying SerpAPI for 
+    the top technical reviews and specifications of the product. It then passes 
+    these search snippets as context to the Gemini API. The AI acts as a hardware 
+    analyst, synthesizing the real-world data into a structured JSON response 
+    containing a concise summary and bulleted technical strengths and limitations.
+
+    If either the search or AI requests fail, it gracefully falls back to using 
+    cleaned search snippets or safe, generic placeholder text.
+
+    Args:
+        product_title (str): The name of the product to analyze 
+            (e.g., "Apple iPhone 15 Pro Max").
+
+    Returns:
+        dict: A dictionary containing the AI-generated insights. The keys are:
+            - 'summary' (str): A synthesized two-sentence technical review.
+            - 'pros' (list[str]): A list of up to three short technical strengths.
+            - 'cons' (list[str]): A list of up to three short technical limitations.
+            
+    Example:
+        >>> generate_ai_insights("Sony WH-1000XM5")
+        {
+            "summary": "The Sony WH-1000XM5 features industry-leading noise cancellation powered by the QN1 chip and 30mm carbon fiber drivers. It offers improved call quality and a lightweight design compared to its predecessor.",
+            "pros": ["Excellent noise cancellation", "Lightweight comfortable design", "Clear microphone quality"],
+            "cons": ["Non-folding design", "Not fully water resistant", "Premium price point"]
+        }
+    """
     serp_key = os.getenv("SERPAPI_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
     
