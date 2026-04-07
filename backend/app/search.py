@@ -327,7 +327,7 @@ def generate_ai_insights(product_title: str):
             "pros": parsed_data.get("pros", [])[:3],
             "cons": parsed_data.get("cons", [])[:3]
         }
-
+    # [AI Assist: Ref 4] - See docs/GenAI-Reflection.md for prompt and architectural review.
     except Exception as e:
         print(f"AI insight failed: {e}")
         summary_fallback = organic_snippet.replace("I ", "Users ").replace("my ", "the ").strip()
