@@ -93,53 +93,69 @@ During functional testing, we encountered architectural decisions that required 
 2. **Local Storage for Session Management:**
    * *Observation (FCT-03):* We rely on `localStorage.getItem('isLoggedIn')` to manage frontend routing guards.
    * *Trade-off:* While this is highly performant and stateless, it is technically susceptible to simple manipulation (a user manually setting the key in DevTools). Since our backend endpoints (like `/auth/history`) still validate the actual user email before returning sensitive data, we accepted this frontend limitation to keep the architecture streamlined and avoid the overhead of implementing HTTP-only refresh cookies for this coursework prototype.
-   # Security Testing & Vulnerability Assessment
-
-**Document Authors & Contributors:** {% contributors %}
-
----
+# Security Testing & Vulnerability Assessment
 
 ## 1. Overview
-The Security Testing phase validates the application's resilience against common web vulnerabilities (referencing **OWASP standards**). Because HoneyHive handles user credentials, search histories, and integrates with external AI APIs, securing data payloads and database queries is paramount. 
 
-This testing evaluates:
-* **Authentication mechanisms**
-* **Injection prevention**
-* **API boundary configurations**
-* **Third-party dependency vulnerabilities** (Software Supply Chain)
+The Security Testing phase evaluates the HoneyHive platform against common web application vulnerabilities, guided by the principles of the OWASP Top 10. Given that the system processes user credentials, search histories, and interacts with third-party AI and scraping services, ensuring robust protection of data flows and backend logic is essential.
+
+This phase focuses on validating:
+
+* **Authentication and access control mechanisms**
+* **Injection attack prevention (e.g., SQL Injection)**
+* **API boundary enforcement and request validation**
+* **Server-side request handling risks (e.g., SSRF)**
+* **Third-party dependency vulnerabilities (Software Supply Chain Security)**
+* **Rate limiting and brute-force protection**
 
 ---
 
 ## 2. Structured Test Cases
 
-| Test ID | Scenario | Input / Action | Expected Result | Actual Result & Resolution | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **ST-01** | SQL Injection (SQLi) Prevention | Enter `' OR 1=1 --` into the Login email field and `DROP TABLE users;` in the password field. | The backend should reject the inputs as invalid strings and not execute SQL commands. | **Pass.** SQLAlchemy's ORM successfully parameterized the query, treating input strictly as string data. | ✅ Pass |
-| **ST-02** | Secure Password Storage | Register a user with password `MySecret123!`. Query the local `honeyhive.db` file. | The database must not store the password in plain text. | **Pass.** The database stored an 87-character `pbkdf2_sha256` hash. | ✅ Pass |
-| **ST-03** | Insecure Direct Object Reference (IDOR) | Send a `GET` request to `https://honey-hive-api.onrender.com/auth/history?email="emailid"` | The backend should reject the request with a `401 Unauthorized` if the email doesn't match the token owner. | **Fail.** Despite JWT tokens being present in the architecture, the backend fails to validate the `email` parameter against the token subject, allowing cross-user data access. | ❌ Fail |
-| **ST-04** | API Key Exposure Prevention | Inspect compiled frontend React build and network payloads. | `GEMINI_API_KEY` and `SERPAPI_KEY` must not be visible to the client. | **Pass.** All external API calls are safely proxied through the Python backend. | ✅ Pass |
-| **ST-05** | Dependency Vulnerability Scanning | Run `npm audit` on the React frontend repository. | The dependency tree should return 0 known vulnerabilities. | **Initial Fail:** Detected High-Severity ReDoS in `picomatch`. **Resolution:** Executed `npm audit fix` to patch. | ✅ Pass (Fixed) |
-| **ST-06** | Sub-Dependency Version Conflicts | Resolve `esbuild <=0.24.2` vulnerability without breaking Vite 6 pipeline. | Secure the app while preserving Vite stability. | **Initial Fail:** `audit fix` bypassed this due to breaking change risk. **Resolution:** Implemented `overrides` in `package.json`. | ✅ Pass (Fixed) |
+| Test ID | Scenario | Input / Action | Expected Result | Actual Result & Resolution | Status | 
+| :--- | :--- | :--- | :--- | :--- | :--- | 
+| **ST-01** | SQL Injection (SQLi) Prevention | Enter `' OR 1=1 --` in email and `DROP TABLE users;` in password | Backend should treat input as plain text and prevent query manipulation | **Pass.** SQLAlchemy ORM parameterised queries successfully prevented execution of injected SQL. | ✅ Pass | 
+| **ST-02** | Secure Password Storage | Register user with password `MySecret123!` and inspect database | Password must not be stored in plaintext | **Pass.** Password stored as a salted `pbkdf2_sha256` hash (~87 chars), ensuring strong cryptographic protection. | ✅ Pass | 
+| **ST-03** | Insecure Direct Object Reference (IDOR) | Request `/auth/history?email=<other_user_email>` | Backend should validate ownership and reject unauthorized access | **Fail.** JWT authentication was removed due to Vercel deployment conflicts. Endpoint currently lacks subject validation, allowing cross-user data access. | ❌ Fail | 
+| **ST-04** | API Key Exposure Prevention | Inspect frontend build and network traffic | API keys must remain server-side only | **Pass.** `GEMINI_API_KEY` and `SERPAPI_KEY` are securely stored in backend environment variables. | ✅ Pass | 
+| **ST-05** | Dependency Vulnerability Scan | Run `npm audit` on frontend dependencies | No high/critical vulnerabilities | **Initial Fail.** ReDoS vulnerability in `picomatch`. **Resolved** via `npm audit fix`. | ✅ Pass (Fixed) | 
+| **ST-06** | Sub-dependency Security Handling | Resolve `esbuild` vulnerability without breaking Vite build | Maintain secure dependency tree without breaking app | **Initial Fail.** Fix required breaking upgrade. **Resolved** using `overrides` in `package.json`. | ✅ Pass (Fixed) | 
+| **ST-07** | Server-Side Request Forgery (SSRF) | Inject URL via `/api/search?q=https://webhook.site/<id>` and `/api/search?q=http://127.0.0.1` | Backend should block or sanitise external/internal URL requests | **Partial Fail.** Outbound requests were triggered (confirmed via webhook), indicating SSRF. However, internal access attempts failed or fell back to safe logic, and no sensitive data was exposed. | ⚠️ Partial | 
+| **ST-08** | Rate Limiting & Brute-Force Protection | Send 50+ rapid automated login requests to `/auth/login` with invalid credentials | Backend should throttle requests and return `HTTP 429 Too Many Requests` | **Fail.** No rate limiting is enforced on the authentication endpoints. The server processed all requests without restriction. | ❌ Fail |
 
 ---
 
 ## 3. Engineering Judgement & Trade-offs
-A critical aspect of software security is balancing robust protection against development scope and system complexity.
 
-### Object-Relational Mapping (ORM) over Raw SQL
-* **Judgement (Test ST-01):** By strictly using the **SQLAlchemy ORM** (`db.py`) rather than raw `db.execute()` queries, we inherently protected the system from first-order SQL injection attacks. This abstraction allows us to trust user inputs safely without writing manual sanitization regex.
+Security engineering requires balancing protection, usability, and development constraints. The following design decisions reflect these trade-offs:
 
-### The IDOR Vulnerability Trade-off
-* **Critical Reflection (Test ST-03):** During security testing, we identified a critical IDOR vulnerability at the endpoint: `https://honey-hive-api.onrender.com/auth/history?email="emailid"`. 
-* **The JWT Issue:** While the system utilizes **JWT tokens**, the current implementation proved unresolvable for this specific IDOR flaw within the current sprint. The backend successfully issues tokens, but the logic at the `/auth/history` route fails to cross-reference the `sub` (subject) claim in the JWT with the `email` query parameter.
-* **Trade-off:** Fully resolving this requires refactoring the backend middleware to enforce strict ownership checks on every authenticated request. Due to the prototype's timeline, we have documented this as a known high-priority risk. In a production environment, session-to-resource mapping must be enforced server-side.
+### 3.1 ORM-Based Query Protection
 
-### Cross-Origin Resource Sharing (CORS)
-* **Limitation:** In `main.py`, our `CORSMiddleware` is configured with `allow_origins=["*"]`.
-* **Trade-off:** This allows any domain to ping our API, presenting a **Cross-Site Request Forgery (CSRF)** risk. This was a deliberate configuration choice to ensure seamless integration between the frontend and the local backend during the development phase.
+* **Observation (ST-01):** The application uses SQLAlchemy ORM instead of raw SQL queries.
+* **Judgement:** This abstraction inherently mitigates SQL Injection risks by enforcing parameterised queries, eliminating the need for manual sanitisation logic.
 
-### Cryptographic Algorithm Choice
-* **Judgement (Test ST-02):** We utilized `passlib` with the `pbkdf2_sha256` algorithm in `security.py`. PBKDF2 includes key stretching and automatic salt generation, effectively mitigating pre-computed **rainbow table attacks** against our local SQLite database.
+### 3.2 IDOR Vulnerability (Critical Risk)
 
-### Dependency Management & Supply Chain Security
-* **Judgement (Tests ST-05 & ST-06):** We successfully patched `picomatch` using standard audit fixes. However, patching `esbuild` required a major version bump to our build tool. Recognizing the architectural risk of introducing a breaking change to the build pipeline late in the SDLC, we utilized **npm overrides** to force a secure version of the sub-dependency. This demonstrates a mature, balanced approach to securing the software supply chain without jeopardizing system integrity.
+* **Observation (ST-03):** The `/auth/history` endpoint allows users to retrieve data using an arbitrary email parameter.
+* **Issue:** JWT authentication was initially implemented but had to be removed due to deployment conflicts and compatibility issues with the Vercel hosting environment. Consequently, the backend does not currently validate a user's authenticated identity against the requested email.
+* **Impact:** This results in unauthorized cross-user data access, representing a **high-severity access control flaw**.
+* **Trade-off:** Fixing this requires implementing a Vercel-compatible authentication mechanism and strict server-side authorization checks across all protected routes. Due to project scope constraints and the deployment blockers encountered, this has been documented as a known critical issue.
+
+### 3.3 Server-Side Request Forgery (SSRF)
+
+* **Observation (ST-07):** The `/api/search` endpoint processes user input containing URLs and passes it directly into a scraping function (`requests.get()`).
+* **Validation:** Outbound requests were successfully triggered and captured using webhook testing, confirming SSRF behaviour.
+* **Impact Analysis:**
+  * External requests can be triggered by user input.
+  * Internal probing (e.g., `127.0.0.1`) is partially possible.
+  * No direct sensitive data exposure due to limited HTML parsing.
+  * No cloud metadata endpoints present (reducing severity).
+* **Conclusion:** This represents a **Low–Medium severity vulnerability** in the current architecture, with the potential to escalate significantly if raw responses are returned in future features, the app is deployed in a cloud environment, or internal services are introduced.
+* **Trade-off:** Allowing flexible URL-based search improves user experience but introduces risk due to insufficient input validation.
+
+### 3.4 CORS Configuration & CSRF Risk
+
+* **Observation:** The backend uses:
+
+  ```python
+  allow_origins=["*"]
