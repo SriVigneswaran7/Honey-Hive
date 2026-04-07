@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Filter, X, Check } from 'lucide-react';
-
+/**
+ * A modal component for filtering and sorting product search results.
+ * Rendered via React Portal at the document body level for persistent positioning.
+ * * @component
+ * @param {Object} props - The component props.
+ * @param {function(): void} props.onClose - Callback triggered to close the modal (backdrop or close button).
+ * @param {string} props.selectedStore - The currently active store filter (e.g., "All" or store name).
+ * @param {function(string): void} props.setSelectedStore - State setter to update the selected store.
+ * @param {string} props.sortOrder - Current sorting preference ('default', 'low-high', or 'high-low').
+ * @param {function(string): void} props.setSortOrder - State setter to update the sort order.
+ * @param {string|number} props.minPrice - The user-defined minimum price filter.
+ * @param {function(string): void} props.setMinPrice - State setter for the minimum price input.
+ * @param {string|number} props.maxPrice - The user-defined maximum price filter.
+ * @param {function(string): void} props.setMaxPrice - State setter for the maximum price input.
+ * @param {string[]} props.uniqueStores - Array of available store names found in the search results.
+ * @param {string} props.storeSearchQuery - The search term used to filter the list of stores within the modal.
+ * @param {function(string): void} props.setStoreSearchQuery - State setter for the store search input.
+ * @param {function(): void} props.onApply - Callback to execute the filtering logic and refresh results.
+ * * @returns {JSX.Element} A portal-mounted modal for user selection.
+ */
 export default function FilterModal({
   onClose,
   selectedStore,
