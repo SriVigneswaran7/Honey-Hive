@@ -11,6 +11,26 @@ load_dotenv(find_dotenv())
 
 # Pre-scraper
 def fetch_url_title(url):
+    """
+    Fetches and cleans the HTML title of a given webpage.
+
+    This function makes a quick, lightweight HTTP GET request to the provided URL 
+    and uses regular expressions to extract the text inside the <title> tag. It 
+    then cleans the extracted title by removing common promotional words (like "Buy") 
+    and discarding anything after a pipe character ('|'), which is typically used 
+    for site branding. 
+
+    If the request fails (e.g., due to a timeout, bad URL, or blocking) or if 
+    no title tag is found, the function gracefully handles the error and returns 
+    the original URL as a fallback.
+
+    Args:
+        url (str): The web address to fetch the title from.
+
+    Returns:
+        str: The cleaned webpage title if successful, or the original URL 
+             if the request fails or no title is found.
+    """
     try:
         
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -28,6 +48,26 @@ def fetch_url_title(url):
         return url
 
 def parse_input(input_list):
+    """
+    Cleans and optimizes raw text or URLs into a concise product search query using AI.
+
+    This function prepares user input for downstream comparative searches. 
+    If the input is a URL, it first extracts the webpage title (using `fetch_url_title`). 
+    It then leverages the Gemini API to intelligently extract just the core product 
+    name, automatically stripping away store names (like "Tesco" or "Currys"), 
+    promotional jargon, and unnecessary symbols.
+
+    Args:
+        input_list (str): The raw user input, which can be a product URL or 
+            a messy string containing the product name.
+
+    Returns:
+        str: The AI-optimized product search string (e.g., turning 
+             "Buy Nike Air Max 90 Shoes at ASOS UK" into "Nike Air Max 90"). 
+             If the AI request fails, times out, or if the API key is missing, 
+             it falls back to returning the locally cleaned webpage title or 
+             the original raw input.
+    """
     gemini_key = os.getenv("GEMINI_API_KEY")
 
     if not gemini_key:
