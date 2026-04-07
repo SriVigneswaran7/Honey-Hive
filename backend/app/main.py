@@ -33,6 +33,15 @@ app.add_middleware(
 # Startup
 @app.on_event("startup")
 def startup_event():
+    """
+    Executes essential setup tasks when the application starts.
+
+    This function acts as the main startup routine. It first ensures the 
+    database tables are created by calling `init_db()`. Then, it opens a 
+    temporary database session to verify that a default demo user exists 
+    (creating one if necessary using `ensure_demo_user()`), and safely 
+    closes the session once finished to prevent connection leaks.
+    """
    init_db()
    db = SessionLocal()
    try:
@@ -43,6 +52,19 @@ def startup_event():
 # Basic Root Route
 @app.get("/")
 def root():
+    """
+    Serves as the health check and root endpoint for the API.
+
+    This endpoint provides a quick way to verify that the HoneyHive API 
+    service is up, running, and accessible. It is typically mapped to 
+    the root URL ('/') of the application.
+
+    Returns:
+        dict: A simple JSON response indicating the API's status. 
+            - 'status' (str): The current operational state (e.g., "online").
+            - 'message' (str): A brief confirmation message.
+    """
+
    return {"status": "online", "message": "HoneyHive API is running"}
 
 # Unified Search Route
