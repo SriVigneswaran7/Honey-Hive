@@ -2,6 +2,18 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check } from 'lucide-react';
 
+/**
+ * A modal component that renders a side-by-side product comparison using a React Portal.
+ * Displays product details, prices, ratings, and AI-generated store trust scores.
+ * * @component
+ * @param {Object} props - The component props.
+ * @param {boolean} props.showCompareModal - Controls the visibility of the modal.
+ * @param {function(boolean): void} props.setShowCompareModal - State setter function to update the modal's visibility.
+ * @param {Array<Object>} props.selectedForCompare - Array of product objects selected for comparison.
+ * @param {boolean} props.isComparingLoading - Indicates whether the AI trust scores are currently being fetched.
+ * @param {Object.<string, string>} props.trustScores - A dictionary mapping store names to their AI trust scores (e.g., "High", "Low").
+ * @returns {JSX.Element | null} The rendered portal containing the modal, or null if it shouldn't be shown.
+ */
 export default function CompareModal({
   showCompareModal,
   setShowCompareModal,
