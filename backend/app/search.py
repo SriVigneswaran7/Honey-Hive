@@ -156,6 +156,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         data = response.json()
         
         results = []
+        # [AI Assist: Ref 2] - See docs/GenAI-Reflection.md for prompt and architectural review.
         for item in data.get("shopping_results", []):
             raw_price = str(item.get("price", "0"))
             
