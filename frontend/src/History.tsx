@@ -3,7 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Clock, ChevronRight } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
+/**
+ * The History component page.
+ * Displays a list of the user's past search queries and deal counts retrieved from the backend.
+ * * @component
+ * @description
+ * This page includes an authentication check on mount. If no `isLoggedIn` flag is found
+ * in localStorage, the user is redirected to the home page. It fetches history data
+ * using the user's email as a query parameter.
+ * * @returns {JSX.Element} The rendered History page with a list of past searches or an empty state.
+ */
 export default function History() {
   const navigate = useNavigate();
 
