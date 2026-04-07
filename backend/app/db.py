@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from . import config
-# [AI Assist: Ref 12] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 12] - See GenAIReflection.md for prompt and architectural review.
 class Base(DeclarativeBase):
    pass
 

@@ -503,7 +503,7 @@ def filter_codes_by_product(codes, product_info):
     relevant.sort(key=lambda x: x[1], reverse=True)
     return [c for c, _ in relevant], neutral, irrelevant
 
-# [AI Assist: Ref 9] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 9] - See GenAIReflection.md for prompt and architectural review.
 def clean_codes(codes):
     """
     Sanitizes, filters, and deduplicates a raw list of scraped discount codes.
@@ -776,7 +776,7 @@ def scrape_store_own_pages(domain, brand):
 
     return clean_codes(all_codes)
 
-# [AI Assist: Ref 8] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 8] - See GenAIReflection.md for prompt and architectural review.
 def scrape_coupon_sites_playwright(domain, brand):
     """
     Scrapes coupon aggregator sites using a headless Playwright browser.
@@ -1080,7 +1080,7 @@ def scrape_product_page(url):
     return found, resp.text if resp else ""
 
 #  VERIFICATION — Playwright (real browser)
-# [AI Assist: Ref 10] - See docs/GenAI-Reflection.md for prompt and architectural review.
+# [AI Assist: Ref 10] - See GenAIReflection.md for prompt and architectural review.
 def rank_codes_with_ai(codes, product_info, domain, product_url=''):
     """
     Leverages the Gemini AI API to semantically rank discount codes by product relevance.
