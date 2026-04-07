@@ -9,6 +9,17 @@
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
+## Documentation
+[![Frontend Docs](https://img.shields.io/badge/Docs-Frontend_UI-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html)
+[![Backend Docs](https://img.shields.io/badge/Docs-Backend_API-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
+
+> **Note:** **Click the badges above** to access the live, auto-generated technical documentation hosted securely via GitHub Pages. 
+>
+> * **Frontend Docs (TS):** Explores the React component hierarchy, Vite configuration, and client-side logic.
+> * **Backend Docs (Python):** Explores the FastAPI endpoints, SQLite database schemas, AI orchestration, and extraction logic.
+>
+> *Alternatively, you can use these direct links:* [Frontend UI Docs](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html) | [Backend API Docs](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
+
 ## Honey-Hive Tech Stack
 
 ### *Frontend*
