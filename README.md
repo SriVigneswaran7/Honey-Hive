@@ -9,6 +9,17 @@
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
+## Documentation
+[![Frontend Docs](https://img.shields.io/badge/Docs-Frontend_UI-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html)
+[![Backend Docs](https://img.shields.io/badge/Docs-Backend_API-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
+
+> **Note:** **Click the badges above** to access the live, auto-generated technical documentation hosted securely via GitHub Pages. 
+>
+> * **Frontend Docs (TS):** Explores the React component hierarchy, Vite configuration, and client-side logic.
+> * **Backend Docs (Python):** Explores the FastAPI endpoints, SQLite database schemas, AI orchestration, and extraction logic.
+>
+> *Alternatively, you can use these direct links:* [Frontend UI Docs](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html) | [Backend API Docs](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
+
 ## Honey-Hive Tech Stack
 
 ### *Frontend*
@@ -159,18 +170,21 @@ npm run dev
 
 ```text
 elee1149-courswork-2025-hive/
-├── .github/                # GitHub metadata and keep files
+├── .github/                # GitHub actions and metadata
 ├── assets/                 # SVGs and Screenshots for documentation
 ├── backend/                # Python/FastAPI Application
-│   ├── app/                # API routes, models, and scraper logic
-│   ├── honeyhive.db        # SQLite Database
-│   ├── requirements.txt    # Backend dependencies
-│   └── run.py              # Backend entry point
+│   ├── app/                # API routes, auth, AI models, and scraper logic
+│   ├── docs/python-dist/   # Generated pdoc HTML technical documentation
+│   ├── honeyhive.db        # Local SQLite Database
+│   ├── requirements.txt    # Backend Python dependencies
+│   └── run.py              # Backend server entry point
 ├── frontend/               # React/Vite Application
-│   ├── src/                # UI Components and Logic
-│   ├── .npmrc              # Dependency resolution config
+│   ├── docs/ts-dist/       # Generated TypeDoc HTML UI documentation
+│   ├── src/                # React UI Components and client-side logic
+│   ├── .vercel/            # Vercel deployment configuration
+│   ├── .env.example        # Environment variables template
 │   ├── index.html          # HTML entry point
-│   ├── package.json        # Frontend dependencies
+│   ├── package.json        # Frontend dependencies and build scripts
 │   └── tailwind.config.js  # UI Theme configuration
 ├── .gitignore              # Version control ignore rules
 ├── CHANGELOG.md            # Version history and semantic commits
@@ -178,6 +192,7 @@ elee1149-courswork-2025-hive/
 ├── LICENSE                 # Project License
 ├── README.md               # Project README
 ├── Requirements.md         # Requirements Specification
+├── SoftwareLifecycle.md    # Agile SDLC and sprint reflections
 ├── SystemModelling.md      # UML diagrams & Architectural decisions
 ├── Testing.md              # Test plans and validation results
 └── Workflow.md             # Development workflow and commit strategy
