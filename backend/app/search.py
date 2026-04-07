@@ -252,7 +252,7 @@ def evaluate_trust(stores: list):
         for store in stores_for_ai: results[store] = "Moderate"
             
     return results
-
+# [AI Assist: Ref 3] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def generate_ai_insights(product_title: str):
     """
     Generates an AI-driven technical summary, pros, and cons for a specific product.
