@@ -299,6 +299,24 @@ class CouponRequest(BaseModel):
 
 @app.post("/api/coupons")
 def get_coupons(payload: CouponRequest):
+    """
+    Retrieves and ranks discount codes for a specified store or product.
+
+    This endpoint accepts a coupon request payload and delegates the 
+    scraping and AI-ranking logic to the `find_and_rank_codes` utility. 
+    It configures the underlying scraper to utilize both Google search 
+    and a headless browser for maximum discovery coverage.
+
+    Args:
+        payload (CouponRequest): The request body containing the target 
+            `store` name, product `url`, and product `title`.
+
+    Returns:
+        dict: A dictionary containing a 'codes' key, which maps to a list 
+              of ranked discount code dictionaries. Each code dictionary 
+              typically includes the code string, an AI confidence score, 
+              and a reasoning string.
+    """
     print(f"[API] Searching coupons for store: {payload.store}")
     
     codes = find_and_rank_codes(
