@@ -159,6 +159,25 @@ async def review(request: Request):
 
 @app.post("/api/trust")
 async def get_trust(request: Request):
+    """
+    Evaluates the trustworthiness of multiple retail stores.
+
+    This asynchronous endpoint accepts a JSON payload containing a list of 
+    store names. It processes these names through the `evaluate_trust` utility, 
+    which uses a hybrid approach (checking against known trusted brands and 
+    using AI for unknown entities) to assign a trust score ('High', 'Moderate', or 'Low') 
+    to each merchant.
+
+    Args:
+        request (Request): The incoming HTTP request containing the JSON payload. 
+            Expected to contain a 'stores' list of strings 
+            (e.g., {"stores": ["Amazon", "TechGadgetsUK"]}).
+
+    Returns:
+        dict: A dictionary containing a 'trust_scores' key, which maps to the 
+              results dictionary mapping store names to their respective scores.
+              Example: {"trust_scores": {"Amazon": "High", "TechGadgetsUK": "Moderate"}}
+    """
     data = await request.json()
     stores = data.get("stores", [])
     trust_scores = evaluate_trust(stores)
