@@ -195,6 +195,25 @@ class SignupRequest(BaseModel):
 
 @app.post("/auth/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Processes user login requests by verifying credentials.
+
+    This endpoint accepts a login payload containing an email and password, 
+    and passes them to the `authenticate` utility for verification against 
+    the database. It returns a standardized JSON response indicating whether 
+    the login was successful.
+
+    Args:
+        payload (LoginRequest): The expected request body containing the user's 
+            `email` and `password`.
+        db (Session, optional): The database session injected via dependency.
+
+    Returns:
+        dict: A dictionary containing the authentication results:
+            - 'ok' (bool): True if login succeeded, False otherwise.
+            - 'message' (str): A descriptive message (e.g., "Login successful" or error reason).
+            - 'email' (str, optional): The user's email, included only if successful.
+    """
    result = authenticate(db, payload.email, payload.password)
    if not result.ok:
        return {"ok": False, "message": result.reason}
@@ -202,6 +221,23 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db: Session = Depends(get_db)):
+    """
+    Registers a new user account and creates an associated profile.
+
+    This endpoint checks if the provided email is already registered in the database. 
+    If not, it securely hashes the provided password, creates a new `User` record, 
+    and then creates a linked `UserProfile` with the given display name. 
+
+    Args:
+        payload (SignupRequest): The expected request body containing the user's 
+            `email`, `password`, and `name` (display name).
+        db (Session, optional): The database session injected via dependency.
+
+    Returns:
+        dict: A dictionary containing the registration results:
+            - 'ok' (bool): True if signup succeeded, False if the email already exists.
+            - 'message' (str): A descriptive message (e.g., "Signup successful" or "Email already exists").
+    """
    existing = db.query(User).filter(User.email == payload.email).first()
    if existing:
        return {"ok": False, "message": "Email already exists"}
