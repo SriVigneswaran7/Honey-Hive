@@ -194,7 +194,7 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         return []
     
 def evaluate_trust(stores: list):
-     """
+    """
     Evaluates the trustworthiness of a list of retail stores using a hybrid approach.
 
     This function first checks the provided store names against a hardcoded list 
@@ -212,8 +212,8 @@ def evaluate_trust(stores: list):
 
     Returns:
         dict: A dictionary mapping the original store names to their respective 
-              trust ratings. 
-              Example: {'Amazon': 'High', 'TechGadgetsUK': 'Moderate', 'John Lewis': 'High'}
+            trust ratings. 
+            Example: {'Amazon': 'High', 'TechGadgetsUK': 'Moderate', 'John Lewis': 'High'}
     """
     gemini_key = os.getenv("GEMINI_API_KEY")
     results = {}

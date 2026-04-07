@@ -42,12 +42,12 @@ def startup_event():
     (creating one if necessary using `ensure_demo_user()`), and safely 
     closes the session once finished to prevent connection leaks.
     """
-   init_db()
-   db = SessionLocal()
-   try:
-       ensure_demo_user(db)
-   finally:
-       db.close()
+    init_db()
+    db = SessionLocal()
+    try:
+        ensure_demo_user(db)
+    finally:
+        db.close()
 
 # Basic Root Route
 @app.get("/")
@@ -65,7 +65,7 @@ def root():
             - 'message' (str): A brief confirmation message.
     """
 
-   return {"status": "online", "message": "HoneyHive API is running"}
+    return {"status": "online", "message": "HoneyHive API is running"}
 
 # Unified Search Route
 @app.get("/api/search")
@@ -215,10 +215,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             - 'message' (str): A descriptive message (e.g., "Login successful" or error reason).
             - 'email' (str, optional): The user's email, included only if successful.
     """
-   result = authenticate(db, payload.email, payload.password)
-   if not result.ok:
-       return {"ok": False, "message": result.reason}
-   return {"ok": True, "message": "Login successful", "email": payload.email}
+    result = authenticate(db, payload.email, payload.password)
+    if not result.ok:
+        return {"ok": False, "message": result.reason}
+    return {"ok": True, "message": "Login successful", "email": payload.email}
 
 @app.post("/auth/signup")
 def signup(payload: SignupRequest, db: Session = Depends(get_db)):
@@ -239,19 +239,19 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
             - 'ok' (bool): True if signup succeeded, False if the email already exists.
             - 'message' (str): A descriptive message (e.g., "Signup successful" or "Email already exists").
     """
-   existing = db.query(User).filter(User.email == payload.email).first()
-   if existing:
-       return {"ok": False, "message": "Email already exists"}
-   
-   user = User(email=payload.email, password_hash=hash_password(payload.password))
-   db.add(user)
-   db.commit()
-   db.refresh(user)
-   
-   profile = UserProfile(user_id=user.id, display_name=payload.name)
-   db.add(profile)
-   db.commit()
-   return {"ok": True, "message": "Signup successful"}
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        return {"ok": False, "message": "Email already exists"}
+    
+    user = User(email=payload.email, password_hash=hash_password(payload.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    profile = UserProfile(user_id=user.id, display_name=payload.name)
+    db.add(profile)
+    db.commit()
+    return {"ok": True, "message": "Signup successful"}
 
 # History Route
 @app.get("/auth/history")

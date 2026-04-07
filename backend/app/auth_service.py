@@ -25,9 +25,9 @@ def authenticate(db: Session, email: str, password: str) -> AuthResult:
             It includes a success boolean (True/False) and a descriptive 
             message (e.g., "Authenticated", "User not found", or "Invalid password").
     """
-   user = get_user_by_email(db, email)
-   if user is None:
-       return AuthResult(False, "User not found")
-   if not verify_password(password, user.password_hash):
-       return AuthResult(False, "Invalid password")
-   return AuthResult(True, "Authenticated")
+    user = get_user_by_email(db, email)
+    if user is None:
+        return AuthResult(False, "User not found")
+    if not verify_password(password, user.password_hash):
+        return AuthResult(False, "Invalid password")
+    return AuthResult(True, "Authenticated")
