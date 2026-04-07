@@ -190,7 +190,11 @@ Some parts of this project were developed with the help of AI tools (e.g., Googl
 A detailed critical reflection, including representative prompts, evaluation of AI suggestions, encountered limitations, and the influence on our software engineering decision-making, can be found in the dedicated documentation file:
 
 **[View GenAI Reflection](./GenAIReflection.md)**
+## Agile Learning & Software Life Cycle
 
+The development of Honey-Hive was driven by an Agile learning methodology, allowing the team to iteratively build, test, and reflect upon each phase of the Software Development Life Cycle (SDLC). By treating each sprint as an opportunity for both technical advancement and continuous feedback, we dynamically adapted our workflows to tackle complex integrations like the Gemini AI LLM and headless browser scraping. This document details our iterative processes, sprint reflections, and the complete life cycle of the application from conception to deployment.
+
+**[View Agile Learning & SDLC Documentation](./SoftwareLifecycle.md)**
 ## System Requirements & Specifications
 
 This project adheres to strict functional and non-functional requirements to ensure a robust and scalable architecture. The documentation outlines the core user stories, use cases, and the hybrid extraction and redirection logic powering the Honey-Hive platform.
