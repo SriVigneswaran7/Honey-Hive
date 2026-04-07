@@ -51,6 +51,7 @@
 - [Screenshots](#screenshots)
 - [Project Structure](#project-structure)
 - [AI Usage & Reflection](#ai-usage--reflection)
+- [Agile Learning & Software Life Cycle](#agile-learning--software-life-cycle)
 - [System Requirements & Specifications](#system-requirements--specifications)
 - [Architecture & System Modelling](#architecture--system-modelling)
 - [Git Workflow & Version Control](#git-workflow--version-control)
