@@ -4,7 +4,17 @@ import {
   Search, Sparkles, Swords, Tag, ShieldCheck, 
   Lightbulb, Sun, Moon, Zap, Lock, ArrowLeft, Activity
 } from 'lucide-react';
-
+/**
+ * The Help ("Playbook") component.
+ * Provides a categorized, grid-based overview of the application's core features 
+ * and AI-driven capabilities for the user.
+ * * @component
+ * @description
+ * Features an interactive bento-style grid where each card describes a specific 
+ * subsystem (e.g., Smart Discovery, AI Verdicts, Live Coupons). It also handles
+ * local theme toggling specific to the help context.
+ * * @returns {JSX.Element} The rendered help page with interactive feature cards.
+ */
 export default function Help() {
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(false);
@@ -19,7 +29,19 @@ export default function Help() {
     document.documentElement.classList.toggle('dark', newTheme);
     localStorage.setItem('theme', newTheme ? 'dark' : 'light');
   };
-
+/**
+   * Configuration for the help sections.
+   * Defines the iconography, copy, and layout weight for the bento grid.
+   * * @type {Array<{
+   * id: string, 
+   * icon: JSX.Element, 
+   * title: string, 
+   * subtitle: string, 
+   * desc: string, 
+   * grid: string, 
+   * tip: string
+   * }>}
+   */
   const sections = [
     {
       id: "hunt",

@@ -4,7 +4,12 @@ import { User, Clock, LogOut, Sun, Moon, Sparkles, Tag, Star, ShieldCheck } from
 import CouponModal from './Coupons';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
+/**
+ * A placeholder loading state component for AI insights.
+ * Uses CSS animations to create a shimmering "skeleton" effect while data is being fetched.
+ * @component
+ * @private
+ */
 const InsightSkeleton = () => (
   <div className="glass-card rounded-[2.5rem] p-10 border border-gray-200 dark:border-white/10 shadow-2xl relative overflow-hidden">
     
@@ -38,7 +43,16 @@ const InsightSkeleton = () => (
     </div>
   </div>
 );
-
+/**
+ * The Product Details page component.
+ * Displays comprehensive product information, including an AI-generated summary,
+ * Pros/Cons list, reliability checks, and a coupon discovery feature.
+ * * @component
+ * @description
+ * Expects a `product` object passed via React Router navigation state:
+ * `Maps('/review', { state: { product: {...} } })`
+ * * @returns {JSX.Element} The rendered details page or a fallback view if no product is provided.
+ */
 export default function Details() {
   const navigate = useNavigate();
   const location = useLocation();

@@ -11,6 +11,26 @@ load_dotenv(find_dotenv())
 
 # Pre-scraper
 def fetch_url_title(url):
+    """
+    Fetches and cleans the HTML title of a given webpage.
+
+    This function makes a quick, lightweight HTTP GET request to the provided URL 
+    and uses regular expressions to extract the text inside the <title> tag. It 
+    then cleans the extracted title by removing common promotional words (like "Buy") 
+    and discarding anything after a pipe character ('|'), which is typically used 
+    for site branding. 
+
+    If the request fails (e.g., due to a timeout, bad URL, or blocking) or if 
+    no title tag is found, the function gracefully handles the error and returns 
+    the original URL as a fallback.
+
+    Args:
+        url (str): The web address to fetch the title from.
+
+    Returns:
+        str: The cleaned webpage title if successful, or the original URL 
+             if the request fails or no title is found.
+    """
     try:
         
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -28,6 +48,26 @@ def fetch_url_title(url):
         return url
 
 def parse_input(input_list):
+    """
+    Cleans and optimizes raw text or URLs into a concise product search query using AI.
+
+    This function prepares user input for downstream comparative searches. 
+    If the input is a URL, it first extracts the webpage title (using `fetch_url_title`). 
+    It then leverages the Gemini API to intelligently extract just the core product 
+    name, automatically stripping away store names (like "Tesco" or "Currys"), 
+    promotional jargon, and unnecessary symbols.
+
+    Args:
+        input_list (str): The raw user input, which can be a product URL or 
+            a messy string containing the product name.
+
+    Returns:
+        str: The AI-optimized product search string (e.g., turning 
+             "Buy Nike Air Max 90 Shoes at ASOS UK" into "Nike Air Max 90"). 
+             If the AI request fails, times out, or if the API key is missing, 
+             it falls back to returning the locally cleaned webpage title or 
+             the original raw input.
+    """
     gemini_key = os.getenv("GEMINI_API_KEY")
 
     if not gemini_key:
@@ -65,6 +105,34 @@ def parse_input(input_list):
         
 
 def unified_search(user_input: str, min_price: float = None, max_price: float = None):
+    """
+    Searches Google Shopping for product listings and competitors, applying strict price filters.
+
+    This function uses SerpAPI to fetch up to 30 initial shopping results based on the 
+    provided search query. It employs a two-pass price filtering system: first, it 
+    instructs Google's API to filter by price using the 'tbs' parameter. Then, it 
+    manually extracts and verifies the numeric price from the returned string to discard 
+    any items that slipped past Google's filters, ensuring strict adherence to the 
+    provided boundaries. 
+
+    Args:
+        user_input (str): The search query, ideally an AI-optimized product name.
+        min_price (float, optional): The minimum acceptable price. Items cheaper 
+            than this will be discarded. Defaults to None.
+        max_price (float, optional): The maximum acceptable price. Items more 
+            expensive than this will be discarded. Defaults to None.
+
+    Returns:
+        list[dict]: A list of up to 6 validated product dictionaries. Each dictionary contains:
+            - 'store' (str): The merchant or store name (defaults to "Unknown").
+            - 'title' (str): The product listing title.
+            - 'price' (str): The formatted price string (e.g., "£45.99").
+            - 'thumbnail' (str): URL to the product image.
+            - 'link' (str): The destination URL to buy the product.
+            - 'rating' (str): The product rating (defaults to "N/A").
+            - 'reviews' (int): The number of reviews (defaults to 0).
+        Returns an empty list `[]` if the API request fails or an error occurs.
+    """
     api_key = os.getenv("SERPAPI_KEY")
     params = {
         "engine": "google_shopping",
@@ -125,6 +193,27 @@ def unified_search(user_input: str, min_price: float = None, max_price: float = 
         return []
     
 def evaluate_trust(stores: list):
+     """
+    Evaluates the trustworthiness of a list of retail stores using a hybrid approach.
+
+    This function first checks the provided store names against a hardcoded list 
+    of major, highly trusted brands (e.g., Apple, Amazon, Currys) to immediately 
+    assign a "High" trust rating. For any stores not in this trusted list, it batches 
+    them and queries the Gemini API to act as a UK retail expert, returning a 
+    dynamically generated score ('High', 'Moderate', or 'Low'). 
+
+    If the AI request fails, times out, or the API key is missing, the function 
+    safely falls back to assigning a "Moderate" rating to unknown stores.
+
+    Args:
+        stores (list[str]): A list of store or merchant names to evaluate 
+            (e.g., ['Amazon', 'TechGadgetsUK', 'John Lewis']).
+
+    Returns:
+        dict: A dictionary mapping the original store names to their respective 
+              trust ratings. 
+              Example: {'Amazon': 'High', 'TechGadgetsUK': 'Moderate', 'John Lewis': 'High'}
+    """
     gemini_key = os.getenv("GEMINI_API_KEY")
     results = {}
     big_brands = ['apple', 'amazon', 'currys', 'argos', 'john lewis', 'tesco', 'samsung', 'nike', 'adidas']
@@ -164,6 +253,36 @@ def evaluate_trust(stores: list):
     return results
 
 def generate_ai_insights(product_title: str):
+    """
+    Generates an AI-driven technical summary, pros, and cons for a specific product.
+
+    This function performs a deep-dive analysis by first querying SerpAPI for 
+    the top technical reviews and specifications of the product. It then passes 
+    these search snippets as context to the Gemini API. The AI acts as a hardware 
+    analyst, synthesizing the real-world data into a structured JSON response 
+    containing a concise summary and bulleted technical strengths and limitations.
+
+    If either the search or AI requests fail, it gracefully falls back to using 
+    cleaned search snippets or safe, generic placeholder text.
+
+    Args:
+        product_title (str): The name of the product to analyze 
+            (e.g., "Apple iPhone 15 Pro Max").
+
+    Returns:
+        dict: A dictionary containing the AI-generated insights. The keys are:
+            - 'summary' (str): A synthesized two-sentence technical review.
+            - 'pros' (list[str]): A list of up to three short technical strengths.
+            - 'cons' (list[str]): A list of up to three short technical limitations.
+            
+    Example:
+        >>> generate_ai_insights("Sony WH-1000XM5")
+        {
+            "summary": "The Sony WH-1000XM5 features industry-leading noise cancellation powered by the QN1 chip and 30mm carbon fiber drivers. It offers improved call quality and a lightweight design compared to its predecessor.",
+            "pros": ["Excellent noise cancellation", "Lightweight comfortable design", "Clear microphone quality"],
+            "cons": ["Non-folding design", "Not fully water resistant", "Premium price point"]
+        }
+    """
     serp_key = os.getenv("SERPAPI_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
     

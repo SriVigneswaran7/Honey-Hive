@@ -8,7 +8,13 @@ import Details from './Details';
 import Signup from './Signup';
 import History from './History';
 import Help from './Help';
-
+/**
+ * The root application component.
+ * * Responsible for setting up the global layout, initializing the application's 
+ * dark/light theme preferences, and providing the routing context for all pages.
+ * * @component
+ * @returns {JSX.Element} The rendered React component containing the router and global UI layers.
+ */
 function App() {
   // Checks local storage on initial load so the theme stays consistent
   useEffect(() => {

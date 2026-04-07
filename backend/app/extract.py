@@ -15,7 +15,22 @@ load_dotenv(find_dotenv())
 print("[SYSTEM] extract.py module loaded successfully.", flush=True)
 
 def get_domain_name(url):
-    """Turns 'https://www.currys.co.uk/...' into 'Currys'"""
+    """
+    Extracts and capitalizes the primary brand name from a URL.
+
+    This function strips common prefixes (like 'www.') and TLDs (like '.co.uk' 
+    or '.com') to isolate the main site identifier. It is primarily used for 
+    logging and user-facing display titles.
+
+    Args:
+        url (str): The full web address (e.g., 'https://www.nike.com/t-shirts').
+
+    Returns:
+        str: The capitalized brand name (e.g., 'Nike'). 
+             Returns "Store" as a fallback if the URL is malformed or 
+             cannot be parsed.
+
+    """
     try:
         domain = urlparse(url).netloc.replace("www.", "")
         extracted = domain.split('.')[0].capitalize()
@@ -26,8 +41,30 @@ def get_domain_name(url):
 
 def serpapi_search_fallback(query, engine="google"):
     """
-    Uses SerpAPI to find product details when direct scraping is blocked.
-    Can use 'google' (organic indexing) or 'amazon' (direct store search).
+    Fetches product details via SerpAPI when direct scraping fails or is blocked.
+
+    This function acts as a safety net, utilizing third-party search APIs to 
+    extract product metadata (title, price, thumbnail). It supports routing 
+    queries through standard Google organic search or directly through Amazon's 
+    internal search engine.
+
+    Note:
+        Requires the `SERPAPI_KEY` environment variable to be set.
+
+    Args:
+        query (str): The search term, product name, or product URL.
+        engine (str, optional): The search engine to query. Valid options are 
+            'google' (for organic indexing) or 'amazon' (for direct store search). 
+            Defaults to "google".
+
+    Returns:
+        dict | None: A dictionary containing the extracted product details if successful, 
+        or None if the request fails, no key is found, or no results are returned.
+        The dictionary guarantees the following keys:
+            - 'title' (str): The name of the product.
+            - 'price' (str): The price of the product, or "Check Site" as a fallback.
+            - 'thumbnail' (str): URL to the product image (mostly populated for Amazon).
+            - 'link' (str): The direct URL to the product.
     """
     api_key = os.getenv("SERPAPI_KEY")
     if not api_key:
@@ -102,7 +139,31 @@ def serpapi_search_fallback(query, engine="google"):
         return None
 
 def universal_scrape(url):
-    """Safely scrapes product info. Does NOT raise exceptions on 403/500 blocks."""
+    """
+    Safely scrapes product metadata from a given URL without raising exceptions on HTTP errors.
+
+    This function attempts a direct HTTP GET request to the provided URL using standard 
+    browser headers to avoid basic bot detection. It parses the HTML using BeautifulSoup 
+    to extract key product information (title, price, image), prioritizing Open Graph 
+    (og:) tags for accuracy, with fallbacks to standard HTML tags and regular expressions. 
+    If the site blocks the request (e.g., 403 Forbidden) or a timeout occurs, it 
+    gracefully catches the error and returns None instead of crashing.
+
+    Args:
+        url (str): The full URL of the product page to scrape.
+
+    Returns:
+        dict | None: A dictionary containing the scraped product details if successful, 
+        or None if the request is blocked, times out, or fails. 
+        The dictionary contains the following default keys:
+            - 'store' (str): The extracted brand/domain name.
+            - 'title' (str): The product title (defaults to "Product" if not found).
+            - 'price' (str): The product price, or "Check Site" as a fallback.
+            - 'thumbnail' (str): URL to the product's main image.
+            - 'link' (str): The original URL requested.
+            - 'rating' (str): Placeholder for product rating (currently defaults to "N/A").
+            - 'reviews' (int): Placeholder for review count (currently defaults to 0).
+    """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept-Language': 'en-GB,en;q=0.9'
@@ -166,6 +227,41 @@ def universal_scrape(url):
         return None
 
 def run_extraction(link, min_price=None, max_price=None):
+    """
+    Orchestrates the complete product identification and price comparison flow.
+
+    This function attempts to reliably identify a product from a given URL using a 
+    robust, multi-layered fallback strategy. Once the original product is identified 
+    (or approximated), it searches for competitor prices and returns a deduplicated 
+    list of results.
+
+    The extraction follows this hierarchy:
+        1. Amazon ASIN extraction + SerpAPI 'amazon_product' engine.
+        2. SerpAPI 'amazon' fallback search (if Amazon link but ASIN fails).
+        3. Direct HTML scraping via `universal_scrape`.
+        4. SerpAPI 'google' organic search fallback.
+        5. Last resort: Heuristic URL slug parsing to generate a placeholder.
+
+    Args:
+        link (str): The URL of the target product page.
+        min_price (float | int | str, optional): The minimum price threshold for 
+            competitor results. Defaults to None.
+        max_price (float | int | str, optional): The maximum price threshold for 
+            competitor results. Defaults to None.
+
+    Returns:
+        list[dict]: A list of up to 6 product dictionaries. The first element (index 0) 
+        is ALWAYS the extracted original product. Subsequent elements are deduplicated 
+        competitor listings. Each dictionary contains:
+            - 'store' (str): Store or brand name.
+            - 'title' (str): Product name.
+            - 'price' (str): Formatted price string.
+            - 'thumbnail' (str): URL to the product image.
+            - 'link' (str): Direct link to the product.
+            - 'rating' (str): Rating string (e.g., "4.5 out of 5" or "N/A").
+            - 'reviews' (int): Number of reviews.
+        Returns an empty list `[]` if a fatal error occurs during execution.
+    """
     try:
         api_key = os.getenv("SERPAPI_KEY")
         print(f"\n{'='*60}", flush=True)

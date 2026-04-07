@@ -6,7 +6,11 @@ import FilterModal from './Filters';
 import CompareModal from './Comparison';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
+/**
+ * A placeholder skeleton card used during the product fetching phase.
+ * @component
+ * @private
+ */
 const SkeletonCard = () => (
   <div className="relative glass-card rounded-[2.5rem] p-5 flex flex-col border border-gray-200 dark:border-white/10 overflow-hidden h-[500px] animate-pulse">
     {/* Ghost Comparison Button */}
@@ -30,12 +34,24 @@ const SkeletonCard = () => (
     </div>
   </div>
 );
-
+/**
+ * The Results page component.
+ * Acts as the main engine of the application, handling real-time product searches,
+ * complex filtering, price-range sorting, and a multi-product comparison system.
+ * * @component
+ * @description
+ * This component manages several sub-systems:
+ * 1. **Data Fetching**: Communicates with the search API and caches results in `sessionStorage`.
+ * 2. **Filtering**: Processes client-side store filtering and server-side price filtering.
+ * 3. **Comparison**: Manages a selection queue (max 2) for side-by-side product battles.
+ * 4. **Modals**: Controls the visibility and data-flow for Coupon, Filter, and Comparison modals.
+ * * @returns {JSX.Element} The rendered results interface.
+ */
 export default function Results() {
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef = useRef<any>(null);
-
+/** @type {string} Initial search term passed from the Home component state */
   const initialQuery = location.state?.query || '';
 
   const [searchInput, setSearchInput] = useState(initialQuery);
@@ -50,10 +66,12 @@ export default function Results() {
   const [sortOrder, setSortOrder] = useState('default');
   
   // Comparison Logic States
+  /** @type {Array<Object>} List of products currently selected for comparison (max 2) */
   const [selectedForCompare, setSelectedForCompare] = useState<any[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [isComparingLoading, setIsComparingLoading] = useState(false);
   const [trustScores, setTrustScores] = useState<any>({});
+  /** @type {React.MutableRefObject<string|null>} Prevents redundant API calls on component re-renders */
   const lastFetchedQuery = useRef<any>(null);
   
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -117,7 +135,13 @@ export default function Results() {
       localStorage.setItem('theme', 'light');
     }
   };
-
+/**
+   * Performs the product search API call.
+   * Utilizes a composite cache key (query + user + price filters) to minimize network load.
+   * Results are stored in `sessionStorage` for the duration of the browser session.
+   * * @param {string} query - The search term or URL to scan.
+   * @async
+   */
   const fetchProducts = async (query: any) => {
     if (!query) return;
     
@@ -157,7 +181,11 @@ export default function Results() {
       setLoading(false);
     }
   };
-
+/**
+   * Adds or removes a product from the comparison queue.
+   * If two products are already selected, adding a third replaces the oldest selection.
+   * @param {Object} product - The product object to toggle.
+   */
   const toggleCompare = (product: any) => {
     const isSelected = selectedForCompare.some(p => p.title === product.title);
     if (isSelected) {
@@ -179,9 +207,18 @@ export default function Results() {
   }, [initialQuery]);
 
   // Calculate unique stores for the dropdown
+  /**
+   * Calculated list of unique stores based on current search results for the filter UI.
+   * @type {string[]}
+   */
   const uniqueStores = ['All', ...Array.from(new Set(products.map((p: any) => p.store)))];
 
   // Derived state: Filter first, then Sort
+  /**
+   * The final list of products to display, computed by applying 
+   * store filters and price sorting to the base `products` state.
+   * @type {Array<Object>}
+   */
   const filteredProducts = products
     .filter(p => selectedStore === 'All' || p.store === selectedStore)
     .sort((a, b) => {

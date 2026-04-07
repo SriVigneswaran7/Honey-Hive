@@ -26,8 +26,19 @@ import os
 from collections import OrderedDict
 from pathlib import Path
 
-# Load .env file manually (no python-dotenv needed)
 def _load_env():
+    """
+    Manually loads environment variables from a .env file.
+
+    Searches for a '.env' file in two locations: the current working directory 
+    and the directory containing this script. Once the first valid '.env' file 
+    is found, it parses it line by line. It ignores empty lines and comments 
+    (lines starting with '#'), strips whitespace and quotes from the values, 
+    and securely populates the system's environment variables (`os.environ`).
+
+    This provides a lightweight alternative to external libraries like `python-dotenv` 
+    for simple configuration needs.
+    """
     for env_path in [Path('.env'), Path(__file__).parent / '.env']:
         if env_path.exists():
             for line in env_path.read_text().splitlines():
@@ -153,6 +164,19 @@ UNKNOWN = "UNKNOWN"
 
 #  UTILITY
 def get_headers():
+    """
+    Generates a set of realistic HTTP headers to mimic a standard web browser.
+
+    To help bypass basic anti-bot protections during scraping, this function 
+    randomly selects a 'User-Agent' from a predefined list of common browser 
+    agents (`USER_AGENTS`). It also includes standard 'Accept', 'Accept-Encoding', 
+    and 'Connection' headers, as well as a 'DNT' (Do Not Track) flag to further 
+    simulate human traffic.
+
+    Returns:
+        dict: A dictionary of HTTP headers ready to be passed into a requests 
+            or session call.
+    """
     return {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -164,6 +188,28 @@ def get_headers():
 
 def fetch(url, timeout=None, retries=MAX_RETRIES, method='GET',
           data=None, json_data=None, headers_extra=None, session=None):
+    """
+    Executes an HTTP request with built-in retries, custom headers, and backoff delays.
+
+    This function attempts to fetch a given URL using either a provided session or 
+    the standard requests library. It automatically injects browser-like headers 
+    using `get_headers()`. If a request fails, it implements an escalating delay 
+    (linear backoff) before retrying, up to the maximum number of retries.
+
+    Args:
+        url (str): The target URL to fetch.
+        timeout (int, optional): Request timeout in seconds. Defaults to the global TIMEOUT.
+        retries (int, optional): Number of retry attempts upon failure. Defaults to MAX_RETRIES.
+        method (str, optional): The HTTP method to use ('GET' or 'POST'). Defaults to 'GET'.
+        data (dict, optional): Form data to send in the body of a POST request.
+        json_data (dict, optional): JSON data to send in the body of a POST request.
+        headers_extra (dict, optional): Additional HTTP headers to merge with the default ones.
+        session (requests.Session, optional): An existing requests session to use for connection pooling/cookies.
+
+    Returns:
+        requests.Response | None: The response object if successful, or None if all 
+            retries are exhausted or a fatal exception occurs.
+    """
     t = timeout or TIMEOUT
     requester = session if session else requests
     for attempt in range(retries + 1):
@@ -185,15 +231,61 @@ def fetch(url, timeout=None, retries=MAX_RETRIES, method='GET',
                 return None
 
 def extract_domain(url):
+    """
+    Extracts and cleans the root domain from a given URL.
+
+    Parses the provided URL to isolate the network location (netloc), converts 
+    it to lowercase for consistency, and removes any leading 'www.' prefix. This 
+    ensures that URLs like 'https://www.example.com/page' and 'http://example.com' 
+    both resolve to the same standardized base domain ('example.com').
+
+    Args:
+        url (str): The full URL string to process.
+
+    Returns:
+        str: The cleaned, lowercase domain name without the 'www.' prefix.
+    """
     parsed = urllib.parse.urlparse(url)
     domain = parsed.netloc.lower()
     return re.sub(r'^www\.', '', domain)
 
 def extract_base(url):
+    """
+    Extracts the base URL (scheme and domain) from a full URL string.
+
+    Parses the provided URL to isolate the scheme (e.g., 'http' or 'https') 
+    and the network location (e.g., 'www.example.com'). This is particularly 
+    useful for reconstructing absolute URLs when scraping pages that use 
+    relative links for internal resources or API endpoints.
+
+    Args:
+        url (str): The full URL to parse.
+
+    Returns:
+        str: The base URL in the format "scheme://netloc" (e.g., 
+            "https://www.example.com").
+    """
     p = urllib.parse.urlparse(url)
     return f"{p.scheme}://{p.netloc}"
 
 def extract_brand_name(domain):
+    """
+    Attempts to extract the core brand name from a domain string.
+
+    This function uses a heuristic approach by splitting the domain into its 
+    constituent parts (separated by dots). It iterates through these parts and 
+    skips common generic subdomains and Top-Level Domains (TLDs) like 'www', 
+    'shop', 'co', and 'uk'. The first remaining part that is longer than two 
+    characters is returned as the brand name.
+
+    Args:
+        domain (str): The domain string to parse (e.g., 'shop.nike.co.uk').
+
+    Returns:
+        str: The extracted brand name (e.g., 'nike'). If no suitable part is 
+            found, it falls back to returning the first part of the domain, 
+            or the raw domain string itself.
+    """
     parts = domain.split('.')
     skip = {'shop', 'store', 'www', 'us', 'uk', 'en', 'buy', 'get', 'co'}
     for p in parts:
@@ -203,8 +295,26 @@ def extract_brand_name(domain):
 
 def extract_product_info(url, page_text=''):
     """
-    Extract product name, brand and category from ANY store page.
-    Uses JSON-LD structured data, Open Graph tags, page title and URL as fallbacks.
+    Extracts product metadata (name, brand, category, and model) from an e-commerce page.
+
+    This function utilizes a robust cascade of fallback methods to parse the page, 
+    ensuring maximum compatibility across different store platforms:
+    1. JSON-LD structured data (most reliable, standard for modern e-commerce).
+    2. Open Graph (`og:title`) and Twitter card meta tags.
+    3. Standard HTML `<title>` tags.
+    4. Common CSS selectors for product headings (e.g., 'h1', '.product-title').
+    5. Brand inference (assumes the first word of the product name is the brand).
+    6. Model number extraction via regex against the URL and product name.
+
+    Args:
+        url (str): The full URL of the product page.
+        page_text (str, optional): Pre-fetched raw HTML of the page. If omitted, 
+            the function will attempt to fetch the HTML automatically.
+
+    Returns:
+        dict: A dictionary containing the extracted data with keys:
+            'product_name', 'product_brand', 'category', and 'model'. Missing 
+            values will be represented as empty strings.
     """
     info = {'product_name': '', 'product_brand': '', 'category': '', 'model': ''}
 
@@ -300,8 +410,26 @@ CATEGORY_KEYWORDS = {
 
 def filter_codes_by_product(codes, product_info):
     """
-    Score every code by relevance to the specific product.
-    Returns (relevant, neutral, irrelevant) lists.
+    Evaluates and categorizes discount codes based on their relevance to a specific product.
+
+    This function calculates a relevance score for each code using a heuristic point system:
+    - Strong Positive (+5): Code contains the brand name or its abbreviation (e.g., 'SAM' for Samsung).
+    - Positive (+3): Code contains a keyword matching the product's detected category.
+    - Negative (-3): Code contains a keyword belonging to a clearly different category.
+    - Neutral Boost (+1): Code contains generic discount terminology with numbers (e.g., 'SAVE20', '10OFF').
+
+    Based on the final score, codes are segregated into three distinct buckets.
+
+    Args:
+        codes (list of str): A list of raw discount codes to be evaluated.
+        product_info (dict): A dictionary containing metadata about the target product. 
+            Expected keys include 'product_name', 'product_brand', and 'category'.
+
+    Returns:
+        tuple: A 3-tuple containing lists of strings:
+            - relevant (list of str): Codes with a score > 0, sorted descending by score.
+            - neutral (list of str): Codes with a score of exactly 0.
+            - irrelevant (list of str): Codes with a score < 0.
     """
     product_name = product_info.get('product_name', '').upper()
     product_brand = product_info.get('product_brand', '').upper()
@@ -377,6 +505,28 @@ def filter_codes_by_product(codes, product_info):
 
 
 def clean_codes(codes):
+    """
+    Sanitizes, filters, and deduplicates a raw list of scraped discount codes.
+
+    This function processes a list of strings through a strict set of rules to 
+    weed out false positives (like common English words, pure numbers, or analytics tags). 
+    It ensures uniqueness while preserving the original discovery order by using an `OrderedDict`.
+
+    Filtering criteria for a valid code:
+    - Must be between MIN_CODE_LENGTH and 20 characters long.
+    - Cannot be a Google Tag Manager ID (e.g., 'GTM-XXXX').
+    - Cannot be in the predefined `JUNK_CODES` blacklist.
+    - Cannot consist entirely of numbers.
+    - Must contain at least one alphabetical letter.
+    - Must either contain at least one digit OR be at least 6 characters long 
+      (to filter out short, capitalized English words that slip past the blacklist).
+
+    Args:
+        codes (list of str): The raw list of strings extracted from web elements or regex.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid, uppercase discount codes.
+    """
     seen = OrderedDict()
     for c in codes:
         c = c.strip().upper()
@@ -394,6 +544,22 @@ def clean_codes(codes):
     return list(seen.keys())
 
 def find_codes_in_text(text):
+    """
+    Extracts potential discount codes from a block of plain text using regular expressions.
+
+    This function iterates through a globally defined list of strict regex patterns 
+    (`CODE_PATTERNS`). These patterns are designed to look for context clues—such as 
+    "use code", "coupon:", or "save 20% with"—to accurately capture the actual discount 
+    code nearby while ignoring random strings. The search is case-insensitive.
+
+    Args:
+        text (str): The string content to parse. This could be raw HTML text, a JSON 
+            snippet, or a paragraph from a webpage.
+
+    Returns:
+        list of str: A raw list of matched code strings. Note that this list may 
+            contain duplicates or junk codes until it is passed through `clean_codes()`.
+    """
     codes = []
     for pattern in CODE_PATTERNS:
         matches = re.findall(pattern, text, re.IGNORECASE)
@@ -401,6 +567,24 @@ def find_codes_in_text(text):
     return codes
 
 def score_code(code):
+    """
+    Calculates a baseline heuristic score for a standalone discount code.
+
+    This function evaluates a code based on common promotional patterns to 
+    determine its likelihood of being a genuine, usable discount code. It 
+    awards points based on the following criteria:
+    - +3 points for each promotional keyword found (e.g., 'SAVE', 'FREE', 'VIP').
+    - +2 points if the code contains at least one numeric digit.
+    - +1 point if the code's length is within the typical "sweet spot" for 
+      coupons (between 4 and 15 characters).
+
+    Args:
+        code (str): The discount code string to evaluate.
+
+    Returns:
+        int: The total calculated heuristic score for the code. Higher scores 
+            indicate a higher probability of the string being a real promo code.
+    """
     score = 0
     keywords = ['SAVE', 'OFF', 'FREE', 'DEAL', 'PROMO', 'CODE', 'COUPON',
                 'DISCOUNT', 'FIRST', 'WELCOME', 'NEW', 'VIP', 'EXTRA', 'FLASH']
@@ -414,7 +598,29 @@ def score_code(code):
     return score
 
 def extract_codes_from_html(html):
-    """Extract codes from rendered HTML using both selectors and patterns."""
+    """
+    Extracts potential discount codes from rendered HTML using targeted CSS selectors and regex.
+
+    This function employs a two-pronged approach to find codes within a webpage:
+    1. DOM Element Targeting: It uses BeautifulSoup to hunt for specific HTML attributes 
+       (e.g., 'data-clipboard-text', 'data-coupon') and class/tag combinations (e.g., 
+       'input[readonly]', '.promo-code') commonly used by e-commerce platforms to store 
+       and display discount codes.
+    2. Broad Regex Sweep: It parses the combined text and attributes of those targeted 
+       elements, as well as the entire raw HTML document, using `find_codes_in_text()` 
+       to catch any inline codes that don't sit inside neatly predictable containers.
+
+    All extracted candidates are finally passed through `clean_codes()` for strict 
+    validation and deduplication.
+
+    Args:
+        html (str): The raw or rendered HTML string to parse. Null bytes and 
+            problematic characters are automatically stripped before parsing.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid discount codes extracted 
+            from the HTML structure.
+    """
     if not html or not isinstance(html, str):
         return []
     # Strip null bytes and other problematic chars
@@ -457,6 +663,24 @@ def extract_codes_from_html(html):
 
 #  PLATFORM DETECTION
 def detect_platform(base_url, page_text=''):
+    """
+    Attempts to identify the underlying e-commerce platform of a store.
+
+    This function uses a two-step fingerprinting approach. First, it actively probes 
+    for Shopify by requesting the standard `/cart.js` endpoint. If that fails or 
+    returns unexpected data, it falls back to passively scanning the provided HTML 
+    source text for common platform-specific signatures (like 'wc-ajax' for 
+    WooCommerce or 'mage/' for Magento).
+
+    Args:
+        base_url (str): The root URL of the store (e.g., 'https://www.example.com').
+        page_text (str, optional): The raw HTML string of the store's page to scan 
+            for keywords. Defaults to an empty string.
+
+    Returns:
+        str: The name of the detected platform ('shopify', 'woocommerce', 'magento', 
+            'bigcommerce'). Returns 'unknown' if no recognizable signatures are found.
+    """
     resp = fetch(f"{base_url}/cart.js", timeout=6)
     if resp and resp.status_code == 200:
         try:
@@ -507,7 +731,25 @@ STORE_OWN_PAGES = {
 }
 
 def scrape_store_own_pages(domain, brand):
-    """Scrape the store's own voucher/offers pages — most reliable source."""
+    """
+    Scrapes a store's official voucher or offers pages for first-party discount codes.
+
+    This function acts as the most reliable source of working codes. It looks up the 
+    provided brand in a predefined mapping (`STORE_OWN_PAGES`) of known official 
+    promotional URLs (e.g., 'argos.co.uk/events/voucher-discount-codes'). It then 
+    fetches the HTML for each page and passes it through both DOM-targeted extraction 
+    and raw regex sweeps to capture any advertised codes.
+
+    Args:
+        domain (str): The target e-commerce domain (provided for API consistency, 
+            though primarily the `brand` is used here).
+        brand (str): The brand name used to look up specific offer URLs.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of valid discount codes found 
+            directly on the retailer's official pages. Returns an empty list if 
+            the brand is not in the predefined mapping.
+    """
     pages = STORE_OWN_PAGES.get(brand, [])
     if not pages:
         return []
@@ -536,7 +778,24 @@ def scrape_store_own_pages(domain, brand):
 
 
 def scrape_coupon_sites_playwright(domain, brand):
-    """Use a real browser to scrape coupon sites — handles JS-rendered codes."""
+    """
+    Scrapes coupon aggregator sites using a headless Playwright browser.
+
+    This function is designed to handle modern, JavaScript-rendered websites 
+    where discount codes are hidden behind interactive elements. It programmatically 
+    navigates to known coupon sources, attempts to dismiss cookie consent banners, 
+    and simulates clicks on "Reveal Code" or "Show Voucher" buttons to force the 
+    DOM to render the codes. It then extracts these codes from the fully rendered 
+    HTML, specifically targeting hidden clipboard attributes and read-only inputs.
+
+    Args:
+        domain (str): The target e-commerce domain (e.g., 'asos.com').
+        brand (str): The extracted brand name used to construct the search URLs.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of scraped discount codes. Returns 
+            an empty list if no codes are found or if the scraping process fails.
+    """
     print(f"\n[1] Scraping coupon sites with browser (JS-rendered): {domain}")
     all_codes = []
 
@@ -676,7 +935,21 @@ def scrape_coupon_sites_playwright(domain, brand):
     return clean_codes(all_codes)
 
 def scrape_coupon_sites_requests(domain, brand):
-    """Fallback: scrape coupon sites with plain requests (less effective)."""
+    """
+    Scrapes coupon aggregator sites using standard HTTP requests (Fallback Method).
+
+    This acts as a lightweight alternative to `scrape_coupon_sites_playwright()` 
+    when a headless browser is unavailable. It is generally less effective because 
+    it cannot execute JavaScript or bypass interactive cookie consent banners, 
+    but it will still catch hardcoded or server-side rendered codes.
+
+    Args:
+        domain (str): The target e-commerce domain.
+        brand (str): The extracted brand name for URL formatting.
+
+    Returns:
+        list of str: A cleaned, deduplicated list of scraped discount codes.
+    """
     print(f"\n[1] Scraping coupon sites (requests fallback): {domain}")
     all_codes = []
 
@@ -698,6 +971,23 @@ def scrape_coupon_sites_requests(domain, brand):
 
 #  SOURCE 2 — Google search
 def google_search_codes(domain, brand, product_title=''):
+    """
+    Searches Google for live, current-year discount codes for the specific brand/product.
+
+    Constructs targeted search queries using the brand, current year, and optionally 
+    the product category (extracted from the title). It fetches the Google search 
+    results page and scrapes both the visible snippet cards and the raw HTML for 
+    potential codes.
+
+    Args:
+        domain (str): The store domain.
+        brand (str): The store brand name.
+        product_title (str, optional): The name of the product. Used to extract 
+            category keywords to make the Google search more specific.
+
+    Returns:
+        list of str: A cleaned list of codes found in Google search snippets.
+    """
     print(f"\n[2] Google-searching for live codes: {brand}")
     year = time.strftime("%Y")
 
@@ -741,6 +1031,23 @@ def google_search_codes(domain, brand, product_title=''):
 
 #  SOURCE 3 — Product page & JS bundles
 def scrape_product_page(url):
+    """
+    Scans the target product page and its linked JavaScript bundles for embedded codes.
+
+    Retailers sometimes embed active promo codes directly into the page's HTML or 
+    within their frontend JavaScript bundles (e.g., for pop-ups or dynamic banners). 
+    This function fetches the main page text and the first few internal JS files 
+    to sweep for hidden codes.
+
+    Args:
+        url (str): The exact URL of the product page being scraped.
+
+    Returns:
+        tuple: A 2-tuple containing:
+            - list of str: Cleaned discount codes found on the page or in JS bundles.
+            - str: The raw HTML text of the main product page (useful for downstream 
+              platform detection).
+    """
     print(f"\n[3] Scanning product page for embedded codes...")
     resp = fetch(url)
     if not resp:
@@ -775,9 +1082,27 @@ def scrape_product_page(url):
 #  VERIFICATION — Playwright (real browser)
 def rank_codes_with_ai(codes, product_info, domain, product_url=''):
     """
-    Use Gemini API to rank codes by relevance to the specific product.
-    Reads GEMINI_API_KEY from .env file or environment variable.
-    Returns list of dicts: [{code, reason, confidence}]
+    Leverages the Gemini AI API to semantically rank discount codes by product relevance.
+
+    This function constructs a strict prompt using the extracted product context 
+    (name, brand, category, and URL slug). It asks the LLM to evaluate the scraped 
+    codes against specific rules (e.g., brand name matches, category abbreviations) 
+    and categorize the top 5 into 'high', 'medium', or 'low' confidence tiers. 
+    It also includes safety logic to salvage and parse truncated JSON arrays if 
+    the API response cuts off unexpectedly.
+
+    Args:
+        codes (list of str): The aggregated list of cleaned discount codes.
+        product_info (dict): Extracted product metadata (name, brand, category).
+        domain (str): The target e-commerce store domain.
+        product_url (str, optional): The full URL of the product, used as a reliable 
+            fallback to extract context from the URL slug.
+
+    Returns:
+        list of dict | None: A parsed JSON array of dictionaries, where each dict 
+            contains 'code', 'confidence', and a short 'reason' for the ranking. 
+            Returns None if the API key is missing, the request fails, or the JSON 
+            cannot be parsed.
     """
     api_key = os.environ.get('GEMINI_API_KEY', '')
     if not api_key:
@@ -861,6 +1186,31 @@ Return ONLY a JSON array of the top 5, no markdown, no extra text:
 
 
 def aggregate_and_rank(all_code_lists, product_info=None):
+    """
+    Aggregates discount codes from multiple sources, tallies their frequencies, and ranks them.
+
+    This function flattens the lists of codes provided by different scraping sources 
+    and calculates how many times each unique code was found. It then ranks the 
+    codes using one of two strategies:
+    1. Contextual Ranking: If product metadata (name or brand) is available, it 
+       uses `filter_codes_by_product()` to group codes into relevant, neutral, 
+       and irrelevant tiers.
+    2. Fallback Scoring: If no product context exists, it sorts the codes descending 
+       based on a combined weight of their frequency (frequency * 2) and their 
+       baseline heuristic score from `score_code()`.
+
+    Args:
+        all_code_lists (list of list of str): A list containing lists of discount 
+            codes extracted from various sources.
+        product_info (dict, optional): Extracted product metadata used for contextual 
+            ranking. Defaults to None.
+
+    Returns:
+        tuple: A 2-tuple containing:
+            - ranked (list of str): The aggregated, deduplicated codes sorted by relevance.
+            - freq (dict): A dictionary mapping each code (str) to the number of 
+              sources (int) that found it.
+    """
     freq = {}
     for codes in all_code_lists:
         for code in codes:
@@ -878,6 +1228,29 @@ def aggregate_and_rank(all_code_lists, product_info=None):
 
 
 def print_results(ranked, freq, url, ai_ranked=None, output_file=None, product_info=None):
+    """
+    Formats and outputs the final discount code results to the console or a file.
+
+    This function generates a clean, readable summary report of the scraping session. 
+    It dynamically adjusts its display format based on the available data:
+    - If AI ranking was successful, it displays the top codes using confidence 
+      indicators (🟢 High, 🟡 Medium, 🔴 Low) along with the AI's reasoning.
+    - If AI ranking failed or was skipped, it falls back to a basic ranking display, 
+      using a star system (★ to ★★★) based on how many sources found the code.
+    
+    It also handles writing this formatted report to disk if an output file is specified.
+
+    Args:
+        ranked (list of str): The fallback list of codes, ranked by baseline heuristics.
+        freq (dict): A dictionary mapping each code to the number of sources that found it.
+        url (str): The target product URL scraped.
+        ai_ranked (list of dict, optional): The AI-generated ranking data containing 
+            'code', 'confidence', and 'reason'. Defaults to None.
+        output_file (str, optional): A valid file path to save the text report. 
+            Defaults to None.
+        product_info (dict, optional): Extracted product metadata ('product_name', 
+            'product_brand') to include in the report header. Defaults to None.
+    """
     sep = "=" * 60
     product_name  = (product_info or {}).get('product_name', '')
     product_brand = (product_info or {}).get('product_brand', '')
@@ -920,8 +1293,34 @@ def print_results(ranked, freq, url, ai_ranked=None, output_file=None, product_i
 
 def find_and_rank_codes(url='', store='', title='', skip_google=False, use_browser=True):
     """
-    Main entry point for both CLI and API use.
-    Returns a list of dicts: [{code, confidence, reason}, ...]
+    Main entry point for discovering, aggregating, and ranking discount codes for a specific store or product.
+
+    This function orchestrates a multi-source search strategy (store pages, coupon aggregators, 
+    search engines, and JS bundles) to find promotional codes. It then cleans, 
+    deduplicates, and uses AI to rank them based on their likelihood of success 
+    for the provided product context.
+
+    Args:
+        url (str, optional): The URL of the product or store page. If a Google redirect 
+            URL or empty string is provided, the function attempts to construct a 
+            URL using the `store` parameter. Defaults to ''.
+        store (str, optional): The name of the store (e.g., 'Nike' or 'ASOS'). Used 
+            as a fallback to generate a URL if the `url` parameter is missing or 
+            invalid. Defaults to ''.
+        title (str, optional): The specific product title. Used to provide context 
+            for AI ranking and to refine search queries. Defaults to ''.
+        skip_google (bool, optional): If True, bypasses the Google Search API/scraping 
+            source to reduce latency or avoid rate limits. Defaults to False.
+        use_browser (bool, optional): If True and Playwright is available, uses 
+            a headless browser for scraping dynamic coupon sites. If False, 
+            falls back to standard HTTP requests. Defaults to True.
+
+    Returns:
+        list[dict]: A list of ranked results. Each dictionary contains:
+            - 'code' (str): The discount/promo code found.
+            - 'confidence' (str): AI-determined confidence level (e.g., 'high', 'medium').
+            - 'reason' (str): A brief explanation of why the code was ranked this way.
+            Returns an empty list if no codes are discovered.
     """
     # Resolve URL — if Google redirect or missing, build from store name
     if not url or 'google.com' in url:
@@ -984,6 +1383,19 @@ def find_and_rank_codes(url='', store='', title='', skip_google=False, use_brows
 
 
 def main():
+    """
+    CLI entry point for the discount code discovery script.
+
+    This function handles:
+    1. Command-line argument parsing (URL, timeout, output paths, and flags).
+    2. Global configuration updates (e.g., setting the global TIMEOUT).
+    3. Input cleaning and basic domain/brand resolution for logging.
+    4. Orchestrating the discovery process by calling find_and_rank_codes.
+    5. Formatting and displaying/saving results via print_results.
+
+    Side Effects:
+        Updates the global TIMEOUT variable based on user input.
+    """
     global TIMEOUT
 
     parser = argparse.ArgumentParser(

@@ -3,7 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { User, Clock, LogOut, Sun, Moon, HelpCircle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
+/**
+ * The Home page component.
+ * Serves as the primary landing page and search interface for the application.
+ * * @component
+ * @description
+ * Features a central search engine that accepts product names or direct URLs. 
+ * Includes a responsive navigation bar with theme toggling and a conditional 
+ * profile menu that previews the user's most recent search history.
+ * * @returns {JSX.Element} The rendered Home page.
+ */
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
