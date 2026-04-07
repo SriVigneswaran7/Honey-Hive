@@ -103,7 +103,7 @@ def parse_input(input_list):
         print(f"AI Optimisation failed: {e}") 
         return context_text
         
-
+# [AI Assist: Ref 1] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def unified_search(user_input: str, min_price: float = None, max_price: float = None):
     """
     Searches Google Shopping for product listings and competitors, applying strict price filters.
