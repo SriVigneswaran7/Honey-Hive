@@ -184,6 +184,7 @@ async def get_trust(request: Request):
     return {"trust_scores": trust_scores}
 
 # Auth Routes (Login/Signup)
+# [AI Assist: Ref 11] - See docs/GenAI-Reflection.md for prompt and architectural review.
 class LoginRequest(BaseModel):
    email: str
    password: str
