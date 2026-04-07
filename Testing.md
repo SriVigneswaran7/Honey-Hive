@@ -73,7 +73,6 @@ Validating the integration between `Comparison.tsx` and the `/api/trust` endpoin
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FCT-06** | Array Length Constraints | Click the "+" button on 3 different products in `Results.tsx`. | The state array strictly enforces a length of 2. Adding a 3rd item removes the oldest item from the array (FIFO). | Array maintains exactly 2 items; UI prevents over-cluttering. | ✅ Pass |
 | **FCT-07** | AI Trust Evaluation | Open Compare Modal with two distinct stores (e.g., "Amazon" and "UnknownTech"). | UI enters a loading state (`isComparingLoading`); API calls Gemini to evaluate trust; returns JSON mapping of 'High', 'Moderate', or 'Low'. | UI dynamically renders green/amber/red trust badges based on AI payload. | ✅ Pass |
-| **FCT-08** | Live Coupon Scraper (OOM) | Execute coupon search via UI in the live deployment (Render). | Playwright engine exceeds 512MB free-tier RAM limit; triggers an Out-Of-Memory (OOM) crash. | UI handles API timeout gracefully; accepted constraint to maintain zero-cost hosting for prototype. | ⚠️ Env Limit |
 
 ### 2.4. Live Coupon Engine
 Validating the `Coupons.tsx` modal and clipboard APIs.
@@ -82,6 +81,7 @@ Validating the `Coupons.tsx` modal and clipboard APIs.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FCT-08** | No Coupons Found | Click "Find Discount Codes" on a store with no active codes. | Modal displays a loading spinner, then degrades gracefully to a "No codes found right now" message instead of an empty list. | Graceful UI degradation works correctly. | ✅ Pass |
 | **FCT-09** | Clipboard API Execution | Click "Copy" on a fetched discount code inside the modal. | `navigator.clipboard.writeText` executes; button turns green and text changes to "Copied!"; reverts after 2 seconds. | Code copies to system clipboard; UI feedback works perfectly. | ✅ Pass |
+| **FCT-10** | Live Coupon Scraper (OOM) | Execute coupon search via UI in the live deployment (Render). | Playwright engine exceeds 512MB free-tier RAM limit; triggers an Out-Of-Memory (OOM) crash. | UI handles API timeout gracefully; accepted constraint to maintain zero-cost hosting for prototype. | ⚠️ Env Limit |
 
 ---
 
@@ -95,7 +95,7 @@ During functional testing, we encountered architectural decisions that required 
    * *Observation (FCT-03):* We rely on `localStorage.getItem('isLoggedIn')` to manage frontend routing guards.
    * *Trade-off:* While this is highly performant and stateless, it is technically susceptible to simple manipulation (a user manually setting the key in DevTools). Since our backend endpoints (like `/auth/history`) still validate the actual user email before returning sensitive data, we accepted this frontend limitation to keep the architecture streamlined and avoid the overhead of implementing HTTP-only refresh cookies for this coursework prototype.
 3. **Live Deployment Coupon Scraper Constraints:**
-   * *Observation (FCT-05):* The automated coupon scraper fails to execute in the live deployment environment, despite functioning perfectly during local development.
+   * *Observation (FCT-10):* The automated coupon scraper fails to execute in the live deployment environment, despite functioning perfectly during local development.
    * *Trade-off:* The custom headless browser engine (Playwright) requires significant system resources to spin up Chromium instances, navigate Client-Side Rendering (CSR), and bypass cookie banners. Our live backend is deployed on a Render free-tier instance, which imposes a strict 512 MB RAM limit. This hard constraint leads to out-of-memory (OOM) crashes when the heavy scraping process is triggered. We accepted this limitation to maintain zero-cost cloud hosting for the coursework prototype, prioritizing a free, accessible demonstration of the core architecture over upgrading to a paid tier for full live environment parity.
 # Security Testing & Vulnerability Assessment
 
