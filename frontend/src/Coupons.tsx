@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Tag, Copy } from 'lucide-react';
-
+/**
+ * A modal component that fetches and displays discount codes for a specific product.
+ * Uses a React Portal to render at the document body level to avoid CSS clipping issues.
+ * * @component
+ * @param {Object} props - The component props.
+ * @param {Object} props.product - The product object to find coupons for.
+ * @param {string} props.product.link - The direct URL to the product.
+ * @param {string} props.product.store - The name of the merchant/store.
+ * @param {string} props.product.title - The display title of the product.
+ * @param {string} props.product.thumbnail - URL for the product image.
+ * @param {function(): void} props.onClose - Callback function to trigger when closing the modal.
+ * * @returns {JSX.Element} A portal-mounted modal overlay.
+ */
 // Coupon Modal Component
 const CouponModal = ({ product, onClose }: any) => {
   const [codes, setCodes] = useState<any[]>([]);
