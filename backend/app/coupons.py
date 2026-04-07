@@ -776,7 +776,7 @@ def scrape_store_own_pages(domain, brand):
 
     return clean_codes(all_codes)
 
-
+# [AI Assist: Ref 8] - See docs/GenAI-Reflection.md for prompt and architectural review.
 def scrape_coupon_sites_playwright(domain, brand):
     """
     Scrapes coupon aggregator sites using a headless Playwright browser.
