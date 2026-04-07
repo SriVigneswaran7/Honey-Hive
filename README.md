@@ -170,18 +170,21 @@ npm run dev
 
 ```text
 elee1149-courswork-2025-hive/
-├── .github/                # GitHub metadata and keep files
+├── .github/                # GitHub actions and metadata
 ├── assets/                 # SVGs and Screenshots for documentation
 ├── backend/                # Python/FastAPI Application
-│   ├── app/                # API routes, models, and scraper logic
-│   ├── honeyhive.db        # SQLite Database
-│   ├── requirements.txt    # Backend dependencies
-│   └── run.py              # Backend entry point
+│   ├── app/                # API routes, auth, AI models, and scraper logic
+│   ├── docs/python-dist/   # Generated pdoc HTML technical documentation
+│   ├── honeyhive.db        # Local SQLite Database
+│   ├── requirements.txt    # Backend Python dependencies
+│   └── run.py              # Backend server entry point
 ├── frontend/               # React/Vite Application
-│   ├── src/                # UI Components and Logic
-│   ├── .npmrc              # Dependency resolution config
+│   ├── docs/ts-dist/       # Generated TypeDoc HTML UI documentation
+│   ├── src/                # React UI Components and client-side logic
+│   ├── .vercel/            # Vercel deployment configuration
+│   ├── .env.example        # Environment variables template
 │   ├── index.html          # HTML entry point
-│   ├── package.json        # Frontend dependencies
+│   ├── package.json        # Frontend dependencies and build scripts
 │   └── tailwind.config.js  # UI Theme configuration
 ├── .gitignore              # Version control ignore rules
 ├── CHANGELOG.md            # Version history and semantic commits
@@ -189,6 +192,7 @@ elee1149-courswork-2025-hive/
 ├── LICENSE                 # Project License
 ├── README.md               # Project README
 ├── Requirements.md         # Requirements Specification
+├── SoftwareLifecycle.md    # Agile SDLC and sprint reflections
 ├── SystemModelling.md      # UML diagrams & Architectural decisions
 ├── Testing.md              # Test plans and validation results
 └── Workflow.md             # Development workflow and commit strategy
