@@ -274,6 +274,7 @@ def run_extraction(link, min_price=None, max_price=None):
         original_product = None
         
         # 1. Amazon Specific Logic
+        # [AI Assist: Ref 5] - See docs/GenAI-Reflection.md for prompt and architectural review.
         if "amazon" in link.lower():
             print("[LOG] Amazon link detected. Prioritizing Amazon Product API.", flush=True)
             asin_match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', link, re.IGNORECASE)
