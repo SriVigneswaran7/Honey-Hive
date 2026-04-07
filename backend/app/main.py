@@ -255,6 +255,27 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
 # History Route
 @app.get("/auth/history")
 def get_history(email: str, db: Session = Depends(get_db)):
+    """
+    Retrieves the search history for a specific user.
+
+    This endpoint queries the database for a user by their email address and 
+    fetches all of their previously logged search queries. It formats the history 
+    into a list of dictionaries, displaying the product title (if a snapshot was 
+    successfully saved) or the raw URL, along with the date of the search. The 
+    results are returned in reverse chronological order (newest first).
+
+    Args:
+        email (str): The email address of the user requesting their history.
+        db (Session, optional): The database session injected via dependency.
+
+    Returns:
+        dict: A dictionary containing a 'history' key, which maps to a list of 
+              history item dictionaries. Each item includes:
+              - 'id' (int): The unique identifier for the history entry.
+              - 'query' (str): The product title or URL searched.
+              - 'date' (str): The formatted date the search was performed (YYYY-MM-DD).
+              - 'dealsFound' (int): Placeholder for the number of deals discovered (currently 1).
+    """
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return {"history": []}
