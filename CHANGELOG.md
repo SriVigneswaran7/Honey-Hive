@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Versioning.
 
+## [1.2.0] - 2026-04-07
+### Added
+- **Live Technical Documentation:** Configured `TypeDoc` and `pdoc` to generate comprehensive static HTML documentation for both the React frontend and FastAPI backend, deployed securely via GitHub Pages.
+- **Inline Codebase Documentation:** Implemented extensive JSDoc comments across all frontend UI components and Google-style docstrings across backend routing, extraction logic, and AI orchestration scripts.
+- **Agile Lifecycle Records:** Added `SoftwareLifecycle.md` to document sprint reflections, team dynamics, and SDLC progression.
+- **UI Component Sandbox:** Integrated Storybook for isolated frontend component testing and visualisation.
+
+### Changed
+- **Dependency Parity:** Appended documentation generators (`pdoc`) to the backend `requirements.txt` to ensure 1:1 environment replication for future developers.
+- **README Finalisation:** Updated the project structure tree, added live GitHub Pages documentation badges, and refined the Table of Contents for the final repository handoff.
+- **GenAI Reflection Finalisation:** Completed a massive 24-part integration detailing the complete AI usage reflection, engineering evaluation, and prompt history.
+
+### Fixed
+- **Deployment Blocker:** Resolved a critical Python `IndentationError` in the `main.py` application entry point and `search.py` caused by misaligned docstring implementations, restoring the Render API production deployment.
+
 ## [1.1.0] - 2026-04-06
 ### Added
 - **SVG Modelling Assets:** Replaced code-based Mermaid diagrams with high-fidelity SVG assets for **System Architecture**, **Sequence Flows**, and **ER Data Modelling** to ensure visual stability.
