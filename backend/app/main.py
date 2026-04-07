@@ -70,6 +70,27 @@ def root():
 # Unified Search Route
 @app.get("/api/search")
 async def search(q: str, user_email: str = None, min_price: float = None, max_price: float = None, db: Session = Depends(get_db)):
+    """
+    Executes a product search and optionally saves the query to the user's history.
+
+    This asynchronous endpoint acts as the primary search handler. It intelligently 
+    routes the query: if a URL is provided, it attempts to extract the specific 
+    product details; if raw text is provided, it optimizes the query and performs 
+    a unified shopping search. If an authenticated user's email is provided, 
+    the top result is successfully saved to their database history for future reference.
+
+    Args:
+        q (str): The search query, which can be a direct product URL or a text string.
+        user_email (str, optional): The email of the logged-in user. If provided, 
+            the search is saved to their account. Defaults to None.
+        min_price (float, optional): The minimum price threshold for results. Defaults to None.
+        max_price (float, optional): The maximum price threshold for results. Defaults to None.
+        db (Session, optional): The database session injected via dependency.
+
+    Returns:
+        dict: A dictionary containing a 'shopping_results' key, which maps to a 
+              list of product result dictionaries.
+    """
     print(f"[API] Search requested: '{q}' | User: {user_email or 'Guest'}")
     
     # 1. If it's a URL (Amazon, Currys, Argos, Temu, ANY link)
@@ -113,6 +134,23 @@ async def search(q: str, user_email: str = None, min_price: float = None, max_pr
 # AI Review and Trust Routes
 @app.post("/api/review")
 async def review(request: Request):
+    """
+    Generates an AI-powered review and insights summary for a given product.
+
+    This asynchronous endpoint accepts a JSON payload containing a product title, 
+    invokes the AI insight generator to fetch technical reviews and specifications, 
+    and returns a structured breakdown. It also safely handles the extraction 
+    of associated coupons if they exist in the insights data.
+
+    Args:
+        request (Request): The incoming HTTP request containing the JSON payload. 
+            Expected to contain a 'productTitle' string.
+
+    Returns:
+        dict: A dictionary containing the generated analysis:
+            - 'insights' (dict): The AI-generated summary, pros, and cons.
+            - 'coupons' (list): A list of discovered coupons (defaults to an empty list).
+    """
     data = await request.json()
     product_title = data.get("productTitle")
     print(f"[API] Generating AI review for: {product_title[:30]}...")
