@@ -1,17 +1,29 @@
 # Honey-Hive
 *A decoupled full-stack architecture leveraging Large Language Models (LLMs) and automated browser orchestration for real-time market data synthesis and multi-retailer price optimisation.*
 
+![React](https://img.shields.io/badge/UI-React-61DAFB.svg)
+![TypeScript](https://img.shields.io/badge/Code-TypeScript-3178C6.svg)
+![Vite](https://img.shields.io/badge/Build-Vite-646CFF.svg)
+![Tailwind](https://img.shields.io/badge/CSS-Tailwind-38B2AC.svg)
+![Python](https://img.shields.io/badge/Lang-Python-3776AB.svg)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)
+![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy-D71F00.svg)
+![SQLite](https://img.shields.io/badge/DB-SQLite-003B57.svg)
+![Gemini](https://img.shields.io/badge/LLM-Gemini-8E75C2.svg)
+![SerpApi](https://img.shields.io/badge/Data-SerpApi-4285F4.svg)
+![Playwright](https://img.shields.io/badge/Bot-Playwright-2EAD33.svg)
+
 ## Live Deployment
-[![Live Demo](https://img.shields.io/badge/Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://honey-hive-frontend.vercel.app/)
-[![API Status](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render)](https://honey-hive-api.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Demo-Vercel-black.svg)](https://honey-hive-frontend.vercel.app/)
+[![API Status](https://img.shields.io/badge/API-Render-46E3B7.svg)](https://honey-hive-api.onrender.com)
 
 > **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Live Demo (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
 > 
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
 ## Documentation
-[![Frontend Docs](https://img.shields.io/badge/Docs-Frontend_UI-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html)
-[![Backend Docs](https://img.shields.io/badge/Docs-Backend_API-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
+[![Frontend Docs](https://img.shields.io/badge/Docs-Frontend_UI-3178C6.svg)](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html)
+[![Backend Docs](https://img.shields.io/badge/Docs-Backend_API-3776AB.svg)](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
 
 > **Note:** **Click the badges above** to access the live, auto-generated technical documentation hosted securely via GitHub Pages. 
 >
@@ -19,25 +31,6 @@
 > * **Backend Docs (Python):** Explores the FastAPI endpoints, SQLite database schemas, AI orchestration, and extraction logic.
 >
 > *Alternatively, you can use these direct links:* [Frontend UI Docs](https://fantastic-guide-92jj8p4.pages.github.io/frontend/docs/ts-dist/index.html) | [Backend API Docs](https://fantastic-guide-92jj8p4.pages.github.io/backend/docs/python-dist/index.html)
-
-## Honey-Hive Tech Stack
-
-### *Frontend*
-![React](https://img.shields.io/badge/UI-REACT-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/CODE-TS-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/BUILD-VITE-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Tailwind](https://img.shields.io/badge/CSS-TAILWIND-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-
-### *Backend*
-![Python](https://img.shields.io/badge/LANG-PYTHON-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/API-FASTAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/ORM-SQLALCHEMY-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
-![SQLite](https://img.shields.io/badge/DB-SQLITE-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-
-### *Data & AI*
-![Gemini](https://img.shields.io/badge/LLM-GEMINI-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)
-![SerpApi](https://img.shields.io/badge/DATA-SERPAPI-4285F4?style=for-the-badge&logo=google&logoColor=white)
-![Playwright](https://img.shields.io/badge/BOT-PLAYWRIGHT-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
 ## Table of Contents
 
@@ -243,13 +236,13 @@ A meticulous record of all structural changes, feature merges, and bug fixes is 
 
 ## Contributors
 
-| Contributor | Student ID | Contribution |
-| :--- | :--- | :--- |
-| **SriVigneswaran7** | 001419849 | Architected and developed the entire React frontend, including all core UI views, the dynamic Battle Mode comparison engine, and the complete client-server JSON API integration across all screens. Integrated the SQLite persistence layer and developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI alongside a custom server-side Price Interceptor. Managed dual-environment routing for cloud deployments. Authored and directed the end-to-end SDLC documentation, generating live static technical websites (pdoc/TypeDoc) and finalising all requirements, system models, Git workflows, release changelogs, and the project README. |
-| **Ketchup256** | 001371538| Developed the backend extraction logic and assisted in the development of search logic as well as Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy and  Code Documentation. With addition to security testing and resolving application vulnerabilities. |
-| **Hachem512** | 001352446 | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
-| **vez767** | 001416539 | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
-| **brahemrifi9** | 001390181 | Assisted with initial drafts of System Modelling and context generation for the project README. |
+| Username | Contribution |
+| :--- | :--- |
+| **SriVigneswaran7** | Architected and developed the entire React frontend, including all core UI views, the dynamic Battle Mode comparison engine, and the complete client-server JSON API integration across all screens. Integrated the SQLite persistence layer and developed the core backend search engine, orchestrating real-time data via SerpApi and Gemini AI alongside a custom server-side Price Interceptor. Managed dual-environment routing for cloud deployments. Authored and directed the end-to-end SDLC documentation, generating live static technical websites (pdoc/TypeDoc) and finalising all requirements, system models, Git workflows, release changelogs, and the project README. |
+| **Ketchup256** | Developed the backend extraction logic and assisted in the development of search logic as well as Playwright coupon engine. Built the Coupons UI. Authored the Testing Strategy and  Code Documentation. With addition to security testing and resolving application vulnerabilities. |
+| **Hachem512** | Designed and implemented the FastAPI database schema, persistence layer, and SQLAlchemy models for user authentication and history tracking. |
+| **vez767** | Contributed to initial UI prototyping for History and Sign-Up screens. Developed early client-side sorting logic and assisted with frontend-backend integration scaffolding for the said screens. |
+| **brahemrifi9** | Assisted with initial drafts of System Modelling and context generation for the project README. |
 
 ## License
 
