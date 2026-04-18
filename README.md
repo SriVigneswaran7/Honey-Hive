@@ -58,7 +58,7 @@
 
 ## About the Project
 
-**Academic Context:** Originally built as a 5-person group coursework assignment, I served as the Lead Full-Stack Architect for this application. While my teammates assisted with initial UI scaffolding, documentation, and basic database schemas, I was responsible for engineering the core React frontend, the FastAPI routing, the AI/Playwright integrations, and the overarching system architecture.
+**Academic Context:** Originally built as a 5-person group coursework assignment, I served as the Lead Full-Stack Architect for this application. While my teammates assisted with initial UI scaffolding, documentation, and basic database schemas, I was responsible for engineering the core React frontend, the FastAPI routing, the AI integrations, and the overarching system architecture.
 
 **The Vision:** Honey-Hive is a full-stack web application engineered to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budget constraints, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
 
