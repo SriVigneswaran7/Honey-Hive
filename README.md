@@ -1,6 +1,8 @@
 # Honey-Hive
 *A decoupled full-stack architecture leveraging Large Language Models (LLMs) and automated browser orchestration for real-time market data synthesis and multi-retailer price optimisation.*
 
+> **Portfolio Note:** This application was originally developed as a collaborative group project for a Software Engineering module at the University of Greenwich. This repository is a personal portfolio fork showcasing my specific architectural and full-stack contributions as the lead developer of the team.
+
 ![React](https://img.shields.io/badge/UI-React-61DAFB.svg)
 ![TypeScript](https://img.shields.io/badge/Code-TypeScript-3178C6.svg)
 ![Vite](https://img.shields.io/badge/Build-Vite-646CFF.svg)
@@ -18,7 +20,7 @@
 [![API Status](https://img.shields.io/badge/API-Render-46E3B7.svg)](https://honey-hive-api.onrender.com)
 
 > **Note:** **Click the badges above** to access the live environments. Alternatively, you can use these direct links: [Live Demo (Vercel)](https://honey-hive-frontend.vercel.app/) | [API (Render)](https://honey-hive-api.onrender.com). 
-> 
+>
 > The backend is hosted on a Render free instance. If the site has been inactive, the initial request may require up to 30-50 seconds to "spin up" the server.
 
 ## Documentation
@@ -54,6 +56,8 @@
 - [License](#license)
 
 ## About the Project
+
+**Academic Context:** Originally built as a 5-person group coursework assignment, I served as the Lead Full-Stack Architect for this application. While my teammates assisted with initial UI scaffolding, documentation, and basic database schemas, I was responsible for engineering the core React frontend, the FastAPI routing, the AI/Playwright integrations, and the overarching system architecture.
 
 **The Vision:** Honey-Hive is a full-stack web application engineered to streamline the online shopping experience. It aggregates live product data, enforces strict user-defined budget constraints, generates professional technical verdicts, and autonomously scrapes the web for valid discount codes.
 
@@ -247,3 +251,8 @@ A meticulous record of all structural changes, feature merges, and bug fixes is 
 ## License
 
 Distributed under the **MIT License**. See [`LICENSE`](./LICENSE) for more information.
+
+---
+
+*This repository is for portfolio and demonstration purposes only. If you are a student currently enrolled in a similar module, please ensure you adhere to your institution's academic integrity policies before referencing this code.*
+
