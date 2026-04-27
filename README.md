@@ -14,7 +14,7 @@
 
 *A decoupled full-stack architecture leveraging Large Language Models (LLMs) and automated browser orchestration for real-time market data synthesis and multi-retailer price optimisation.*
 
-> **Portfolio Note:** This application was originally developed as a collaborative group project for a Software Engineering module at the University of Greenwich. This repository is a personal portfolio fork showcasing my specific architectural and full-stack contributions as the lead developer of the team.
+> **Portfolio Note:** This application was originally developed as a collaborative group project for a module at the University of Greenwich. This repository is a personal portfolio fork showcasing my specific architectural and full-stack contributions as the lead developer of the team.
 
 ## Live Deployment
 [![Live Demo](https://img.shields.io/badge/Demo-Vercel-black.svg)](https://honey-hive-frontend.vercel.app/)
